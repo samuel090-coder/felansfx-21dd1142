@@ -1,0 +1,221 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth } from "@/hooks/useAuth";
+import { useAppSettings } from "@/hooks/useAppSettings";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { toast } from "sonner";
+import { TrendingUp } from "lucide-react";
+
+const signInSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+const signUpSchema = z.object({
+  fullName: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+type SignInValues = z.infer<typeof signInSchema>;
+type SignUpValues = z.infer<typeof signUpSchema>;
+
+const Auth = () => {
+  const navigate = useNavigate();
+  const { user, loading: authLoading, signIn, signUp } = useAuth();
+  const { settings } = useAppSettings();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const signInForm = useForm<SignInValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  const signUpForm = useForm<SignUpValues>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: { fullName: "", email: "", password: "", confirmPassword: "" },
+  });
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
+  const handleSignIn = async (values: SignInValues) => {
+    setIsSubmitting(true);
+    const { error } = await signIn(values.email, values.password);
+    setIsSubmitting(false);
+
+    if (error) {
+      toast.error(error.message || "Failed to sign in");
+    } else {
+      toast.success("Welcome back!");
+      navigate("/");
+    }
+  };
+
+  const handleSignUp = async (values: SignUpValues) => {
+    setIsSubmitting(true);
+    const { error } = await signUp(values.email, values.password, values.fullName);
+    setIsSubmitting(false);
+
+    if (error) {
+      if (error.message.includes("already registered")) {
+        toast.error("This email is already registered. Please sign in.");
+      } else {
+        toast.error(error.message || "Failed to create account");
+      }
+    } else {
+      toast.success("Account created successfully!");
+      navigate("/");
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-secondary to-background">
+      {/* Logo */}
+      <div className="flex items-center gap-2 mb-8">
+        <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shadow-primary">
+          <TrendingUp className="w-6 h-6 text-white" />
+        </div>
+        <span className="text-2xl font-display font-bold text-foreground">
+          {settings.site_name}
+        </span>
+      </div>
+
+      <Card className="w-full max-w-sm shadow-lg border-0">
+        <Tabs defaultValue="signin" className="w-full">
+          <CardHeader className="pb-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+          </CardHeader>
+
+          <CardContent>
+            <TabsContent value="signin" className="mt-0">
+              <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signin-email">Email</Label>
+                  <Input
+                    id="signin-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    {...signInForm.register("email")}
+                  />
+                  {signInForm.formState.errors.email && (
+                    <p className="text-xs text-destructive">{signInForm.formState.errors.email.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signin-password">Password</Label>
+                  <Input
+                    id="signin-password"
+                    type="password"
+                    placeholder="••••••••"
+                    {...signInForm.register("password")}
+                  />
+                  {signInForm.formState.errors.password && (
+                    <p className="text-xs text-destructive">{signInForm.formState.errors.password.message}</p>
+                  )}
+                </div>
+
+                <Button type="submit" className="w-full gradient-primary" disabled={isSubmitting}>
+                  {isSubmitting ? <LoadingSpinner size="sm" /> : "Sign In"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup" className="mt-0">
+              <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    placeholder="John Doe"
+                    {...signUpForm.register("fullName")}
+                  />
+                  {signUpForm.formState.errors.fullName && (
+                    <p className="text-xs text-destructive">{signUpForm.formState.errors.fullName.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    {...signUpForm.register("email")}
+                  />
+                  {signUpForm.formState.errors.email && (
+                    <p className="text-xs text-destructive">{signUpForm.formState.errors.email.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    {...signUpForm.register("password")}
+                  />
+                  {signUpForm.formState.errors.password && (
+                    <p className="text-xs text-destructive">{signUpForm.formState.errors.password.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-confirm">Confirm Password</Label>
+                  <Input
+                    id="signup-confirm"
+                    type="password"
+                    placeholder="••••••••"
+                    {...signUpForm.register("confirmPassword")}
+                  />
+                  {signUpForm.formState.errors.confirmPassword && (
+                    <p className="text-xs text-destructive">{signUpForm.formState.errors.confirmPassword.message}</p>
+                  )}
+                </div>
+
+                <Button type="submit" className="w-full gradient-primary" disabled={isSubmitting}>
+                  {isSubmitting ? <LoadingSpinner size="sm" /> : "Create Account"}
+                </Button>
+              </form>
+            </TabsContent>
+          </CardContent>
+        </Tabs>
+      </Card>
+
+      <p className="mt-6 text-xs text-muted-foreground text-center max-w-xs">
+        By continuing, you agree to our Terms of Service and Privacy Policy
+      </p>
+    </div>
+  );
+};
+
+export default Auth;

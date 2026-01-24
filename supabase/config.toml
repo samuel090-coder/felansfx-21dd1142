@@ -1,0 +1,4 @@
+project_id = "daqulcthlnmmydhiuvsz"
+
+[functions.analyze-trade]
+verify_jwt = false
