@@ -125,14 +125,14 @@ const Deposit = () => {
     }
 
     const amountNum = parseFloat(amount);
-    // Settings store values in USD, convert to NGN for validation
+    // Settings store values in USD, convert to NGN for validation - round to clean numbers
     const minDepositUSD = parseFloat(settings.min_deposit);
     const maxDepositUSD = parseFloat(settings.max_deposit);
-    const minDepositNGN = convertToNGN(minDepositUSD, "USD");
-    const maxDepositNGN = convertToNGN(maxDepositUSD, "USD");
+    const minDepositNGN = Math.round(convertToNGN(minDepositUSD, "USD") / 100) * 100; // Round to nearest 100
+    const maxDepositNGN = Math.round(convertToNGN(maxDepositUSD, "USD") / 100) * 100;
 
     if (amountNum < minDepositNGN || amountNum > maxDepositNGN) {
-      toast.error(`Amount must be between ${formatCurrency(minDepositNGN, "NGN")} and ${formatCurrency(maxDepositNGN, "NGN")}`);
+      toast.error(`Amount must be between ${formatCurrency(minDepositNGN, "NGN", { decimals: 0 })} and ${formatCurrency(maxDepositNGN, "NGN", { decimals: 0 })}`);
       return;
     }
 
@@ -291,17 +291,15 @@ const Deposit = () => {
                     id="amount"
                     type="number"
                     className="pl-8"
-                    placeholder={`Min: ${formatCurrency(convertToNGN(parseFloat(settings.min_deposit), "USD"), "NGN", { showSymbol: false })}`}
+                    placeholder={`Enter amount in Naira`}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    min={convertToNGN(parseFloat(settings.min_deposit), "USD")}
-                    max={convertToNGN(parseFloat(settings.max_deposit), "USD")}
                     step="100"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Min: {formatCurrency(convertToNGN(parseFloat(settings.min_deposit), "USD"), "NGN")} | 
-                  Max: {formatCurrency(convertToNGN(parseFloat(settings.max_deposit), "USD"), "NGN")}
+                  Min: {formatCurrency(Math.round(convertToNGN(parseFloat(settings.min_deposit), "USD") / 100) * 100, "NGN", { decimals: 0 })} | 
+                  Max: {formatCurrency(Math.round(convertToNGN(parseFloat(settings.max_deposit), "USD") / 100) * 100, "NGN", { decimals: 0 })}
                 </p>
                 {amount && parseFloat(amount) > 0 && (
                   <p className="text-xs text-primary">

@@ -17,6 +17,16 @@ interface DepositNotificationRequest {
   reason?: string;
 }
 
+// Format amount in NGN with USD conversion
+function formatNGN(amount: number): string {
+  return `₦${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatUSD(amountNGN: number): string {
+  const usd = amountNGN * 0.00063;
+  return `$${usd.toFixed(2)}`;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -54,21 +64,24 @@ serve(async (req) => {
       );
     }
 
-    // Replace placeholders in template
+    // Format amount in NGN (primary) with USD equivalent
+    const amountFormatted = `${formatNGN(amount)} (approx. ${formatUSD(amount)} USD)`;
+
+    // Replace placeholders in template - use NGN format
     const subject = template.subject;
     const emailBody = template.body
-      .replace(/\$AMOUNT/g, amount.toFixed(2))
+      .replace(/\$AMOUNT/g, amountFormatted)
       .replace(/\$REASON/g, reason || "No reason provided")
       .replace(/\$USER/g, userName || "User");
 
-    // Create in-app notification
+    // Create in-app notification with NGN currency
     const notificationType = action === "approve" ? "success" : "error";
     const notificationTitle = action === "approve" 
       ? "Deposit Approved" 
       : "Deposit Rejected";
     const notificationMessage = action === "approve"
-      ? `Your deposit of $${amount.toFixed(2)} has been approved and credited to your wallet.`
-      : `Your deposit of $${amount.toFixed(2)} has been rejected. ${reason || ""}`;
+      ? `Your deposit of ${formatNGN(amount)} has been approved and credited to your wallet.`
+      : `Your deposit of ${formatNGN(amount)} has been rejected. ${reason || ""}`;
 
     const { error: notifError } = await supabase.from("notifications").insert({
       user_id: userId,
@@ -82,16 +95,16 @@ serve(async (req) => {
       console.error("Error creating notification:", notifError);
     }
 
-    // Build Gmail compose URL for admin to send email
-    // This opens Gmail with pre-filled content
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(userEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+    // Build mailto: URL for native email app (works on mobile!)
+    // This opens the default email app with pre-filled content
+    const mailtoUrl = `mailto:${encodeURIComponent(userEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
 
     console.log("Notification created successfully");
 
     return new Response(
       JSON.stringify({
         success: true,
-        gmailUrl,
+        mailtoUrl,
         subject,
         body: emailBody,
       }),

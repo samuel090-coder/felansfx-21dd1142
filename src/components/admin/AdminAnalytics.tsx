@@ -5,11 +5,11 @@ import {
   Wallet,
   TrendingUp,
   Activity,
-  DollarSign,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { formatCurrency, formatWithConversion } from "@/lib/currency";
 
 interface Analytics {
   totalUsers: number;
@@ -112,8 +112,8 @@ export const AdminAnalytics = () => {
     },
     {
       label: "Revenue",
-      value: `$${analytics.totalRevenue.toFixed(2)}`,
-      icon: DollarSign,
+      value: formatWithConversion(analytics.totalRevenue).combined,
+      icon: Wallet,
       color: "text-warning",
       bg: "bg-warning/10",
     },
