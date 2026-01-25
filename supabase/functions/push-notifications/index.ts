@@ -4,21 +4,13 @@ import {
   ApplicationServer,
   importVapidKeys,
 } from "jsr:@negrel/webpush";
+import { getVapidKeysAsJwk, base64UrlEncode } from "../_shared/vapid.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
-
-// Helper to convert bytes to base64url
-function base64UrlEncode(data: Uint8Array): string {
-  const binary = String.fromCharCode(...data);
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
 
 interface PushRequest {
   action: "get-vapid-key" | "send";
@@ -28,28 +20,34 @@ interface PushRequest {
   url?: string;
 }
 
-// Cached application server key (base64url encoded public key)
+// Cached application server
 let cachedPublicKey: string | null = null;
 let appServer: ApplicationServer | null = null;
 
 async function getAppServer(): Promise<ApplicationServer | null> {
   if (appServer) return appServer;
 
-  const vapidKeysJson = Deno.env.get("VAPID_KEYS_JSON");
-  if (!vapidKeysJson) {
-    console.error("VAPID_KEYS_JSON not configured");
+  // Get VAPID keys from env and convert to JWK
+  const jwkKeys = getVapidKeysAsJwk();
+  if (!jwkKeys) {
+    console.error("VAPID keys not configured or invalid");
     return null;
   }
 
   try {
-    const exportedKeys = JSON.parse(vapidKeysJson);
-    const vapidKeys = await importVapidKeys(exportedKeys);
+    // Import keys in JWK format
+    const vapidKeys = await importVapidKeys(jwkKeys);
     
     appServer = await ApplicationServer.new({
       contactInformation: "mailto:admin@felansfx.com",
       vapidKeys,
     });
     
+    // Cache the public key
+    const publicKeyRaw = await appServer.getVapidPublicKeyRaw();
+    cachedPublicKey = base64UrlEncode(new Uint8Array(publicKeyRaw));
+    
+    console.log("VAPID server initialized successfully");
     return appServer;
   } catch (error) {
     console.error("Failed to initialize VAPID:", error);
