@@ -31,6 +31,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/currency";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminAnalytics } from "@/components/admin/AdminAnalytics";
 import { NotificationTemplates } from "@/components/admin/NotificationTemplates";
@@ -450,7 +451,7 @@ const Admin = () => {
                           </div>
                           <div className="text-right">
                             <span className="text-lg font-bold text-primary">
-                              ${deposit.amount.toFixed(2)}
+                              {formatCurrency(deposit.amount, "NGN")}
                             </span>
                             <p className={cn(
                               "text-xs font-medium capitalize",
