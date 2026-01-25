@@ -62,17 +62,19 @@ export const NotificationBell = () => {
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold">Notifications</h3>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs"
-              onClick={markAllAsRead}
-            >
-              <CheckCheck className="w-3 h-3 mr-1" />
-              Mark all read
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs"
+                onClick={markAllAsRead}
+              >
+                <CheckCheck className="w-3 h-3 mr-1" />
+                Mark all read
+              </Button>
+            )}
+          </div>
         </div>
 
         <ScrollArea className="h-[300px]">
@@ -148,6 +150,21 @@ export const NotificationBell = () => {
             </div>
           )}
         </ScrollArea>
+        
+        {/* View All Link */}
+        <div className="p-3 border-t">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-xs"
+            onClick={() => {
+              navigate("/notifications");
+              setOpen(false);
+            }}
+          >
+            View all notifications
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase, uploadFile } from "@/lib/supabase";
 import { toast } from "sonner";
+import { formatCurrency, formatWithConversion, convertToNGN } from "@/lib/currency";
 
 interface DepositMethod {
   id: string;
@@ -124,11 +125,14 @@ const Deposit = () => {
     }
 
     const amountNum = parseFloat(amount);
-    const minDeposit = parseFloat(settings.min_deposit);
-    const maxDeposit = parseFloat(settings.max_deposit);
+    // Settings store values in USD, convert to NGN for validation
+    const minDepositUSD = parseFloat(settings.min_deposit);
+    const maxDepositUSD = parseFloat(settings.max_deposit);
+    const minDepositNGN = convertToNGN(minDepositUSD, "USD");
+    const maxDepositNGN = convertToNGN(maxDepositUSD, "USD");
 
-    if (amountNum < minDeposit || amountNum > maxDeposit) {
-      toast.error(`Amount must be between $${minDeposit} and $${maxDeposit}`);
+    if (amountNum < minDepositNGN || amountNum > maxDepositNGN) {
+      toast.error(`Amount must be between ${formatCurrency(minDepositNGN, "NGN")} and ${formatCurrency(maxDepositNGN, "NGN")}`);
       return;
     }
 
@@ -196,7 +200,8 @@ const Deposit = () => {
         <Card className="mb-6 border-0 shadow-md gradient-primary text-white">
           <CardContent className="pt-6">
             <p className="text-sm opacity-80">Current Balance</p>
-            <p className="text-3xl font-bold">${wallet?.balance?.toFixed(2) || "0.00"}</p>
+            <p className="text-3xl font-bold">{formatWithConversion(wallet?.balance || 0).combined}</p>
+            <p className="text-xs opacity-70 mt-1">Deposits are in Nigerian Naira</p>
           </CardContent>
         </Card>
 
@@ -279,20 +284,30 @@ const Deposit = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount ($)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  placeholder={`Min: $${settings.min_deposit}`}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  min={settings.min_deposit}
-                  max={settings.max_deposit}
-                  step="0.01"
-                />
+                <Label htmlFor="amount">Amount (NGN - Nigerian Naira)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₦</span>
+                  <Input
+                    id="amount"
+                    type="number"
+                    className="pl-8"
+                    placeholder={`Min: ${formatCurrency(convertToNGN(parseFloat(settings.min_deposit), "USD"), "NGN", { showSymbol: false })}`}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    min={convertToNGN(parseFloat(settings.min_deposit), "USD")}
+                    max={convertToNGN(parseFloat(settings.max_deposit), "USD")}
+                    step="100"
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Min: ${settings.min_deposit} | Max: ${settings.max_deposit}
+                  Min: {formatCurrency(convertToNGN(parseFloat(settings.min_deposit), "USD"), "NGN")} | 
+                  Max: {formatCurrency(convertToNGN(parseFloat(settings.max_deposit), "USD"), "NGN")}
                 </p>
+                {amount && parseFloat(amount) > 0 && (
+                  <p className="text-xs text-primary">
+                    ≈ {formatCurrency(parseFloat(amount) * 0.00063, "USD")} USD equivalent
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -344,7 +359,7 @@ const Deposit = () => {
                     <div className="flex items-center gap-3">
                       {getStatusIcon(deposit.status)}
                       <div>
-                        <p className="font-medium">${deposit.amount.toFixed(2)}</p>
+                        <p className="font-medium">{formatCurrency(deposit.amount, "NGN")}</p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(deposit.created_at).toLocaleDateString()}
                         </p>
