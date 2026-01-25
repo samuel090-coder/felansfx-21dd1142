@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Users,
   CreditCard,
   Settings,
   CheckCircle,
   XCircle,
   Eye,
-  ChevronRight,
+  Plus,
+  Trash2,
+  Edit,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -17,11 +19,14 @@ import { LoadingScreen, LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface PendingDeposit {
   id: string;
@@ -30,7 +35,15 @@ interface PendingDeposit {
   screenshot_url: string;
   status: string;
   created_at: string;
-  profiles: { full_name: string; email: string } | null;
+  profiles: { full_name: string; email: string; display_id: string } | null;
+}
+
+interface DepositMethod {
+  id: string;
+  name: string;
+  details: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 const Admin = () => {
@@ -40,9 +53,11 @@ const Admin = () => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passcode, setPasscode] = useState("");
-  const [pendingDeposits, setPendingDeposits] = useState<PendingDeposit[]>([]);
+  const [deposits, setDeposits] = useState<PendingDeposit[]>([]);
+  const [depositMethods, setDepositMethods] = useState<DepositMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"pending" | "all">("pending");
   const [settingsForm, setSettingsForm] = useState({
     site_name: "",
     analysis_cost: "",
@@ -50,6 +65,11 @@ const Admin = () => {
     max_deposit: "",
     daily_analysis_limit: "",
   });
+
+  // New payment method form
+  const [newMethod, setNewMethod] = useState({ name: "", details: "" });
+  const [editingMethod, setEditingMethod] = useState<DepositMethod | null>(null);
+  const [isAddingMethod, setIsAddingMethod] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -68,7 +88,6 @@ const Admin = () => {
   }, [settings]);
 
   const verifyPasscode = async () => {
-    // First check if user email is authorized
     const { data: profile } = await supabase
       .from("profiles")
       .select("email")
@@ -84,35 +103,39 @@ const Admin = () => {
 
     if (passcode === settings.admin_passcode) {
       setIsAuthenticated(true);
-      fetchPendingDeposits();
+      fetchDeposits();
+      fetchDepositMethods();
     } else {
       toast.error("Invalid passcode");
     }
   };
 
-  const fetchPendingDeposits = async () => {
+  const fetchDeposits = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("deposits")
         .select("*")
-        .eq("status", "pending")
         .order("created_at", { ascending: false });
 
+      if (statusFilter === "pending") {
+        query = query.eq("status", "pending");
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       
-      // Fetch profile data separately for each deposit
       const depositsWithProfiles = await Promise.all(
         (data || []).map(async (deposit) => {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("full_name, email")
+            .select("full_name, email, display_id")
             .eq("user_id", deposit.user_id)
             .maybeSingle();
           return { ...deposit, profiles: profile };
         })
       );
       
-      setPendingDeposits(depositsWithProfiles as PendingDeposit[]);
+      setDeposits(depositsWithProfiles as PendingDeposit[]);
     } catch (error) {
       console.error("Error fetching deposits:", error);
     } finally {
@@ -120,11 +143,31 @@ const Admin = () => {
     }
   };
 
+  const fetchDepositMethods = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("deposit_methods")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setDepositMethods((data || []) as DepositMethod[]);
+    } catch (error) {
+      console.error("Error fetching deposit methods:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchDeposits();
+    }
+  }, [statusFilter, isAuthenticated]);
+
   const handleDepositAction = async (depositId: string, action: "approved" | "rejected") => {
     setProcessingId(depositId);
 
     try {
-      const deposit = pendingDeposits.find((d) => d.id === depositId);
+      const deposit = deposits.find((d) => d.id === depositId);
       if (!deposit) throw new Error("Deposit not found");
 
       // Update deposit status
@@ -146,11 +189,83 @@ const Admin = () => {
       }
 
       toast.success(`Deposit ${action}`);
-      fetchPendingDeposits();
+      fetchDeposits();
     } catch (error: any) {
       toast.error(error.message || "Failed to process deposit");
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const handleAddMethod = async () => {
+    if (!newMethod.name || !newMethod.details) {
+      toast.error("Please fill all fields");
+      return;
+    }
+
+    setIsAddingMethod(true);
+    try {
+      const { error } = await supabase.from("deposit_methods").insert({
+        name: newMethod.name,
+        details: newMethod.details,
+        is_active: true,
+      });
+
+      if (error) throw error;
+      toast.success("Payment method added");
+      setNewMethod({ name: "", details: "" });
+      fetchDepositMethods();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add payment method");
+    } finally {
+      setIsAddingMethod(false);
+    }
+  };
+
+  const handleUpdateMethod = async () => {
+    if (!editingMethod) return;
+
+    try {
+      const { error } = await supabase
+        .from("deposit_methods")
+        .update({
+          name: editingMethod.name,
+          details: editingMethod.details,
+          is_active: editingMethod.is_active,
+        })
+        .eq("id", editingMethod.id);
+
+      if (error) throw error;
+      toast.success("Payment method updated");
+      setEditingMethod(null);
+      fetchDepositMethods();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update payment method");
+    }
+  };
+
+  const handleDeleteMethod = async (id: string) => {
+    try {
+      const { error } = await supabase.from("deposit_methods").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Payment method deleted");
+      fetchDepositMethods();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete payment method");
+    }
+  };
+
+  const handleToggleMethodActive = async (method: DepositMethod) => {
+    try {
+      const { error } = await supabase
+        .from("deposit_methods")
+        .update({ is_active: !method.is_active })
+        .eq("id", method.id);
+
+      if (error) throw error;
+      fetchDepositMethods();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update method");
     }
   };
 
@@ -214,10 +329,14 @@ const Admin = () => {
 
       <div className="px-4 py-4">
         <Tabs defaultValue="deposits">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="deposits">
               <CreditCard className="w-4 h-4 mr-2" />
               Deposits
+            </TabsTrigger>
+            <TabsTrigger value="methods">
+              <Wallet className="w-4 h-4 mr-2" />
+              Methods
             </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="w-4 h-4 mr-2" />
@@ -225,23 +344,42 @@ const Admin = () => {
             </TabsTrigger>
           </TabsList>
 
+          {/* Deposits Tab */}
           <TabsContent value="deposits">
             <Card className="border-0 shadow-md">
               <CardHeader>
-                <CardTitle className="text-lg">Pending Deposits</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Deposits</CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={statusFilter === "pending" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setStatusFilter("pending")}
+                    >
+                      Pending
+                    </Button>
+                    <Button
+                      variant={statusFilter === "all" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setStatusFilter("all")}
+                    >
+                      All
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
                   <div className="flex justify-center py-8">
                     <LoadingSpinner />
                   </div>
-                ) : pendingDeposits.length === 0 ? (
+                ) : deposits.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
-                    No pending deposits
+                    No deposits found
                   </p>
                 ) : (
                   <div className="space-y-4">
-                    {pendingDeposits.map((deposit) => (
+                    {deposits.map((deposit) => (
                       <div
                         key={deposit.id}
                         className="p-4 rounded-lg bg-muted/50 space-y-3"
@@ -254,10 +392,23 @@ const Admin = () => {
                             <p className="text-xs text-muted-foreground">
                               {deposit.profiles?.email}
                             </p>
+                            <p className="text-xs text-muted-foreground">
+                              ID: {deposit.profiles?.display_id || "N/A"}
+                            </p>
                           </div>
-                          <span className="text-lg font-bold text-primary">
-                            ${deposit.amount.toFixed(2)}
-                          </span>
+                          <div className="text-right">
+                            <span className="text-lg font-bold text-primary">
+                              ${deposit.amount.toFixed(2)}
+                            </span>
+                            <p className={cn(
+                              "text-xs font-medium capitalize",
+                              deposit.status === "approved" && "text-success",
+                              deposit.status === "rejected" && "text-destructive",
+                              deposit.status === "pending" && "text-warning"
+                            )}>
+                              {deposit.status}
+                            </p>
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -265,7 +416,7 @@ const Admin = () => {
                             <DialogTrigger asChild>
                               <Button variant="outline" size="sm">
                                 <Eye className="w-4 h-4 mr-1" />
-                                View Screenshot
+                                Screenshot
                               </Button>
                             </DialogTrigger>
                             <DialogContent>
@@ -282,32 +433,36 @@ const Admin = () => {
 
                           <div className="flex-1" />
 
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-destructive text-destructive hover:bg-destructive hover:text-white"
-                            onClick={() => handleDepositAction(deposit.id, "rejected")}
-                            disabled={processingId === deposit.id}
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
+                          {deposit.status === "pending" && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-destructive text-destructive hover:bg-destructive hover:text-white"
+                                onClick={() => handleDepositAction(deposit.id, "rejected")}
+                                disabled={processingId === deposit.id}
+                              >
+                                <XCircle className="w-4 h-4 mr-1" />
+                                Reject
+                              </Button>
 
-                          <Button
-                            size="sm"
-                            className="gradient-primary"
-                            onClick={() => handleDepositAction(deposit.id, "approved")}
-                            disabled={processingId === deposit.id}
-                          >
-                            {processingId === deposit.id ? (
-                              <LoadingSpinner size="sm" />
-                            ) : (
-                              <>
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                Approve
-                              </>
-                            )}
-                          </Button>
+                              <Button
+                                size="sm"
+                                className="gradient-primary"
+                                onClick={() => handleDepositAction(deposit.id, "approved")}
+                                disabled={processingId === deposit.id}
+                              >
+                                {processingId === deposit.id ? (
+                                  <LoadingSpinner size="sm" />
+                                ) : (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    Approve
+                                  </>
+                                )}
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -317,6 +472,149 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
+          {/* Payment Methods Tab */}
+          <TabsContent value="methods">
+            <Card className="border-0 shadow-md">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Payment Methods</CardTitle>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="gradient-primary">
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add Method
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add Payment Method</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Method Name</Label>
+                          <Input
+                            placeholder="e.g., Bank Transfer, Bitcoin, PayPal"
+                            value={newMethod.name}
+                            onChange={(e) => setNewMethod({ ...newMethod, name: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Payment Details</Label>
+                          <Textarea
+                            placeholder="e.g., Bank Name: XYZ Bank&#10;Account Number: 1234567890&#10;Account Name: John Doe"
+                            value={newMethod.details}
+                            onChange={(e) => setNewMethod({ ...newMethod, details: e.target.value })}
+                            rows={5}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button
+                          className="gradient-primary"
+                          onClick={handleAddMethod}
+                          disabled={isAddingMethod}
+                        >
+                          {isAddingMethod ? <LoadingSpinner size="sm" /> : "Add Method"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {depositMethods.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No payment methods configured
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {depositMethods.map((method) => (
+                      <div
+                        key={method.id}
+                        className={cn(
+                          "p-4 rounded-lg border space-y-2",
+                          method.is_active ? "bg-muted/50" : "bg-muted/20 opacity-60"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">{method.name}</h4>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={method.is_active}
+                              onCheckedChange={() => handleToggleMethodActive(method)}
+                            />
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setEditingMethod(method)}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Edit Payment Method</DialogTitle>
+                                </DialogHeader>
+                                {editingMethod && (
+                                  <div className="space-y-4">
+                                    <div className="space-y-2">
+                                      <Label>Method Name</Label>
+                                      <Input
+                                        value={editingMethod.name}
+                                        onChange={(e) =>
+                                          setEditingMethod({ ...editingMethod, name: e.target.value })
+                                        }
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label>Payment Details</Label>
+                                      <Textarea
+                                        value={editingMethod.details}
+                                        onChange={(e) =>
+                                          setEditingMethod({ ...editingMethod, details: e.target.value })
+                                        }
+                                        rows={5}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                                <DialogFooter>
+                                  <DialogClose asChild>
+                                    <Button variant="outline">Cancel</Button>
+                                  </DialogClose>
+                                  <Button className="gradient-primary" onClick={handleUpdateMethod}>
+                                    Save Changes
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteMethod(method.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {method.details}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
           <TabsContent value="settings">
             <Card className="border-0 shadow-md">
               <CardHeader>

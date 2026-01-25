@@ -11,6 +11,8 @@ import Profile from "./pages/Profile";
 import Deposit from "./pages/Deposit";
 import Analyze from "./pages/Analyze";
 import AnalysisResult from "./pages/AnalysisResult";
+import AnalysisHistory from "./pages/AnalysisHistory";
+import AnalysisCompare from "./pages/AnalysisCompare";
 import Saved from "./pages/Saved";
 import Admin from "./pages/Admin";
 import Patterns from "./pages/Patterns";
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/deposit" element={<Deposit />} />
             <Route path="/analyze" element={<Analyze />} />
             <Route path="/analysis/:id" element={<AnalysisResult />} />
+            <Route path="/history" element={<AnalysisHistory />} />
+            <Route path="/analysis/compare" element={<AnalysisCompare />} />
             <Route path="/saved" element={<Saved />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/patterns" element={<Patterns />} />
