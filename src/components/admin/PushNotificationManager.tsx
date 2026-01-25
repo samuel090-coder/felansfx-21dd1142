@@ -93,33 +93,22 @@ export const PushNotificationManager = () => {
     setSending(true);
 
     try {
-      // Send notification to all subscribers by creating notifications in DB
-      // The realtime subscription in useNotifications will trigger browser notifications
-      const notifications = subscribers.map((sub) => ({
-        user_id: sub.user_id,
-        title: notificationForm.title,
-        message: notificationForm.message,
-        type: "info" as const,
-        action_url: "/",
-      }));
-
-      // Get unique user_ids to avoid duplicate notifications
-      const uniqueUserIds = [...new Set(notifications.map((n) => n.user_id))];
-      const uniqueNotifications = uniqueUserIds.map((userId) => ({
-        user_id: userId,
-        title: notificationForm.title,
-        message: notificationForm.message,
-        type: "info" as const,
-        action_url: "/",
-      }));
-
-      const { error } = await supabase.from("notifications").insert(uniqueNotifications);
+      // Call the send-push edge function to send real push notifications
+      const { data, error } = await supabase.functions.invoke("send-push", {
+        body: {
+          title: notificationForm.title,
+          message: notificationForm.message,
+          url: "/notifications",
+        },
+      });
 
       if (error) throw error;
 
-      toast.success(`Notification sent to ${uniqueUserIds.length} users`);
+      const result = data as { sent: number; total: number; failed: number };
+      toast.success(`Push notification sent to ${result.sent} of ${result.total} subscribers`);
       setNotificationForm({ title: "", message: "" });
     } catch (error: any) {
+      console.error("Push notification error:", error);
       toast.error(error.message || "Failed to send notifications");
     } finally {
       setSending(false);

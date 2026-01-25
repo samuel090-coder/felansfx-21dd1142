@@ -12,7 +12,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCurrency, formatWithConversion } from "@/lib/currency";
+import { formatCurrency } from "@/lib/currency";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -77,7 +77,7 @@ const Index = () => {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Wallet Balance</p>
-                  <p className="text-xl font-bold">{formatWithConversion(wallet?.balance || 0).combined}</p>
+                  <p className="text-xl font-bold">{formatCurrency(wallet?.balance || 0, "NGN")}</p>
                 </div>
               </div>
               <Button
@@ -130,7 +130,7 @@ const Index = () => {
 
         {/* Disclaimer */}
         <p className="text-xs text-muted-foreground text-center mt-4 px-4">
-          Analysis cost: {formatWithConversion(parseFloat(settings.analysis_cost) / 0.00063).combined} per analysis. All trading involves risk.
+          Analysis cost: {formatCurrency(parseFloat(settings.analysis_cost) / 0.00063, "NGN")} per analysis. All trading involves risk.
         </p>
       </div>
     </AppLayout>

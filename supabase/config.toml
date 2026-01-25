@@ -2,3 +2,12 @@ project_id = "daqulcthlnmmydhiuvsz"
 
 [functions.analyze-trade]
 verify_jwt = false
+
+[functions.deposit-notification]
+verify_jwt = false
+
+[functions.push-notifications]
+verify_jwt = false
+
+[functions.send-push]
+verify_jwt = false
