@@ -5,6 +5,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function fetchImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error("Failed to fetch image:", url, response.status);
+      return null;
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const contentType = response.headers.get("content-type") || "image/png";
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,37 +42,124 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build the analysis prompt
-    const prompt = `You are an expert forex and financial market analyst. Analyze the following trading setup and provide structured trade analysis.
+    // Fetch chart images if provided
+    let chart4hBase64: string | null = null;
+    let chart15mBase64: string | null = null;
 
-Symbol/Instrument: ${symbol}
-Trade Focus: ${tradeFocus === "scalp" ? "Scalping (short-term trades)" : "Swing trading (medium-term trades)"}
-${chart4hUrl ? "4H Chart provided: Yes" : "4H Chart: Not provided"}
-${chart15mUrl ? "15M Chart provided: Yes" : "15M Chart: Not provided"}
+    if (chart4hUrl) {
+      console.log("Fetching 4H chart from:", chart4hUrl);
+      chart4hBase64 = await fetchImageAsBase64(chart4hUrl);
+    }
+    if (chart15mUrl) {
+      console.log("Fetching 15M chart from:", chart15mUrl);
+      chart15mBase64 = await fetchImageAsBase64(chart15mUrl);
+    }
 
-Based on current market conditions for ${symbol}, provide a comprehensive trade analysis. You must respond with a JSON object containing the following fields:
+    const hasCharts = chart4hBase64 || chart15mBase64;
+
+    // Build the messages array with images
+    const messages: any[] = [
+      {
+        role: "system",
+        content: `You are an expert professional forex and financial market technical analyst with 20+ years of experience. Your role is to provide accurate, data-driven trade analysis.
+
+CRITICAL VALIDATION RULES:
+1. FIRST, examine any provided images carefully
+2. If the image is NOT a valid trading chart (candlestick chart, line chart, or bar chart showing price action), you MUST respond with:
+   {"error": "INVALID_CHART", "message": "The uploaded image does not appear to be a valid trading chart. Please upload a clear candlestick or price chart for analysis."}
+3. If no charts are provided, analyze based on the symbol name only but clearly state this limitation
+4. Only proceed with analysis if you can identify valid price chart elements (candlesticks, price axis, time axis, indicators, etc.)
+
+When analyzing valid charts, look for:
+- Trend direction (higher highs/lows for bullish, lower highs/lows for bearish)
+- Support and resistance levels visible on the chart
+- Candlestick patterns (engulfing, doji, hammer, etc.)
+- Chart patterns (triangles, head and shoulders, flags, etc.)
+- Any visible indicators (moving averages, RSI, MACD, etc.)
+- Key price levels visible on the chart
+
+Always respond with valid JSON only. Never include explanations outside the JSON structure.`
+      }
+    ];
+
+    // Build user message content
+    const userContent: any[] = [];
+
+    // Add chart images if available
+    if (chart4hBase64) {
+      userContent.push({
+        type: "image_url",
+        image_url: { url: chart4hBase64 }
+      });
+      userContent.push({
+        type: "text",
+        text: "Above is the 4H (4-hour) timeframe chart."
+      });
+    }
+
+    if (chart15mBase64) {
+      userContent.push({
+        type: "image_url",
+        image_url: { url: chart15mBase64 }
+      });
+      userContent.push({
+        type: "text",
+        text: "Above is the 15M (15-minute) timeframe chart."
+      });
+    }
+
+    // Add the analysis request
+    const analysisPrompt = `
+TRADING SETUP DETAILS:
+- Symbol/Instrument: ${symbol}
+- Trade Focus: ${tradeFocus === "scalp" ? "Scalping (short-term trades, typically minutes to a few hours)" : "Swing trading (medium-term trades, typically hours to days)"}
+- Charts Provided: ${hasCharts ? "Yes - analyze the chart(s) above" : "No charts provided"}
+
+${hasCharts ? `
+IMPORTANT: Carefully examine the chart image(s) provided above.
+1. First, verify these are valid trading/price charts
+2. If they are NOT valid charts (e.g., random photos, non-chart images), respond with the INVALID_CHART error
+3. If valid, identify specific price levels, patterns, and indicators visible on the chart
+4. Base your entry, stop loss, and take profit on ACTUAL price levels you can see on the chart
+` : `
+NOTE: No chart images were provided. Provide general market analysis for ${symbol} based on typical market behavior. Clearly indicate that chart analysis was not possible.
+`}
+
+Provide a comprehensive trade analysis in this exact JSON format:
 
 {
   "trend": "bullish" | "bearish" | "neutral",
   "tradeIdea": "buy" | "sell" | "hold",
-  "entryPrice": "specific price level as string",
-  "stopLoss": "specific price level as string",
-  "takeProfit": "specific price level as string", 
+  "entryPrice": "specific price level from chart or market price",
+  "stopLoss": "specific price level for stop loss",
+  "takeProfit": "specific price level for take profit",
   "rrRatio": "risk reward ratio like 1:2 or 1:3",
   "strength": "Strong" | "Moderate" | "Weak",
-  "duration": "estimated trade duration like 2h 30m or 1d 4h",
-  "analysisText": "2-3 sentence summary of the market analysis and reasoning",
-  "riskWarning": "specific risk warning for this trade setup"
+  "duration": "estimated trade duration based on trade focus",
+  "analysisText": "3-4 sentences describing what you see on the chart, including specific patterns, levels, and your reasoning. Be specific about what you observed.",
+  "riskWarning": "specific risk warning relevant to this setup"
 }
 
-Important guidelines:
-- Use realistic price levels based on current ${symbol} market prices
-- Ensure stop loss and take profit levels make sense for the trend direction
-- The RR ratio should reflect the distance between entry, SL, and TP
-- Duration should match the trade focus (scalp = minutes to hours, swing = hours to days)
-- Always include a relevant risk warning
+REQUIREMENTS:
+- Entry, SL, and TP must be realistic prices for ${symbol}
+- For scalping: duration should be minutes to hours (e.g., "45m", "2h 15m")
+- For swing: duration should be hours to days (e.g., "8h", "2d 4h")
+- Analysis text MUST reference specific observations from the chart if provided
+- Include a relevant risk warning
 
-Respond ONLY with the JSON object, no additional text.`;
+Respond ONLY with the JSON object.`;
+
+    userContent.push({
+      type: "text",
+      text: analysisPrompt
+    });
+
+    messages.push({
+      role: "user",
+      content: userContent
+    });
+
+    console.log("Sending request to AI with", hasCharts ? "chart images" : "no charts");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -64,19 +168,10 @@ Respond ONLY with the JSON object, no additional text.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: "You are a professional forex and financial market analyst. Always respond with valid JSON only. Never include explanations outside the JSON structure.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 1000,
+        model: "google/gemini-2.5-pro",
+        messages,
+        temperature: 0.5,
+        max_tokens: 1500,
       }),
     });
 
@@ -105,6 +200,8 @@ Respond ONLY with the JSON object, no additional text.`;
       throw new Error("No response from AI");
     }
 
+    console.log("AI Response received:", content.substring(0, 200));
+
     // Parse the JSON response
     let analysisData;
     try {
@@ -121,24 +218,36 @@ Respond ONLY with the JSON object, no additional text.`;
       cleanContent = cleanContent.trim();
       
       analysisData = JSON.parse(cleanContent);
+
+      // Check if AI detected invalid chart
+      if (analysisData.error === "INVALID_CHART") {
+        return new Response(
+          JSON.stringify({ 
+            error: "Invalid chart image",
+            message: analysisData.message || "Please upload a valid trading chart (candlestick or price chart) for analysis."
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
-      // Provide fallback data
-      analysisData = {
-        trend: "neutral",
-        tradeIdea: "hold",
-        entryPrice: "See chart",
-        stopLoss: "See chart",
-        takeProfit: "See chart",
-        rrRatio: "1:2",
-        strength: "Moderate",
-        duration: tradeFocus === "scalp" ? "1h 30m" : "4h",
-        analysisText: `Analysis for ${symbol} indicates mixed signals. Monitor key levels for confirmation before entering. The ${tradeFocus} setup requires patience for optimal entry.`,
-        riskWarning: "Market conditions are volatile. Use proper position sizing and never risk more than 1-2% of your account on a single trade.",
-      };
+      throw new Error("Failed to process analysis. Please try again.");
     }
 
-    console.log("Analysis completed for:", symbol);
+    // Validate required fields
+    const requiredFields = ['trend', 'tradeIdea', 'entryPrice', 'stopLoss', 'takeProfit', 'rrRatio', 'strength', 'duration', 'analysisText', 'riskWarning'];
+    for (const field of requiredFields) {
+      if (!analysisData[field]) {
+        console.error(`Missing field: ${field}`);
+        analysisData[field] = field === 'trend' ? 'neutral' : 
+                             field === 'tradeIdea' ? 'hold' :
+                             field === 'strength' ? 'Moderate' :
+                             'See analysis';
+      }
+    }
+
+    console.log("Analysis completed successfully for:", symbol);
 
     return new Response(
       JSON.stringify(analysisData),
@@ -147,7 +256,7 @@ Respond ONLY with the JSON object, no additional text.`;
   } catch (error) {
     console.error("Analysis error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
