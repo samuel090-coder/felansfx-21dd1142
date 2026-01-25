@@ -4,9 +4,11 @@ import { TrendingUp, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { QuickActionCard } from "@/components/home/QuickActionCard";
 import { StartAnalysisButton } from "@/components/home/StartAnalysisButton";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,12 +18,24 @@ const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { wallet, loading: walletLoading } = useWallet();
   const { settings } = useAppSettings();
+  const { requestPermission, permission } = usePushNotifications();
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth", { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  // Request notification permission on first login
+  useEffect(() => {
+    if (user && permission === "default") {
+      // Small delay to not overwhelm user immediately
+      const timer = setTimeout(() => {
+        requestPermission();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [user, permission, requestPermission]);
 
   if (authLoading || walletLoading) {
     return <LoadingScreen />;
@@ -37,16 +51,19 @@ const Index = () => {
     <AppLayout>
       {/* Header */}
       <div className="px-4 pt-6 pb-4">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shadow-primary">
-            <TrendingUp className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shadow-primary">
+              <TrendingUp className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-display font-semibold">Hello {userName}</h1>
+              <p className="text-sm text-muted-foreground">
+                Take more profitable trades now
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-display font-semibold">Hello {userName}</h1>
-            <p className="text-sm text-muted-foreground">
-              Take more profitable trades now 📈
-            </p>
-          </div>
+          <NotificationBell />
         </div>
 
         {/* Wallet Card */}
