@@ -172,9 +172,10 @@ export const DailyStreakManager = () => {
             <Input
               type="number"
               className="pl-8"
-              value={settings.unlock_price}
+              placeholder="Enter amount"
+              value={settings.unlock_price === 0 ? "" : settings.unlock_price}
               onChange={(e) =>
-                setSettings({ ...settings, unlock_price: parseFloat(e.target.value) || 0 })
+                setSettings({ ...settings, unlock_price: e.target.value === "" ? 0 : parseFloat(e.target.value) })
               }
             />
           </div>

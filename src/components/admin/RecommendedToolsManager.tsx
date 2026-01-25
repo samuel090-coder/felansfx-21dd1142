@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ExternalLink, GripVertical } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Edit, Trash2, GripVertical, Upload, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ export const RecommendedToolsManager = () => {
   const [tools, setTools] = useState<RecommendedTool[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [editingTool, setEditingTool] = useState<RecommendedTool | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newTool, setNewTool] = useState({
@@ -41,6 +42,10 @@ export const RecommendedToolsManager = () => {
     image_url: "",
     redirect_url: "",
   });
+  const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const newFileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchTools();
@@ -59,6 +64,65 @@ export const RecommendedToolsManager = () => {
       console.error("Error fetching tools:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      const fileExt = file.name.split(".").pop();
+      const fileName = `tools/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("admin-content")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("admin-content")
+        .getPublicUrl(fileName);
+
+      return data.publicUrl;
+    } catch (error: any) {
+      toast.error("Failed to upload image: " + error.message);
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleNewImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload and get URL
+    const url = await uploadImage(file);
+    if (url) {
+      setNewTool({ ...newTool, image_url: url });
+    }
+  };
+
+  const handleEditImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingTool) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    const url = await uploadImage(file);
+    if (url) {
+      setEditingTool({ ...editingTool, image_url: url });
     }
   };
 
@@ -83,6 +147,7 @@ export const RecommendedToolsManager = () => {
       if (error) throw error;
       toast.success("Tool added successfully");
       setNewTool({ title: "", description: "", image_url: "", redirect_url: "" });
+      setNewImagePreview(null);
       setIsAddDialogOpen(false);
       fetchTools();
     } catch (error: any) {
@@ -111,6 +176,7 @@ export const RecommendedToolsManager = () => {
       if (error) throw error;
       toast.success("Tool updated successfully");
       setEditingTool(null);
+      setEditImagePreview(null);
       fetchTools();
     } catch (error: any) {
       toast.error(error.message || "Failed to update tool");
@@ -144,6 +210,24 @@ export const RecommendedToolsManager = () => {
     }
   };
 
+  const clearNewImage = () => {
+    setNewImagePreview(null);
+    setNewTool({ ...newTool, image_url: "" });
+    if (newFileInputRef.current) {
+      newFileInputRef.current.value = "";
+    }
+  };
+
+  const clearEditImage = () => {
+    setEditImagePreview(null);
+    if (editingTool) {
+      setEditingTool({ ...editingTool, image_url: null });
+    }
+    if (editFileInputRef.current) {
+      editFileInputRef.current.value = "";
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-8">
@@ -157,7 +241,13 @@ export const RecommendedToolsManager = () => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Recommended Tools</CardTitle>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+            setIsAddDialogOpen(open);
+            if (!open) {
+              setNewImagePreview(null);
+              setNewTool({ title: "", description: "", image_url: "", redirect_url: "" });
+            }
+          }}>
             <DialogTrigger asChild>
               <Button size="sm" className="gradient-primary">
                 <Plus className="w-4 h-4 mr-1" />
@@ -187,12 +277,43 @@ export const RecommendedToolsManager = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Image URL</Label>
-                  <Input
-                    placeholder="https://example.com/image.png"
-                    value={newTool.image_url}
-                    onChange={(e) => setNewTool({ ...newTool, image_url: e.target.value })}
-                  />
+                  <Label>Image</Label>
+                  <div className="space-y-2">
+                    {(newImagePreview || newTool.image_url) ? (
+                      <div className="relative inline-block">
+                        <img
+                          src={newImagePreview || newTool.image_url}
+                          alt="Preview"
+                          className="w-32 h-24 object-cover rounded-lg border"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 w-6 h-6"
+                          onClick={clearNewImage}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => newFileInputRef.current?.click()}
+                        className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                      >
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          {uploading ? "Uploading..." : "Click to upload image"}
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      ref={newFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleNewImageChange}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Redirect URL *</Label>
@@ -207,7 +328,7 @@ export const RecommendedToolsManager = () => {
                 <DialogClose asChild>
                   <Button variant="outline">Cancel</Button>
                 </DialogClose>
-                <Button className="gradient-primary" onClick={handleAddTool} disabled={saving}>
+                <Button className="gradient-primary" onClick={handleAddTool} disabled={saving || uploading}>
                   {saving ? <LoadingSpinner size="sm" /> : "Add Tool"}
                 </Button>
               </DialogFooter>
@@ -249,7 +370,12 @@ export const RecommendedToolsManager = () => {
                       checked={tool.is_active}
                       onCheckedChange={() => handleToggleActive(tool)}
                     />
-                    <Dialog>
+                    <Dialog onOpenChange={(open) => {
+                      if (!open) {
+                        setEditingTool(null);
+                        setEditImagePreview(null);
+                      }
+                    }}>
                       <DialogTrigger asChild>
                         <Button
                           variant="ghost"
@@ -285,13 +411,43 @@ export const RecommendedToolsManager = () => {
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label>Image URL</Label>
-                              <Input
-                                value={editingTool.image_url || ""}
-                                onChange={(e) =>
-                                  setEditingTool({ ...editingTool, image_url: e.target.value })
-                                }
-                              />
+                              <Label>Image</Label>
+                              <div className="space-y-2">
+                                {(editImagePreview || editingTool.image_url) ? (
+                                  <div className="relative inline-block">
+                                    <img
+                                      src={editImagePreview || editingTool.image_url || ""}
+                                      alt="Preview"
+                                      className="w-32 h-24 object-cover rounded-lg border"
+                                    />
+                                    <Button
+                                      variant="destructive"
+                                      size="icon"
+                                      className="absolute -top-2 -right-2 w-6 h-6"
+                                      onClick={clearEditImage}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div
+                                    onClick={() => editFileInputRef.current?.click()}
+                                    className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                                  >
+                                    <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                                    <p className="text-sm text-muted-foreground">
+                                      {uploading ? "Uploading..." : "Click to upload image"}
+                                    </p>
+                                  </div>
+                                )}
+                                <input
+                                  ref={editFileInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={handleEditImageChange}
+                                />
+                              </div>
                             </div>
                             <div className="space-y-2">
                               <Label>Redirect URL</Label>
@@ -308,7 +464,7 @@ export const RecommendedToolsManager = () => {
                           <DialogClose asChild>
                             <Button variant="outline">Cancel</Button>
                           </DialogClose>
-                          <Button className="gradient-primary" onClick={handleUpdateTool} disabled={saving}>
+                          <Button className="gradient-primary" onClick={handleUpdateTool} disabled={saving || uploading}>
                             {saving ? <LoadingSpinner size="sm" /> : "Save Changes"}
                           </Button>
                         </DialogFooter>

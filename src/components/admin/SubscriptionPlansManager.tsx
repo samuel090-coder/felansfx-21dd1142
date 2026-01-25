@@ -211,7 +211,7 @@ export const SubscriptionPlansManager = () => {
                     <Input
                       type="number"
                       className="pl-8"
-                      placeholder="5000"
+                      placeholder="Enter amount"
                       value={newPlan.price}
                       onChange={(e) => setNewPlan({ ...newPlan, price: e.target.value })}
                     />
@@ -329,11 +329,12 @@ export const SubscriptionPlansManager = () => {
                               <Input
                                 type="number"
                                 className="pl-8"
-                                value={editingPlan.price}
+                                placeholder="Enter amount"
+                                value={editingPlan.price === 0 ? "" : editingPlan.price}
                                 onChange={(e) =>
                                   setEditingPlan({
                                     ...editingPlan,
-                                    price: parseFloat(e.target.value) || 0,
+                                    price: e.target.value === "" ? 0 : parseFloat(e.target.value),
                                   })
                                 }
                               />
