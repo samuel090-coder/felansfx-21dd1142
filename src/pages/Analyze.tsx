@@ -120,6 +120,13 @@ const Analyze = () => {
 
       if (error) throw error;
 
+      // Check for invalid chart response
+      if (data?.error) {
+        toast.error(data.message || data.error);
+        setIsAnalyzing(false);
+        return;
+      }
+
       // Deduct from wallet (handled server-side in real app, but for demo)
       const { error: walletError } = await supabase
         .from("wallets")
