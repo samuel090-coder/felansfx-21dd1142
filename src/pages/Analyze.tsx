@@ -8,10 +8,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Header } from "@/components/layout/Header";
 import { LoadingScreen, LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { SymbolSelect } from "@/components/analysis/SymbolSelect";
 import { supabase, uploadFile } from "@/lib/supabase";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -212,12 +212,11 @@ const Analyze = () => {
         {step === 1 && (
           <div className="space-y-6 animate-fade-in">
             <div className="space-y-2">
-              <Label htmlFor="symbol">Symbol / Instrument</Label>
-              <Input
-                id="symbol"
-                placeholder="e.g., EURUSD, XAUUSD, BTC"
+              <Label>Symbol / Instrument</Label>
+              <SymbolSelect
                 value={symbol}
-                onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                onValueChange={setSymbol}
+                placeholder="Select an instrument..."
               />
             </div>
 

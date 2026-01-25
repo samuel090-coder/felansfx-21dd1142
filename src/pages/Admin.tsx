@@ -67,7 +67,21 @@ const Admin = () => {
     });
   }, [settings]);
 
-  const verifyPasscode = () => {
+  const verifyPasscode = async () => {
+    // First check if user email is authorized
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("user_id", user?.id)
+      .maybeSingle();
+
+    const authorizedEmail = "samuelsunday09066423764@gmail.com";
+    
+    if (profile?.email !== authorizedEmail) {
+      toast.error("You are not authorized to access admin panel");
+      return;
+    }
+
     if (passcode === settings.admin_passcode) {
       setIsAuthenticated(true);
       fetchPendingDeposits();
@@ -121,24 +135,14 @@ const Admin = () => {
 
       if (depositError) throw depositError;
 
-      // If approved, credit the wallet
+      // If approved, credit the wallet using secure database function
       if (action === "approved") {
-        const { data: wallet, error: walletError } = await supabase
-          .from("wallets")
-          .select("balance")
-          .eq("user_id", deposit.user_id)
-          .single();
+        const { error: creditError } = await supabase.rpc("credit_user_wallet", {
+          p_user_id: deposit.user_id,
+          p_amount: deposit.amount,
+        });
 
-        if (walletError) throw walletError;
-
-        const newBalance = (wallet?.balance || 0) + deposit.amount;
-
-        const { error: updateError } = await supabase
-          .from("wallets")
-          .update({ balance: newBalance })
-          .eq("user_id", deposit.user_id);
-
-        if (updateError) throw updateError;
+        if (creditError) throw creditError;
       }
 
       toast.success(`Deposit ${action}`);
