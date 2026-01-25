@@ -19,6 +19,8 @@ import Saved from "./pages/Saved";
 import Admin from "./pages/Admin";
 import Patterns from "./pages/Patterns";
 import Notifications from "./pages/Notifications";
+import DailyStreak from "./pages/DailyStreak";
+import ScreenshotGuide from "./pages/ScreenshotGuide";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +67,8 @@ const App = () => {
               <Route path="/admin" element={<Admin />} />
               <Route path="/patterns" element={<Patterns />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/daily-streak" element={<DailyStreak />} />
+              <Route path="/screenshot-guide" element={<ScreenshotGuide />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
