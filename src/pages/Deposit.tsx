@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Upload, Clock, CheckCircle, XCircle, AlertCircle, Copy, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -32,7 +32,7 @@ interface Deposit {
 const Deposit = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { wallet } = useWallet();
+  const { wallet, refetch: refetchWallet } = useWallet();
   const { settings } = useAppSettings();
   
   const [depositMethods, setDepositMethods] = useState<DepositMethod[]>([]);
@@ -42,12 +42,24 @@ const Deposit = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth", { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  const fetchDeposits = async () => {
+    if (!user) return;
+    const { data: userDeposits } = await supabase
+      .from("deposits")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    setDeposits((userDeposits || []) as Deposit[]);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,13 +74,7 @@ const Deposit = () => {
         setDepositMethods(methods || []);
 
         // Fetch user's deposits
-        const { data: userDeposits } = await supabase
-          .from("deposits")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(10);
-        setDeposits((userDeposits || []) as Deposit[]);
+        await fetchDeposits();
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -79,6 +85,18 @@ const Deposit = () => {
     fetchData();
   }, [user]);
 
+  // Refetch wallet and deposits periodically to catch admin approvals
+  useEffect(() => {
+    if (!user) return;
+    
+    const interval = setInterval(() => {
+      refetchWallet();
+      fetchDeposits();
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user, refetchWallet]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -88,6 +106,13 @@ const Deposit = () => {
       }
       setFile(selectedFile);
     }
+  };
+
+  const handleCopyDetails = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast.success("Copied to clipboard");
+    setTimeout(() => setCopiedField(null), 2000);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,13 +156,7 @@ const Deposit = () => {
       setSelectedMethod("");
 
       // Refresh deposits
-      const { data: userDeposits } = await supabase
-        .from("deposits")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      setDeposits((userDeposits || []) as Deposit[]);
+      await fetchDeposits();
     } catch (error: any) {
       toast.error(error.message || "Failed to submit deposit request");
     } finally {
@@ -157,6 +176,8 @@ const Deposit = () => {
         return <AlertCircle className="w-4 h-4 text-muted-foreground" />;
     }
   };
+
+  const selectedMethodDetails = depositMethods.find((m) => m.id === selectedMethod);
 
   if (authLoading || loading) {
     return <LoadingScreen />;
@@ -201,12 +222,60 @@ const Deposit = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  {selectedMethod && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {depositMethods.find((m) => m.id === selectedMethod)?.details}
-                    </p>
-                  )}
                 </div>
+              )}
+
+              {/* Show payment details when method is selected */}
+              {selectedMethodDetails && (
+                <Card className="bg-muted/50 border-primary/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <span>{selectedMethodDetails.name}</span>
+                      <span className="text-xs text-muted-foreground">- Payment Details</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {selectedMethodDetails.details.split("\n").map((line, idx) => {
+                      const [label, ...valueParts] = line.split(":");
+                      const value = valueParts.join(":").trim();
+                      if (!value) return null;
+                      return (
+                        <div key={idx} className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{label}:</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{value}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleCopyDetails(value, `${idx}`)}
+                            >
+                              {copiedField === `${idx}` ? (
+                                <Check className="w-3 h-3 text-success" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">
+                      Make payment to the details above, then upload your screenshot below.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {depositMethods.length === 0 && (
+                <Card className="bg-warning/10 border-warning/20">
+                  <CardContent className="py-4">
+                    <p className="text-sm text-warning text-center">
+                      No payment methods available. Please contact support.
+                    </p>
+                  </CardContent>
+                </Card>
               )}
 
               <div className="space-y-2">

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { SymbolSelect } from "@/components/analysis/SymbolSelect";
+import { ChartUploadGuide } from "@/components/analysis/ChartUploadGuide";
 import { supabase, uploadFile } from "@/lib/supabase";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -127,13 +128,13 @@ const Analyze = () => {
         return;
       }
 
-      // Deduct from wallet (handled server-side in real app, but for demo)
-      const { error: walletError } = await supabase
-        .from("wallets")
-        .update({ balance: wallet.balance - analysisCost })
-        .eq("user_id", user.id);
+      // Deduct from wallet using secure database function
+      const { data: deductSuccess, error: walletError } = await supabase.rpc("deduct_user_wallet", {
+        p_user_id: user.id,
+        p_amount: analysisCost,
+      });
 
-      if (walletError) throw walletError;
+      if (walletError || !deductSuccess) throw new Error("Failed to deduct from wallet");
 
       // Save analysis
       const { data: analysis, error: analysisError } = await supabase
@@ -240,9 +241,12 @@ const Analyze = () => {
         {step === 2 && (
           <div className="space-y-6 animate-fade-in">
             <div>
-              <h3 className="font-medium mb-2">Upload Your Charts</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-medium">Upload Your Charts</h3>
+                <ChartUploadGuide />
+              </div>
               <p className="text-sm text-muted-foreground mb-4">
-                Use clear images with clear price number digits for the best results.
+                Use clear images with visible price numbers for the best results.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
