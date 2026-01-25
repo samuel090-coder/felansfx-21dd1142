@@ -10,6 +10,10 @@ import {
   Trash2,
   Edit,
   Wallet,
+  Users,
+  BarChart3,
+  MessageSquare,
+  Mail,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -27,6 +31,9 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { UserManagement } from "@/components/admin/UserManagement";
+import { AdminAnalytics } from "@/components/admin/AdminAnalytics";
+import { NotificationTemplates } from "@/components/admin/NotificationTemplates";
 
 interface PendingDeposit {
   id: string;
@@ -65,6 +72,9 @@ const Admin = () => {
     max_deposit: "",
     daily_analysis_limit: "",
   });
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedDepositId, setSelectedDepositId] = useState<string | null>(null);
 
   // New payment method form
   const [newMethod, setNewMethod] = useState({ name: "", details: "" });
@@ -163,7 +173,7 @@ const Admin = () => {
     }
   }, [statusFilter, isAuthenticated]);
 
-  const handleDepositAction = async (depositId: string, action: "approved" | "rejected") => {
+  const handleDepositAction = async (depositId: string, action: "approved" | "rejected", reason?: string) => {
     setProcessingId(depositId);
 
     try {
@@ -173,7 +183,7 @@ const Admin = () => {
       // Update deposit status
       const { error: depositError } = await supabase
         .from("deposits")
-        .update({ status: action })
+        .update({ status: action, admin_notes: reason || null })
         .eq("id", depositId);
 
       if (depositError) throw depositError;
@@ -188,13 +198,47 @@ const Admin = () => {
         if (creditError) throw creditError;
       }
 
+      // Send notification and get Gmail URL
+      const { data: notifResult, error: notifError } = await supabase.functions.invoke(
+        "deposit-notification",
+        {
+          body: {
+            action: action === "approved" ? "approve" : "reject",
+            depositId: deposit.id,
+            userId: deposit.user_id,
+            userEmail: deposit.profiles?.email || "",
+            userName: deposit.profiles?.full_name || "User",
+            amount: deposit.amount,
+            reason: reason,
+          },
+        }
+      );
+
+      if (notifError) {
+        console.error("Notification error:", notifError);
+      }
+
       toast.success(`Deposit ${action}`);
+
+      // Open Gmail to send email notification
+      if (notifResult?.gmailUrl) {
+        window.open(notifResult.gmailUrl, "_blank");
+      }
+
       fetchDeposits();
+      setRejectDialogOpen(false);
+      setRejectReason("");
+      setSelectedDepositId(null);
     } catch (error: any) {
       toast.error(error.message || "Failed to process deposit");
     } finally {
       setProcessingId(null);
     }
+  };
+
+  const handleRejectClick = (depositId: string) => {
+    setSelectedDepositId(depositId);
+    setRejectDialogOpen(true);
   };
 
   const handleAddMethod = async () => {
@@ -328,24 +372,32 @@ const Admin = () => {
       <Header title="Admin Panel" showBack />
 
       <div className="px-4 py-4">
-        <Tabs defaultValue="deposits">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="deposits">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Deposits
+        <Tabs defaultValue="analytics">
+          <TabsList className="grid w-full grid-cols-5 mb-6 h-auto">
+            <TabsTrigger value="analytics" className="text-xs px-2 py-2">
+              <BarChart3 className="w-4 h-4" />
             </TabsTrigger>
-            <TabsTrigger value="methods">
-              <Wallet className="w-4 h-4 mr-2" />
-              Methods
+            <TabsTrigger value="deposits" className="text-xs px-2 py-2">
+              <CreditCard className="w-4 h-4" />
             </TabsTrigger>
-            <TabsTrigger value="settings">
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
+            <TabsTrigger value="users" className="text-xs px-2 py-2">
+              <Users className="w-4 h-4" />
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="text-xs px-2 py-2">
+              <MessageSquare className="w-4 h-4" />
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs px-2 py-2">
+              <Settings className="w-4 h-4" />
             </TabsTrigger>
           </TabsList>
 
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-4">
+            <AdminAnalytics />
+          </TabsContent>
+
           {/* Deposits Tab */}
-          <TabsContent value="deposits">
+          <TabsContent value="deposits" className="space-y-4">
             <Card className="border-0 shadow-md">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -439,7 +491,7 @@ const Admin = () => {
                                 variant="outline"
                                 size="sm"
                                 className="border-destructive text-destructive hover:bg-destructive hover:text-white"
-                                onClick={() => handleDepositAction(deposit.id, "rejected")}
+                                onClick={() => handleRejectClick(deposit.id)}
                                 disabled={processingId === deposit.id}
                               >
                                 <XCircle className="w-4 h-4 mr-1" />
@@ -470,10 +522,8 @@ const Admin = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
 
-          {/* Payment Methods Tab */}
-          <TabsContent value="methods">
+            {/* Payment Methods */}
             <Card className="border-0 shadow-md">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -614,6 +664,16 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
+          {/* Users Tab */}
+          <TabsContent value="users">
+            <UserManagement />
+          </TabsContent>
+
+          {/* Templates Tab */}
+          <TabsContent value="templates">
+            <NotificationTemplates />
+          </TabsContent>
+
           {/* Settings Tab */}
           <TabsContent value="settings">
             <Card className="border-0 shadow-md">
@@ -687,6 +747,42 @@ const Admin = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Deposit</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Provide a reason for rejection. This will be sent to the user.
+            </p>
+            <Textarea
+              placeholder="Enter rejection reason..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (selectedDepositId) {
+                  handleDepositAction(selectedDepositId, "rejected", rejectReason);
+                }
+              }}
+              disabled={processingId !== null}
+            >
+              {processingId ? <LoadingSpinner size="sm" /> : "Reject & Notify"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
