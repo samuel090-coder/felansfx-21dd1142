@@ -13,7 +13,7 @@ import {
   Users,
   BarChart3,
   MessageSquare,
-  Mail,
+  Bell,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -35,6 +35,7 @@ import { formatCurrency } from "@/lib/currency";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminAnalytics } from "@/components/admin/AdminAnalytics";
 import { NotificationTemplates } from "@/components/admin/NotificationTemplates";
+import { PushNotificationManager } from "@/components/admin/PushNotificationManager";
 
 interface PendingDeposit {
   id: string;
@@ -221,9 +222,9 @@ const Admin = () => {
 
       toast.success(`Deposit ${action}`);
 
-      // Open Gmail to send email notification
-      if (notifResult?.gmailUrl) {
-        window.open(notifResult.gmailUrl, "_blank");
+      // Open native email app with mailto: link (works on mobile!)
+      if (notifResult?.mailtoUrl) {
+        window.location.href = notifResult.mailtoUrl;
       }
 
       fetchDeposits();
@@ -374,20 +375,23 @@ const Admin = () => {
 
       <div className="px-4 py-4">
         <Tabs defaultValue="analytics">
-          <TabsList className="grid w-full grid-cols-5 mb-6 h-auto">
-            <TabsTrigger value="analytics" className="text-xs px-2 py-2">
+          <TabsList className="grid w-full grid-cols-6 mb-6 h-auto">
+            <TabsTrigger value="analytics" className="text-xs px-1 py-2">
               <BarChart3 className="w-4 h-4" />
             </TabsTrigger>
-            <TabsTrigger value="deposits" className="text-xs px-2 py-2">
+            <TabsTrigger value="deposits" className="text-xs px-1 py-2">
               <CreditCard className="w-4 h-4" />
             </TabsTrigger>
-            <TabsTrigger value="users" className="text-xs px-2 py-2">
+            <TabsTrigger value="users" className="text-xs px-1 py-2">
               <Users className="w-4 h-4" />
             </TabsTrigger>
-            <TabsTrigger value="templates" className="text-xs px-2 py-2">
+            <TabsTrigger value="push" className="text-xs px-1 py-2">
+              <Bell className="w-4 h-4" />
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="text-xs px-1 py-2">
               <MessageSquare className="w-4 h-4" />
             </TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs px-2 py-2">
+            <TabsTrigger value="settings" className="text-xs px-1 py-2">
               <Settings className="w-4 h-4" />
             </TabsTrigger>
           </TabsList>
@@ -670,6 +674,11 @@ const Admin = () => {
             <UserManagement />
           </TabsContent>
 
+          {/* Push Notifications Tab */}
+          <TabsContent value="push">
+            <PushNotificationManager />
+          </TabsContent>
+
           {/* Templates Tab */}
           <TabsContent value="templates">
             <NotificationTemplates />
@@ -693,36 +702,49 @@ const Admin = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Analysis Cost ($)</Label>
-                  <Input
-                    type="number"
-                    value={settingsForm.analysis_cost}
-                    onChange={(e) =>
-                      setSettingsForm({ ...settingsForm, analysis_cost: e.target.value })
-                    }
-                  />
+                  <Label>Analysis Cost (NGN - Nigerian Naira)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₦</span>
+                    <Input
+                      type="number"
+                      className="pl-8"
+                      value={settingsForm.analysis_cost}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsForm, analysis_cost: e.target.value })
+                      }
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Cost per analysis in Nigerian Naira</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Min Deposit ($)</Label>
-                    <Input
-                      type="number"
-                      value={settingsForm.min_deposit}
-                      onChange={(e) =>
-                        setSettingsForm({ ...settingsForm, min_deposit: e.target.value })
-                      }
-                    />
+                    <Label>Min Deposit (NGN)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">₦</span>
+                      <Input
+                        type="number"
+                        className="pl-7"
+                        value={settingsForm.min_deposit}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, min_deposit: e.target.value })
+                        }
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Max Deposit ($)</Label>
-                    <Input
-                      type="number"
-                      value={settingsForm.max_deposit}
-                      onChange={(e) =>
-                        setSettingsForm({ ...settingsForm, max_deposit: e.target.value })
-                      }
-                    />
+                    <Label>Max Deposit (NGN)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">₦</span>
+                      <Input
+                        type="number"
+                        className="pl-7"
+                        value={settingsForm.max_deposit}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, max_deposit: e.target.value })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
 
