@@ -26,6 +26,7 @@ const Profile = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { wallet, loading: walletLoading } = useWallet();
   const [savedCount, setSavedCount] = useState(0);
+  const [displayId, setDisplayId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -34,16 +35,26 @@ const Profile = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    const fetchSavedCount = async () => {
+    const fetchUserData = async () => {
       if (!user) return;
+      
+      // Fetch saved count
       const { count } = await supabase
         .from("analyses")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id)
         .eq("is_saved", true);
       setSavedCount(count || 0);
+      
+      // Fetch display ID
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setDisplayId(profile?.display_id || null);
     };
-    fetchSavedCount();
+    fetchUserData();
   }, [user]);
 
   const handleSignOut = async () => {
@@ -94,6 +105,9 @@ const Profile = () => {
               <div>
                 <h2 className="text-xl font-display font-semibold">{userName}</h2>
                 <p className="text-sm text-muted-foreground">{user.email}</p>
+                {displayId && (
+                  <p className="text-xs text-primary font-medium mt-1">ID: {displayId}</p>
+                )}
               </div>
             </div>
 

@@ -179,6 +179,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          display_id: string | null
           email: string | null
           full_name: string | null
           id: string
@@ -188,6 +189,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          display_id?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
@@ -197,6 +199,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          display_id?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
@@ -252,6 +255,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      credit_user_wallet: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
