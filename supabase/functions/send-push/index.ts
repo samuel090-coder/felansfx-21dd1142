@@ -5,6 +5,7 @@ import {
   importVapidKeys,
   Urgency,
 } from "jsr:@negrel/webpush";
+import { getVapidKeysAsJwk } from "../_shared/vapid.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,18 +34,15 @@ let appServer: ApplicationServer | null = null;
 async function getAppServer(): Promise<ApplicationServer> {
   if (appServer) return appServer;
 
-  const vapidKeysJson = Deno.env.get("VAPID_KEYS_JSON");
-
-  if (!vapidKeysJson) {
-    throw new Error("VAPID_KEYS_JSON not configured");
+  // Get VAPID keys from env and convert to JWK
+  const jwkKeys = getVapidKeysAsJwk();
+  if (!jwkKeys) {
+    throw new Error("VAPID keys not configured");
   }
 
   try {
-    // Parse VAPID keys from JSON (JWK format)
-    const exportedKeys = JSON.parse(vapidKeysJson);
-    
-    // Import VAPID keys
-    const vapidKeys = await importVapidKeys(exportedKeys);
+    // Import VAPID keys in JWK format
+    const vapidKeys = await importVapidKeys(jwkKeys);
 
     // Create application server
     appServer = await ApplicationServer.new({
@@ -52,6 +50,7 @@ async function getAppServer(): Promise<ApplicationServer> {
       vapidKeys,
     });
 
+    console.log("VAPID server initialized successfully");
     return appServer;
   } catch (error) {
     console.error("Failed to initialize VAPID:", error);
