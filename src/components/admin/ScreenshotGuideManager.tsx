@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, GripVertical } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Edit, Trash2, GripVertical, Upload, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,7 @@ export const ScreenshotGuideManager = () => {
   const [content, setContent] = useState<ScreenshotGuideContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [editingItem, setEditingItem] = useState<ScreenshotGuideContent | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newItem, setNewItem] = useState({
@@ -57,6 +58,10 @@ export const ScreenshotGuideManager = () => {
     image_url: "",
     icon_name: "",
   });
+  const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const newFileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchContent();
@@ -76,6 +81,81 @@ export const ScreenshotGuideManager = () => {
       console.error("Error fetching content:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      const fileExt = file.name.split(".").pop();
+      const fileName = `guide/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("admin-content")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("admin-content")
+        .getPublicUrl(fileName);
+
+      return data.publicUrl;
+    } catch (error: any) {
+      toast.error("Failed to upload image: " + error.message);
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleNewImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    const url = await uploadImage(file);
+    if (url) {
+      setNewItem({ ...newItem, image_url: url });
+    }
+  };
+
+  const handleEditImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingItem) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    const url = await uploadImage(file);
+    if (url) {
+      setEditingItem({ ...editingItem, image_url: url });
+    }
+  };
+
+  const clearNewImage = () => {
+    setNewImagePreview(null);
+    setNewItem({ ...newItem, image_url: "" });
+    if (newFileInputRef.current) {
+      newFileInputRef.current.value = "";
+    }
+  };
+
+  const clearEditImage = () => {
+    setEditImagePreview(null);
+    if (editingItem) {
+      setEditingItem({ ...editingItem, image_url: null });
+    }
+    if (editFileInputRef.current) {
+      editFileInputRef.current.value = "";
     }
   };
 
@@ -110,6 +190,7 @@ export const ScreenshotGuideManager = () => {
         image_url: "",
         icon_name: "",
       });
+      setNewImagePreview(null);
       setIsAddDialogOpen(false);
       fetchContent();
     } catch (error: any) {
@@ -139,6 +220,7 @@ export const ScreenshotGuideManager = () => {
       if (error) throw error;
       toast.success("Content updated successfully");
       setEditingItem(null);
+      setEditImagePreview(null);
       fetchContent();
     } catch (error: any) {
       toast.error(error.message || "Failed to update content");
@@ -194,7 +276,19 @@ export const ScreenshotGuideManager = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Screenshot Guide Content</CardTitle>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+              setIsAddDialogOpen(open);
+              if (!open) {
+                setNewImagePreview(null);
+                setNewItem({
+                  section_type: "checklist_item",
+                  title: "",
+                  description: "",
+                  image_url: "",
+                  icon_name: "",
+                });
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gradient-primary">
                   <Plus className="w-4 h-4 mr-1" />
@@ -246,14 +340,43 @@ export const ScreenshotGuideManager = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Image URL</Label>
-                    <Input
-                      placeholder="https://example.com/image.png"
-                      value={newItem.image_url}
-                      onChange={(e) =>
-                        setNewItem({ ...newItem, image_url: e.target.value })
-                      }
-                    />
+                    <Label>Image</Label>
+                    <div className="space-y-2">
+                      {(newImagePreview || newItem.image_url) ? (
+                        <div className="relative inline-block">
+                          <img
+                            src={newImagePreview || newItem.image_url}
+                            alt="Preview"
+                            className="w-32 h-24 object-cover rounded-lg border"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 w-6 h-6"
+                            onClick={clearNewImage}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => newFileInputRef.current?.click()}
+                          className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                        >
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            {uploading ? "Uploading..." : "Click to upload image"}
+                          </p>
+                        </div>
+                      )}
+                      <input
+                        ref={newFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleNewImageChange}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Icon Name (Lucide)</Label>
@@ -270,7 +393,7 @@ export const ScreenshotGuideManager = () => {
                   <DialogClose asChild>
                     <Button variant="outline">Cancel</Button>
                   </DialogClose>
-                  <Button className="gradient-primary" onClick={handleAddItem} disabled={saving}>
+                  <Button className="gradient-primary" onClick={handleAddItem} disabled={saving || uploading}>
                     {saving ? <LoadingSpinner size="sm" /> : "Add Content"}
                   </Button>
                 </DialogFooter>
@@ -304,6 +427,13 @@ export const ScreenshotGuideManager = () => {
                         >
                           <div className="flex items-center gap-3">
                             <GripVertical className="w-4 h-4 text-muted-foreground" />
+                            {item.image_url && (
+                              <img
+                                src={item.image_url}
+                                alt={item.title}
+                                className="w-10 h-10 rounded-lg object-cover"
+                              />
+                            )}
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate">{item.title}</p>
                               {item.description && (
@@ -317,7 +447,12 @@ export const ScreenshotGuideManager = () => {
                                 checked={item.is_active}
                                 onCheckedChange={() => handleToggleActive(item)}
                               />
-                              <Dialog>
+                              <Dialog onOpenChange={(open) => {
+                                if (!open) {
+                                  setEditingItem(null);
+                                  setEditImagePreview(null);
+                                }
+                              }}>
                                 <DialogTrigger asChild>
                                   <Button
                                     variant="ghost"
@@ -382,16 +517,43 @@ export const ScreenshotGuideManager = () => {
                                         />
                                       </div>
                                       <div className="space-y-2">
-                                        <Label>Image URL</Label>
-                                        <Input
-                                          value={editingItem.image_url || ""}
-                                          onChange={(e) =>
-                                            setEditingItem({
-                                              ...editingItem,
-                                              image_url: e.target.value,
-                                            })
-                                          }
-                                        />
+                                        <Label>Image</Label>
+                                        <div className="space-y-2">
+                                          {(editImagePreview || editingItem.image_url) ? (
+                                            <div className="relative inline-block">
+                                              <img
+                                                src={editImagePreview || editingItem.image_url || ""}
+                                                alt="Preview"
+                                                className="w-32 h-24 object-cover rounded-lg border"
+                                              />
+                                              <Button
+                                                variant="destructive"
+                                                size="icon"
+                                                className="absolute -top-2 -right-2 w-6 h-6"
+                                                onClick={clearEditImage}
+                                              >
+                                                <X className="w-3 h-3" />
+                                              </Button>
+                                            </div>
+                                          ) : (
+                                            <div
+                                              onClick={() => editFileInputRef.current?.click()}
+                                              className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                                            >
+                                              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                                              <p className="text-sm text-muted-foreground">
+                                                {uploading ? "Uploading..." : "Click to upload image"}
+                                              </p>
+                                            </div>
+                                          )}
+                                          <input
+                                            ref={editFileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handleEditImageChange}
+                                          />
+                                        </div>
                                       </div>
                                       <div className="space-y-2">
                                         <Label>Icon Name</Label>
@@ -414,7 +576,7 @@ export const ScreenshotGuideManager = () => {
                                     <Button
                                       className="gradient-primary"
                                       onClick={handleUpdateItem}
-                                      disabled={saving}
+                                      disabled={saving || uploading}
                                     >
                                       {saving ? <LoadingSpinner size="sm" /> : "Save Changes"}
                                     </Button>

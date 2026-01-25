@@ -170,7 +170,7 @@ Respond ONLY with the JSON object.`;
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages,
-        temperature: 0.5,
+        temperature: 0,
         max_tokens: 1500,
       }),
     });
