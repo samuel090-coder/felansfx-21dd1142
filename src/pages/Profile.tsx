@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { ProfilePictureUpload } from "@/components/profile/ProfilePictureUpload";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/currency";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -133,7 +134,7 @@ const Profile = () => {
                 <p className="text-xs text-muted-foreground">Saved trades</p>
               </div>
               <div className="text-center p-3 rounded-xl bg-muted/50">
-                <p className="text-2xl font-bold">${wallet?.balance?.toFixed(0) || 0}</p>
+                <p className="text-2xl font-bold">{formatCurrency(wallet?.balance || 0, "NGN", { decimals: 0 })}</p>
                 <p className="text-xs text-muted-foreground">Credit balance</p>
               </div>
             </div>
