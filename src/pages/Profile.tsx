@@ -92,9 +92,9 @@ const Profile = () => {
 
   const menuItems = [
     { icon: CreditCard, label: "Manage deposits", to: "/deposit" },
+    { icon: FileText, label: "Screenshot Guide", to: "/screenshot-guide" },
     { icon: Share2, label: "Invite friends", to: "/invite" },
     { icon: Bookmark, label: "My saved setups", to: "/saved" },
-    { icon: FileText, label: "Journal your trades", to: "/saved" },
   ];
 
   return (

@@ -107,6 +107,42 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_streak_settings: {
+        Row: {
+          created_at: string
+          features: Json
+          highlight_text: string | null
+          id: string
+          is_active: boolean
+          subtitle: string
+          title: string
+          unlock_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          features?: Json
+          highlight_text?: string | null
+          id?: string
+          is_active?: boolean
+          subtitle?: string
+          title?: string
+          unlock_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          features?: Json
+          highlight_text?: string | null
+          id?: string
+          is_active?: boolean
+          subtitle?: string
+          title?: string
+          unlock_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       deposit_methods: {
         Row: {
           created_at: string
@@ -238,6 +274,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pro_content: {
+        Row: {
+          content: string
+          content_type: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          content_type?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          content_type?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -298,6 +367,120 @@ export type Database = {
         }
         Relationships: []
       }
+      recommended_tools: {
+        Row: {
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          redirect_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          redirect_url: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          redirect_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      screenshot_guide_content: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          icon_name: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          section_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          icon_name?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          section_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          icon_name?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          section_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          discount_text: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          discount_text?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          name: string
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          discount_text?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -312,6 +495,30 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_unlocks: {
+        Row: {
+          expires_at: string | null
+          id: string
+          unlock_type: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string | null
+          id?: string
+          unlock_type?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          expires_at?: string | null
+          id?: string
+          unlock_type?: string
+          unlocked_at?: string
           user_id?: string
         }
         Relationships: []
