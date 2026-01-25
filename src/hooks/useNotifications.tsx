@@ -64,8 +64,26 @@ export const useNotifications = () => {
           setNotifications((prev) => [newNotification, ...prev]);
           setUnreadCount((prev) => prev + 1);
           
-          // Show browser notification if permitted
-          if (Notification.permission === "granted") {
+          // Show browser notification via Service Worker if permitted
+          if (Notification.permission === "granted" && "serviceWorker" in navigator) {
+            navigator.serviceWorker.ready.then((registration) => {
+              registration.showNotification(newNotification.title, {
+                body: newNotification.message,
+                icon: "/favicon.ico",
+                badge: "/favicon.ico",
+                data: { url: newNotification.action_url || "/" },
+                tag: newNotification.id, // Prevents duplicate notifications
+              });
+            }).catch((err) => {
+              console.error("Service worker notification failed:", err);
+              // Fallback to regular Notification API
+              new Notification(newNotification.title, {
+                body: newNotification.message,
+                icon: "/favicon.ico",
+              });
+            });
+          } else if (Notification.permission === "granted") {
+            // Fallback for browsers without service worker
             new Notification(newNotification.title, {
               body: newNotification.message,
               icon: "/favicon.ico",
