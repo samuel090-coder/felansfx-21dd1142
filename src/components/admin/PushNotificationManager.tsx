@@ -43,9 +43,18 @@ export const PushNotificationManager = () => {
 
       if (error) throw error;
 
-      // Fetch profiles for each subscriber
+      // Deduplicate by endpoint (keep most recent per user+endpoint)
+      const uniqueByEndpoint = new Map<string, typeof data[0]>();
+      for (const sub of data || []) {
+        if (!uniqueByEndpoint.has(sub.endpoint)) {
+          uniqueByEndpoint.set(sub.endpoint, sub);
+        }
+      }
+      const uniqueData = [...uniqueByEndpoint.values()];
+
+      // Fetch profiles for each unique subscriber
       const subscribersWithProfiles = await Promise.all(
-        (data || []).map(async (sub) => {
+        uniqueData.map(async (sub) => {
           const { data: profile } = await supabase
             .from("profiles")
             .select("full_name, email, display_id")
