@@ -9,15 +9,19 @@ import {
   LogOut,
   ChevronRight,
   Crown,
+  Bell,
+  BellOff,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { ProfilePictureUpload } from "@/components/profile/ProfilePictureUpload";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -25,8 +29,10 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { wallet, loading: walletLoading } = useWallet();
+  const { isSupported, isSubscribed, subscribe, unsubscribe } = usePushNotifications();
   const [savedCount, setSavedCount] = useState(0);
   const [displayId, setDisplayId] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -46,13 +52,14 @@ const Profile = () => {
         .eq("is_saved", true);
       setSavedCount(count || 0);
       
-      // Fetch display ID
+      // Fetch display ID and avatar
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_id")
+        .select("display_id, avatar_url")
         .eq("user_id", user.id)
         .maybeSingle();
       setDisplayId(profile?.display_id || null);
+      setAvatarUrl(profile?.avatar_url || null);
     };
     fetchUserData();
   }, [user]);
@@ -61,6 +68,14 @@ const Profile = () => {
     await signOut();
     toast.success("Signed out successfully");
     navigate("/auth");
+  };
+
+  const handlePushToggle = async () => {
+    if (isSubscribed) {
+      await unsubscribe();
+    } else {
+      await subscribe();
+    }
   };
 
   if (authLoading || walletLoading) {
@@ -97,11 +112,11 @@ const Profile = () => {
 
             {/* Avatar and Name */}
             <div className="flex items-center gap-4 mb-6">
-              <Avatar className="w-16 h-16">
-                <AvatarFallback className="bg-muted text-lg font-semibold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <ProfilePictureUpload
+                currentUrl={avatarUrl}
+                initials={initials}
+                onUpload={setAvatarUrl}
+              />
               <div>
                 <h2 className="text-xl font-display font-semibold">{userName}</h2>
                 <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -122,6 +137,26 @@ const Profile = () => {
                 <p className="text-xs text-muted-foreground">Credit balance</p>
               </div>
             </div>
+
+            {/* Push Notifications Toggle */}
+            {isSupported && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 mb-4">
+                <div className="flex items-center gap-3">
+                  {isSubscribed ? (
+                    <Bell className="w-5 h-5 text-primary" />
+                  ) : (
+                    <BellOff className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium">Push Notifications</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isSubscribed ? "Enabled" : "Disabled"}
+                    </p>
+                  </div>
+                </div>
+                <Switch checked={isSubscribed} onCheckedChange={handlePushToggle} />
+              </div>
+            )}
 
             {/* Invite Button */}
             <Button className="w-full gradient-primary shadow-primary">
