@@ -14,6 +14,7 @@ import {
   BarChart3,
   MessageSquare,
   Bell,
+  Layers,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -36,6 +37,10 @@ import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminAnalytics } from "@/components/admin/AdminAnalytics";
 import { NotificationTemplates } from "@/components/admin/NotificationTemplates";
 import { PushNotificationManager } from "@/components/admin/PushNotificationManager";
+import { RecommendedToolsManager } from "@/components/admin/RecommendedToolsManager";
+import { DailyStreakManager } from "@/components/admin/DailyStreakManager";
+import { ScreenshotGuideManager } from "@/components/admin/ScreenshotGuideManager";
+import { SubscriptionPlansManager } from "@/components/admin/SubscriptionPlansManager";
 
 interface PendingDeposit {
   id: string;
@@ -375,7 +380,7 @@ const Admin = () => {
 
       <div className="px-4 py-4">
         <Tabs defaultValue="analytics">
-          <TabsList className="grid w-full grid-cols-6 mb-6 h-auto">
+          <TabsList className="grid w-full grid-cols-7 mb-6 h-auto">
             <TabsTrigger value="analytics" className="text-xs px-1 py-2">
               <BarChart3 className="w-4 h-4" />
             </TabsTrigger>
@@ -387,6 +392,9 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="push" className="text-xs px-1 py-2">
               <Bell className="w-4 h-4" />
+            </TabsTrigger>
+            <TabsTrigger value="content" className="text-xs px-1 py-2">
+              <Layers className="w-4 h-4" />
             </TabsTrigger>
             <TabsTrigger value="templates" className="text-xs px-1 py-2">
               <MessageSquare className="w-4 h-4" />
@@ -677,6 +685,14 @@ const Admin = () => {
           {/* Push Notifications Tab */}
           <TabsContent value="push">
             <PushNotificationManager />
+          </TabsContent>
+
+          {/* Content Management Tab */}
+          <TabsContent value="content" className="space-y-4">
+            <RecommendedToolsManager />
+            <DailyStreakManager />
+            <ScreenshotGuideManager />
+            <SubscriptionPlansManager />
           </TabsContent>
 
           {/* Templates Tab */}
