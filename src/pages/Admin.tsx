@@ -41,6 +41,9 @@ import { RecommendedToolsManager } from "@/components/admin/RecommendedToolsMana
 import { DailyStreakManager } from "@/components/admin/DailyStreakManager";
 import { ScreenshotGuideManager } from "@/components/admin/ScreenshotGuideManager";
 import { SubscriptionPlansManager } from "@/components/admin/SubscriptionPlansManager";
+import { DailySignalsManager } from "@/components/admin/DailySignalsManager";
+import { MarketNewsManager } from "@/components/admin/MarketNewsManager";
+import { ProContentManager } from "@/components/admin/ProContentManager";
 
 interface PendingDeposit {
   id: string;
@@ -689,6 +692,9 @@ const Admin = () => {
 
           {/* Content Management Tab */}
           <TabsContent value="content" className="space-y-4">
+            <DailySignalsManager />
+            <MarketNewsManager />
+            <ProContentManager />
             <RecommendedToolsManager />
             <DailyStreakManager />
             <ScreenshotGuideManager />
