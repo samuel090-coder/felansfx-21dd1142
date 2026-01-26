@@ -107,6 +107,51 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_signals: {
+        Row: {
+          created_at: string
+          entry_price: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          risk_reward: string | null
+          status: string
+          stop_loss: string
+          symbol: string
+          take_profit: string
+          trade_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entry_price: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          risk_reward?: string | null
+          status?: string
+          stop_loss: string
+          symbol: string
+          take_profit: string
+          trade_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entry_price?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          risk_reward?: string | null
+          status?: string
+          stop_loss?: string
+          symbol?: string
+          take_profit?: string
+          trade_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_streak_settings: {
         Row: {
           created_at: string
@@ -211,6 +256,45 @@ export type Database = {
           },
         ]
       }
+      market_news: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          importance: string | null
+          is_active: boolean
+          news_type: string
+          published_at: string
+          source: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          importance?: string | null
+          is_active?: boolean
+          news_type?: string
+          published_at?: string
+          source?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          importance?: string | null
+          is_active?: boolean
+          news_type?: string
+          published_at?: string
+          source?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_templates: {
         Row: {
           body: string
@@ -284,6 +368,7 @@ export type Database = {
           is_active: boolean
           title: string
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           content: string
@@ -294,6 +379,7 @@ export type Database = {
           is_active?: boolean
           title: string
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           content?: string
@@ -304,6 +390,7 @@ export type Database = {
           is_active?: boolean
           title?: string
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: []
       }
