@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -102,6 +102,20 @@ export const MarketNewsManager = () => {
         return;
       }
       toast.success("News posted!");
+     
+     // Send push notification to all subscribers
+     try {
+       const emoji = formData.importance === "high" ? "🔴" : formData.importance === "medium" ? "🟡" : "🔵";
+       await supabase.functions.invoke("send-push", {
+         body: {
+           title: `${emoji} ${formData.news_type === "calendar" ? "Economic Event" : "Market News"}`,
+           message: formData.title,
+           url: "/daily-streak",
+         },
+       });
+     } catch (pushError) {
+       console.error("Failed to send push notification:", pushError);
+     }
     }
 
     resetForm();

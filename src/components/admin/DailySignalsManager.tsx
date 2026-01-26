@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -77,6 +77,20 @@ export const DailySignalsManager = () => {
     }
 
     toast.success("Signal posted!");
+   
+   // Send push notification to all subscribers
+   try {
+     await supabase.functions.invoke("send-push", {
+       body: {
+         title: "🎯 New Trading Signal",
+         message: `${formData.symbol} ${formData.trade_type.toUpperCase()} signal posted. Entry: ${formData.entry_price}`,
+         url: "/daily-streak",
+       },
+     });
+   } catch (pushError) {
+     console.error("Failed to send push notification:", pushError);
+   }
+   
     setFormData({
       symbol: "",
       trade_type: "buy",
@@ -91,6 +105,8 @@ export const DailySignalsManager = () => {
   };
 
   const updateStatus = async (id: string, status: string) => {
+   const signal = signals.find((s) => s.id === id);
+   
     const { error } = await supabase
       .from("daily_signals")
       .update({ status, is_active: status === "active" })
@@ -101,6 +117,22 @@ export const DailySignalsManager = () => {
       return;
     }
     toast.success("Status updated!");
+   
+   // Send push notification if status changed to hit_tp or hit_sl
+   if ((status === "hit_tp" || status === "hit_sl") && signal) {
+     try {
+       await supabase.functions.invoke("send-push", {
+         body: {
+           title: status === "hit_tp" ? "✅ Take Profit Hit!" : "🛑 Stop Loss Hit",
+           message: `${signal.symbol} signal ${status === "hit_tp" ? "reached take profit" : "hit stop loss"}`,
+           url: "/daily-streak",
+         },
+       });
+     } catch (pushError) {
+       console.error("Failed to send push notification:", pushError);
+     }
+   }
+   
     fetchSignals();
   };
 

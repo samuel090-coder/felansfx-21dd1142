@@ -11,6 +11,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SubscriptionModal } from "@/components/subscription/SubscriptionModal";
+import { SignalCard } from "@/components/daily-streak/SignalCard";
+import { NewsCard } from "@/components/daily-streak/NewsCard";
+import { GuideCard } from "@/components/daily-streak/GuideCard";
 import { formatCurrency } from "@/lib/currency";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -285,69 +288,18 @@ const DailyStreak = () => {
                 </Card>
               ) : (
                 signals.map((signal) => (
-                  <Card key={signal.id} className="border-0 shadow-md overflow-hidden">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          {signal.trade_type === "buy" ? (
-                            <TrendingUp className="w-5 h-5 text-green-500" />
-                          ) : (
-                            <TrendingDown className="w-5 h-5 text-destructive" />
-                          )}
-                          <span className="font-bold text-lg">{signal.symbol}</span>
-                          <Badge variant={signal.trade_type === "buy" ? "default" : "destructive"}>
-                            {signal.trade_type.toUpperCase()}
-                          </Badge>
-                        </div>
-                        <Badge 
-                          variant="outline" 
-                          className={
-                            signal.status === "hit_tp" ? "border-green-500 text-green-500" :
-                            signal.status === "hit_sl" ? "border-destructive text-destructive" :
-                            "border-primary text-primary"
-                          }
-                        >
-                          {signal.status === "hit_tp" ? "✓ TP Hit" : 
-                           signal.status === "hit_sl" ? "✗ SL Hit" : 
-                           signal.status === "cancelled" ? "Cancelled" : "Active"}
-                        </Badge>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3 p-3 bg-muted/50 rounded-lg">
-                        <div className="text-center">
-                          <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs mb-1">
-                            <DollarSign className="w-3 h-3" />
-                            Entry
-                          </div>
-                          <p className="font-semibold">{signal.entry_price}</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center gap-1 text-destructive text-xs mb-1">
-                            <AlertTriangle className="w-3 h-3" />
-                            Stop Loss
-                          </div>
-                          <p className="font-semibold text-destructive">{signal.stop_loss}</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center gap-1 text-green-500 text-xs mb-1">
-                            <Target className="w-3 h-3" />
-                            Take Profit
-                          </div>
-                          <p className="font-semibold text-green-500">{signal.take_profit}</p>
-                        </div>
-                      </div>
-
-                      {signal.risk_reward && (
-                        <p className="text-xs text-muted-foreground mt-2">R:R {signal.risk_reward}</p>
-                      )}
-                      {signal.notes && (
-                        <p className="text-sm text-muted-foreground mt-2">{signal.notes}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {format(new Date(signal.created_at), "MMM d, yyyy 'at' h:mm a")}
-                      </p>
-                    </CardContent>
-                  </Card>
+                 <SignalCard
+                   key={signal.id}
+                   symbol={signal.symbol}
+                   tradeType={signal.trade_type}
+                   entryPrice={signal.entry_price}
+                   stopLoss={signal.stop_loss}
+                   takeProfit={signal.take_profit}
+                   riskReward={signal.risk_reward || undefined}
+                   status={signal.status}
+                   notes={signal.notes || undefined}
+                   isActive={true}
+                 />
                 ))
               )}
             </TabsContent>
@@ -362,24 +314,15 @@ const DailyStreak = () => {
                 </Card>
               ) : (
                 news.map((item) => (
-                  <Card key={item.id} className="border-0 shadow-md">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        {getNewsIcon(item.news_type)}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-sm">{item.title}</h3>
-                            {getImportanceBadge(item.importance)}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{item.content}</p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {format(new Date(item.published_at), "MMM d, yyyy 'at' h:mm a")}
-                            {item.source && ` • ${item.source}`}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                 <NewsCard
+                   key={item.id}
+                   title={item.title}
+                   content={item.content}
+                   newsType={item.news_type}
+                   importance={item.importance || "medium"}
+                   publishedAt={item.published_at}
+                   source={item.source || undefined}
+                 />
                 ))
               )}
             </TabsContent>
@@ -394,32 +337,13 @@ const DailyStreak = () => {
                 </Card>
               ) : (
                 proContent.map((content) => (
-                  <Card key={content.id} className="border-0 shadow-md overflow-hidden">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        {content.video_url && <Play className="w-4 h-4 text-primary" />}
-                        <h3 className="font-semibold">{content.title}</h3>
-                        <Badge variant="secondary" className="text-xs">{content.content_type}</Badge>
-                      </div>
-                      
-                      {content.video_url && getVideoEmbed(content.video_url) && (
-                        <div className="aspect-video w-full rounded-lg overflow-hidden mb-3">
-                          <iframe
-                            src={getVideoEmbed(content.video_url) || ""}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        </div>
-                      )}
-                      
-                      {content.content && (
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                          {content.content}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
+                 <GuideCard
+                   key={content.id}
+                   title={content.title}
+                   content={content.content}
+                   contentType={content.content_type}
+                   videoUrl={content.video_url || undefined}
+                 />
                 ))
               )}
             </TabsContent>
