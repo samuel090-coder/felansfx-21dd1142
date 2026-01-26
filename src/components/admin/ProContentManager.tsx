@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,6 +95,20 @@ export const ProContentManager = () => {
         return;
       }
       toast.success("Content added!");
+     
+     // Send push notification to all subscribers
+     try {
+       const hasVideo = formData.video_url && formData.video_url.trim().length > 0;
+       await supabase.functions.invoke("send-push", {
+         body: {
+           title: `📚 New ${hasVideo ? "Video" : "Guide"} Available`,
+           message: formData.title,
+           url: "/daily-streak",
+         },
+       });
+     } catch (pushError) {
+       console.error("Failed to send push notification:", pushError);
+     }
     }
 
     resetForm();

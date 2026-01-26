@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+ import { sendPushNotifications } from "../_shared/push-helper.ts";
+ 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -248,6 +251,33 @@ Respond ONLY with the JSON object.`;
     }
 
     console.log("Analysis completed successfully for:", symbol);
+
+   // Send push notification to user about completed analysis
+   try {
+     const authHeader = req.headers.get("Authorization");
+     if (authHeader) {
+       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+       const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+         global: { headers: { Authorization: authHeader } },
+       });
+
+       const { data: { user } } = await supabase.auth.getUser();
+       
+       if (user) {
+         await sendPushNotifications({
+           userIds: [user.id],
+           title: "Analysis Complete",
+           message: `Your ${symbol} analysis is ready! ${analysisData.tradeIdea === "buy" ? "📈" : analysisData.tradeIdea === "sell" ? "📉" : "⏸️"} ${analysisData.tradeIdea.toUpperCase()} signal detected.`,
+           url: "/history",
+           type: "success",
+         });
+       }
+     }
+   } catch (pushError) {
+     console.error("Failed to send push notification:", pushError);
+     // Don't fail the whole request if push fails
+   }
 
     return new Response(
       JSON.stringify(analysisData),
