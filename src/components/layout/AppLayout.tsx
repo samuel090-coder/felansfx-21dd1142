@@ -14,7 +14,7 @@ export const AppLayout = ({ children, hideNav = false, className }: AppLayoutPro
       <main
         className={cn(
           "max-w-md mx-auto",
-          !hideNav && "pb-20",
+          !hideNav && "pb-28",
           className
         )}
       >
