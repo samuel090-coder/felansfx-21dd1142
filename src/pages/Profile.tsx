@@ -30,7 +30,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { wallet, loading: walletLoading } = useWallet();
-  const { isSupported, isSubscribed, subscribe, unsubscribe } = usePushNotifications();
+  const { isSupported, isSubscribed, isLoading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
   const [savedCount, setSavedCount] = useState(0);
   const [displayId, setDisplayId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -77,6 +77,10 @@ const Profile = () => {
     } else {
       await subscribe();
     }
+  };
+
+  const handleRefreshSubscription = async () => {
+    await subscribe(true); // Force refresh
   };
 
   if (authLoading || walletLoading) {
@@ -141,21 +145,38 @@ const Profile = () => {
 
             {/* Push Notifications Toggle */}
             {isSupported && (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 mb-4">
-                <div className="flex items-center gap-3">
-                  {isSubscribed ? (
-                    <Bell className="w-5 h-5 text-primary" />
-                  ) : (
-                    <BellOff className="w-5 h-5 text-muted-foreground" />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium">Push Notifications</p>
-                    <p className="text-xs text-muted-foreground">
-                      {isSubscribed ? "Enabled" : "Disabled"}
-                    </p>
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    {isSubscribed ? (
+                      <Bell className="w-5 h-5 text-primary" />
+                    ) : (
+                      <BellOff className="w-5 h-5 text-muted-foreground" />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">Push Notifications</p>
+                      <p className="text-xs text-muted-foreground">
+                        {isSubscribed ? "Enabled" : "Disabled"}
+                      </p>
+                    </div>
                   </div>
+                  <Switch 
+                    checked={isSubscribed} 
+                    onCheckedChange={handlePushToggle} 
+                    disabled={pushLoading}
+                  />
                 </div>
-                <Switch checked={isSubscribed} onCheckedChange={handlePushToggle} />
+                {isSubscribed && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={handleRefreshSubscription}
+                    disabled={pushLoading}
+                  >
+                    {pushLoading ? "Refreshing..." : "Refresh Push Subscription"}
+                  </Button>
+                )}
               </div>
             )}
 

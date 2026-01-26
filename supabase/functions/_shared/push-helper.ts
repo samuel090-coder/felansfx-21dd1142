@@ -122,13 +122,22 @@
          });
  
          result.sent++;
-       } catch (error: any) {
-         result.failed++;
-         if (typeof error.isGone === "function" && error.isGone()) {
-           expiredIds.push(sub.id);
-         }
-       }
-     }
+        } catch (error: any) {
+          result.failed++;
+          const errDetails = error.message || "Unknown error";
+          console.error(`Push to ${sub.endpoint.substring(0, 40)}... failed: ${errDetails}`);
+          
+          // Check for expired subscription
+          const isExpired = 
+            (typeof error.isGone === "function" && error.isGone()) ||
+            error.status === 410 ||
+            (error.response && error.response.status === 410);
+            
+          if (isExpired) {
+            expiredIds.push(sub.id);
+          }
+        }
+      }
  
      // Clean up expired subscriptions
      if (expiredIds.length > 0) {

@@ -80,7 +80,7 @@ export const usePushNotifications = () => {
   };
 
   // Subscribe to push notifications
-  const subscribe = useCallback(async (): Promise<boolean> => {
+  const subscribe = useCallback(async (forceRefresh = false): Promise<boolean> => {
     if (!isSupported) {
       toast.error("Push notifications not supported");
       return false;
@@ -110,6 +110,20 @@ export const usePushNotifications = () => {
         await navigator.serviceWorker.ready;
       }
 
+      // If force refresh, unsubscribe existing first
+      if (forceRefresh) {
+        const existingSub = await registration.pushManager.getSubscription();
+        if (existingSub) {
+          await existingSub.unsubscribe();
+          // Also remove from database
+          await supabase
+            .from("push_subscriptions")
+            .delete()
+            .eq("user_id", user.id);
+          console.log("Cleared existing subscription for refresh");
+        }
+      }
+
       // Get VAPID public key from server
       console.log("Fetching VAPID key from server...");
       const { data: vapidData, error: vapidError } = await supabase.functions.invoke(
@@ -132,16 +146,19 @@ export const usePushNotifications = () => {
 
       const subscriptionJson = subscription.toJSON();
 
-      // Save subscription to database
-      const { error: dbError } = await supabase.from("push_subscriptions").upsert(
-        {
-          user_id: user.id,
-          endpoint: subscriptionJson.endpoint!,
-          p256dh: subscriptionJson.keys!.p256dh,
-          auth: subscriptionJson.keys!.auth,
-        },
-        { onConflict: "user_id,endpoint" }
-      );
+      // Delete any existing subscriptions for this user first (prevent duplicates)
+      await supabase
+        .from("push_subscriptions")
+        .delete()
+        .eq("user_id", user.id);
+
+      // Save new subscription to database
+      const { error: dbError } = await supabase.from("push_subscriptions").insert({
+        user_id: user.id,
+        endpoint: subscriptionJson.endpoint!,
+        p256dh: subscriptionJson.keys!.p256dh,
+        auth: subscriptionJson.keys!.auth,
+      });
 
       if (dbError) {
         console.error("Database error:", dbError);
@@ -149,7 +166,7 @@ export const usePushNotifications = () => {
       }
 
       setIsSubscribed(true);
-      toast.success("Push notifications enabled!");
+      toast.success(forceRefresh ? "Push notifications refreshed!" : "Push notifications enabled!");
       return true;
     } catch (error: any) {
       console.error("Subscribe error:", error);
