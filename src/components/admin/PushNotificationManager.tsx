@@ -43,14 +43,14 @@ export const PushNotificationManager = () => {
 
       if (error) throw error;
 
-      // Deduplicate by endpoint (keep most recent per user+endpoint)
-      const uniqueByEndpoint = new Map<string, typeof data[0]>();
+      // Deduplicate by user_id (keep only the most recent subscription per user)
+      const uniqueByUser = new Map<string, typeof data[0]>();
       for (const sub of data || []) {
-        if (!uniqueByEndpoint.has(sub.endpoint)) {
-          uniqueByEndpoint.set(sub.endpoint, sub);
+        if (!uniqueByUser.has(sub.user_id)) {
+          uniqueByUser.set(sub.user_id, sub);
         }
       }
-      const uniqueData = [...uniqueByEndpoint.values()];
+      const uniqueData = [...uniqueByUser.values()];
 
       // Fetch profiles for each unique subscriber
       const subscribersWithProfiles = await Promise.all(
@@ -72,19 +72,61 @@ export const PushNotificationManager = () => {
     }
   };
 
-  const handleRemoveSubscriber = async (id: string) => {
+  const handleRemoveSubscriber = async (id: string, userId: string) => {
     try {
+      // Remove ALL subscriptions for this user (clean up duplicates)
       const { error } = await supabase
         .from("push_subscriptions")
         .delete()
-        .eq("id", id);
+        .eq("user_id", userId);
 
       if (error) throw error;
 
-      toast.success("Subscriber removed");
+      toast.success("All subscriptions for this user removed");
       fetchSubscribers();
     } catch (error: any) {
       toast.error(error.message || "Failed to remove subscriber");
+    }
+  };
+
+  const handleCleanupDuplicates = async () => {
+    try {
+      // Get all subscriptions grouped by user
+      const { data, error } = await supabase
+        .from("push_subscriptions")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Find duplicates (keep only the most recent per user)
+      const userLatest = new Map<string, string>();
+      const toDelete: string[] = [];
+
+      for (const sub of data || []) {
+        if (!userLatest.has(sub.user_id)) {
+          userLatest.set(sub.user_id, sub.id);
+        } else {
+          // This is a duplicate, mark for deletion
+          toDelete.push(sub.id);
+        }
+      }
+
+      if (toDelete.length > 0) {
+        const { error: delError } = await supabase
+          .from("push_subscriptions")
+          .delete()
+          .in("id", toDelete);
+
+        if (delError) throw delError;
+
+        toast.success(`Removed ${toDelete.length} duplicate subscription(s)`);
+        fetchSubscribers();
+      } else {
+        toast.info("No duplicates found");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Cleanup failed");
     }
   };
 
@@ -113,7 +155,17 @@ export const PushNotificationManager = () => {
 
       if (error) throw error;
 
-      const result = data as { sent: number; total: number; failed: number };
+      const result = data as { sent: number; total: number; failed: number; expired?: number };
+      
+      if (result.failed > 0 && result.sent === 0) {
+        toast.warning(
+          `Push failed to ${result.failed} subscriber(s). They may need to refresh their subscription in Profile settings.`,
+          { duration: 6000 }
+        );
+      } else if (result.expired && result.expired > 0) {
+        toast.info(`Cleaned up ${result.expired} expired subscription(s)`);
+      }
+      
       toast.success(`Push notification sent to ${result.sent} of ${result.total} subscribers`);
       setNotificationForm({ title: "", message: "" });
     } catch (error: any) {
@@ -183,11 +235,18 @@ export const PushNotificationManager = () => {
 
       {/* Subscribers List */}
       <Card className="border-0 shadow-md">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Users className="w-5 h-5" />
             Push Notification Subscribers ({subscribers.length})
           </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCleanupDuplicates}
+          >
+            Cleanup Duplicates
+          </Button>
         </CardHeader>
         <CardContent>
           {subscribers.length === 0 ? (
@@ -219,7 +278,7 @@ export const PushNotificationManager = () => {
                     variant="ghost"
                     size="icon"
                     className="text-destructive hover:text-destructive"
-                    onClick={() => handleRemoveSubscriber(subscriber.id)}
+                    onClick={() => handleRemoveSubscriber(subscriber.id, subscriber.user_id)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

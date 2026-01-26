@@ -4,6 +4,7 @@ import {
   ApplicationServer,
   importVapidKeys,
   Urgency,
+  PushMessageError,
 } from "jsr:@negrel/webpush";
 import { getVapidKeysAsJwk } from "../_shared/vapid.ts";
 
@@ -184,11 +185,27 @@ serve(async (req) => {
         console.log(`Push sent to endpoint: ${sub.endpoint.substring(0, 50)}...`);
       } catch (error: unknown) {
         failedCount++;
-        const err = error as Error & { isGone?: () => boolean };
-        console.error(`Push failed for ${sub.endpoint.substring(0, 50)}...: ${err.message}`);
         
-        // Check if subscription is expired (isGone method from PushMessageError)
-        if (typeof err.isGone === "function" && err.isGone()) {
+        // Use PushMessageError properly for detailed logging
+        let errorDetails = "Unknown error";
+        let isExpired = false;
+        
+        if (error instanceof PushMessageError) {
+          errorDetails = error.toString();
+          isExpired = error.isGone();
+          console.error(`PushMessageError for ${sub.endpoint.substring(0, 50)}...: ${errorDetails}`);
+          if (error.response) {
+            console.error(`Response status: ${error.response.status}`);
+          }
+        } else if (error instanceof Error) {
+          errorDetails = error.message || error.toString();
+          console.error(`Error for ${sub.endpoint.substring(0, 50)}...: ${errorDetails}`);
+        } else {
+          console.error(`Unknown error type for ${sub.endpoint.substring(0, 50)}...:`, error);
+        }
+          
+        if (isExpired) {
+          console.log(`Subscription ${sub.id} is expired/gone, marking for cleanup`);
           expiredIds.push(sub.id);
         }
       }
