@@ -8,7 +8,6 @@ interface AppSettings {
   max_deposit: string;
   first_deposit_bonus: string;
   daily_analysis_limit: string;
-  admin_passcode: string;
 }
 
 const defaultSettings: AppSettings = {
@@ -18,7 +17,6 @@ const defaultSettings: AppSettings = {
   max_deposit: "1000",
   first_deposit_bonus: "0",
   daily_analysis_limit: "4",
-  admin_passcode: "0704",
 };
 
 export const useAppSettings = () => {

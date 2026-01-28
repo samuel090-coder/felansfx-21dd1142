@@ -65,11 +65,11 @@ interface DepositMethod {
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, checkIsAdmin } = useAuth();
   const { settings, refetch: refetchSettings } = useAppSettings();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [passcode, setPasscode] = useState("");
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
   const [deposits, setDeposits] = useState<PendingDeposit[]>([]);
   const [depositMethods, setDepositMethods] = useState<DepositMethod[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,44 +91,39 @@ const Admin = () => {
   const [editingMethod, setEditingMethod] = useState<DepositMethod | null>(null);
   const [isAddingMethod, setIsAddingMethod] = useState(false);
 
+  // Check admin role on mount
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth", { replace: true });
+    const verifyAdminAccess = async () => {
+      if (!user) {
+        setIsCheckingAdmin(false);
+        return;
+      }
+
+      try {
+        const isAdmin = await checkIsAdmin(user.id);
+        if (isAdmin) {
+          setIsAuthenticated(true);
+          fetchDeposits();
+          fetchDepositMethods();
+        } else {
+          toast.error("You are not authorized to access admin panel");
+          navigate("/", { replace: true });
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        toast.error("Failed to verify admin access");
+        navigate("/", { replace: true });
+      } finally {
+        setIsCheckingAdmin(false);
+      }
+    };
+
+    if (!authLoading && user) {
+      verifyAdminAccess();
+    } else if (!authLoading && !user) {
+      setIsCheckingAdmin(false);
     }
-  }, [user, authLoading, navigate]);
-
-  useEffect(() => {
-    setSettingsForm({
-      site_name: settings.site_name,
-      analysis_cost: settings.analysis_cost,
-      min_deposit: settings.min_deposit,
-      max_deposit: settings.max_deposit,
-      daily_analysis_limit: settings.daily_analysis_limit,
-    });
-  }, [settings]);
-
-  const verifyPasscode = async () => {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("user_id", user?.id)
-      .maybeSingle();
-
-    const authorizedEmail = "samuelsunday09066423764@gmail.com";
-    
-    if (profile?.email !== authorizedEmail) {
-      toast.error("You are not authorized to access admin panel");
-      return;
-    }
-
-    if (passcode === settings.admin_passcode) {
-      setIsAuthenticated(true);
-      fetchDeposits();
-      fetchDepositMethods();
-    } else {
-      toast.error("Invalid passcode");
-    }
-  };
+  }, [user, authLoading, checkIsAdmin, navigate]);
 
   const fetchDeposits = async () => {
     try {
@@ -346,7 +341,7 @@ const Admin = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || isCheckingAdmin) {
     return <LoadingScreen />;
   }
 
@@ -357,18 +352,14 @@ const Admin = () => {
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
           <Card className="w-full max-w-sm border-0 shadow-lg">
             <CardHeader className="text-center">
-              <CardTitle>Enter Admin Passcode</CardTitle>
+              <CardTitle>Access Denied</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                type="password"
-                placeholder="Enter passcode"
-                value={passcode}
-                onChange={(e) => setPasscode(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && verifyPasscode()}
-              />
-              <Button className="w-full gradient-primary" onClick={verifyPasscode}>
-                Access Admin
+            <CardContent className="text-center">
+              <p className="text-muted-foreground">
+                You don't have permission to access the admin panel.
+              </p>
+              <Button className="w-full mt-4" onClick={() => navigate("/")}>
+                Go Home
               </Button>
             </CardContent>
           </Card>
