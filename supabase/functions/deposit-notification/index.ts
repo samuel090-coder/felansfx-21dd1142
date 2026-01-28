@@ -71,12 +71,110 @@ serve(async (req) => {
   }
 
   try {
+    // ========== AUTHENTICATION CHECK ==========
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Missing or invalid authorization" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Use anon key client with user's token for auth verification
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    // Verify user identity
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.error("Auth verification failed:", claimsError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const callerUserId = claimsData.claims.sub as string;
+
+    // ========== ADMIN ROLE CHECK ==========
+    // Use service role client for admin check
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
+      _role: "admin",
+      _user_id: callerUserId,
+    });
+
+    if (roleError || !isAdmin) {
+      console.error("Admin role check failed:", roleError, "isAdmin:", isAdmin);
+      return new Response(
+        JSON.stringify({ error: "Forbidden: Admin role required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Admin verified:", callerUserId);
+
+    // ========== INPUT VALIDATION ==========
     const body: DepositNotificationRequest = await req.json();
     const { action, depositId, userId, userEmail, userName, amount, reason } = body;
+
+    if (!action || (action !== "approve" && action !== "reject")) {
+      return new Response(
+        JSON.stringify({ error: "Invalid action. Must be 'approve' or 'reject'" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!depositId || typeof depositId !== "string") {
+      return new Response(
+        JSON.stringify({ error: "Invalid depositId" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!userId || typeof userId !== "string") {
+      return new Response(
+        JSON.stringify({ error: "Invalid userId" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (typeof amount !== "number" || amount <= 0) {
+      return new Response(
+        JSON.stringify({ error: "Invalid amount" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify deposit exists and belongs to specified user
+    const { data: deposit, error: depositError } = await supabase
+      .from("deposits")
+      .select("id, user_id, status")
+      .eq("id", depositId)
+      .single();
+
+    if (depositError || !deposit) {
+      console.error("Deposit not found:", depositError);
+      return new Response(
+        JSON.stringify({ error: "Deposit not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (deposit.user_id !== userId) {
+      return new Response(
+        JSON.stringify({ error: "User ID mismatch with deposit" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     console.log(`Processing ${action} notification for deposit ${depositId}`);
 
