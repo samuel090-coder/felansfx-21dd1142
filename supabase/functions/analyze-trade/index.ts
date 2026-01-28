@@ -1,12 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendPushNotifications } from "../_shared/push-helper.ts";
 
- import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
- import { sendPushNotifications } from "../_shared/push-helper.ts";
- 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Input validation helpers
+function isValidSymbol(symbol: string): boolean {
+  // Symbol should be alphanumeric with optional / or - (e.g., EUR/USD, BTC-USD)
+  return /^[A-Za-z0-9/-]{1,20}$/.test(symbol);
+}
+
+function isValidTradeFocus(focus: string): boolean {
+  return focus === "scalp" || focus === "swing";
+}
+
+function isValidChartUrl(url: string, userId: string): boolean {
+  if (!url) return true; // Optional
+  // Must be a valid URL and should contain user's ID in the path for security
+  try {
+    const parsed = new URL(url);
+    // Accept Supabase storage URLs
+    return parsed.hostname.includes("supabase") && url.includes(userId);
+  } catch {
+    return false;
+  }
+}
 
 async function fetchImageAsBase64(url: string): Promise<string | null> {
   try {
@@ -31,11 +52,64 @@ serve(async (req) => {
   }
 
   try {
+    // ========== AUTHENTICATION CHECK ==========
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Missing or invalid authorization" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    // Verify user identity
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.error("Auth verification failed:", claimsError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub as string;
+    console.log("Authenticated user:", userId);
+
+    // ========== INPUT VALIDATION ==========
     const { symbol, tradeFocus, chart4hUrl, chart15mUrl } = await req.json();
 
-    if (!symbol) {
+    if (!symbol || !isValidSymbol(symbol)) {
       return new Response(
-        JSON.stringify({ error: "Symbol is required" }),
+        JSON.stringify({ error: "Invalid symbol format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (tradeFocus && !isValidTradeFocus(tradeFocus)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid trade focus. Must be 'scalp' or 'swing'" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate chart URLs belong to this user
+    if (chart4hUrl && !isValidChartUrl(chart4hUrl, userId)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid chart URL" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (chart15mUrl && !isValidChartUrl(chart15mUrl, userId)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid chart URL" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -254,26 +328,13 @@ Respond ONLY with the JSON object.`;
 
    // Send push notification to user about completed analysis
    try {
-     const authHeader = req.headers.get("Authorization");
-     if (authHeader) {
-       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-       const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-         global: { headers: { Authorization: authHeader } },
-       });
-
-       const { data: { user } } = await supabase.auth.getUser();
-       
-       if (user) {
-         await sendPushNotifications({
-           userIds: [user.id],
-           title: "Analysis Complete",
-           message: `Your ${symbol} analysis is ready! ${analysisData.tradeIdea === "buy" ? "📈" : analysisData.tradeIdea === "sell" ? "📉" : "⏸️"} ${analysisData.tradeIdea.toUpperCase()} signal detected.`,
-           url: "/history",
-           type: "success",
-         });
-       }
-     }
+     await sendPushNotifications({
+       userIds: [userId],
+       title: "Analysis Complete",
+       message: `Your ${symbol} analysis is ready! ${analysisData.tradeIdea === "buy" ? "📈" : analysisData.tradeIdea === "sell" ? "📉" : "⏸️"} ${analysisData.tradeIdea.toUpperCase()} signal detected.`,
+       url: "/history",
+       type: "success",
+     });
    } catch (pushError) {
      console.error("Failed to send push notification:", pushError);
      // Don't fail the whole request if push fails
