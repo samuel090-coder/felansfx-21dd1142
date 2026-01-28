@@ -25,6 +25,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Trigger push subscription refresh on sign-in
+        if (event === "SIGNED_IN" && session?.user) {
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent("refresh-push-subscription"));
+          }, 1000);
+        }
       }
     );
 
