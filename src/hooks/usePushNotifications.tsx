@@ -28,7 +28,7 @@ export const usePushNotifications = () => {
     checkSupport();
   }, []);
 
-  // Check existing subscription
+  // Check existing subscription and sync with database
   useEffect(() => {
     const checkSubscription = async () => {
       if (!isSupported || !user) return;
@@ -36,7 +36,31 @@ export const usePushNotifications = () => {
       try {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
-        setIsSubscribed(!!subscription);
+        
+        if (subscription) {
+          // Verify subscription exists in database
+          const { data: dbSub } = await supabase
+            .from("push_subscriptions")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("endpoint", subscription.endpoint)
+            .maybeSingle();
+          
+          if (!dbSub) {
+            // Browser has subscription but DB doesn't - re-sync
+            console.log("Subscription missing from DB, re-syncing...");
+            const subJson = subscription.toJSON();
+            await supabase.from("push_subscriptions").upsert({
+              user_id: user.id,
+              endpoint: subJson.endpoint!,
+              p256dh: subJson.keys!.p256dh,
+              auth: subJson.keys!.auth,
+            }, { onConflict: "user_id,endpoint" });
+          }
+          setIsSubscribed(true);
+        } else {
+          setIsSubscribed(false);
+        }
       } catch (error) {
         console.error("Error checking push subscription:", error);
       }
@@ -44,6 +68,7 @@ export const usePushNotifications = () => {
 
     checkSubscription();
   }, [isSupported, user]);
+
 
   // Request notification permission
   const requestPermission = useCallback(async (): Promise<boolean> => {
@@ -176,6 +201,19 @@ export const usePushNotifications = () => {
       setIsLoading(false);
     }
   }, [isSupported, user, requestPermission]);
+
+  // Listen for refresh event from auth (auto-refresh on login)
+  useEffect(() => {
+    const handleRefresh = async () => {
+      if (isSupported && user && Notification.permission === "granted") {
+        console.log("Auto-refreshing push subscription on login...");
+        await subscribe(true);
+      }
+    };
+
+    window.addEventListener("refresh-push-subscription", handleRefresh);
+    return () => window.removeEventListener("refresh-push-subscription", handleRefresh);
+  }, [isSupported, user, subscribe]);
 
   // Unsubscribe from push notifications
   const unsubscribe = useCallback(async (): Promise<boolean> => {
