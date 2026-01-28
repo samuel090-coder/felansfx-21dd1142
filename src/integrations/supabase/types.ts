@@ -427,6 +427,78 @@ export type Database = {
         }
         Relationships: []
       }
+      push_delivery_logs: {
+        Row: {
+          broadcast_id: string
+          created_at: string
+          endpoint_host: string | null
+          error: string | null
+          id: string
+          is_auth_error: boolean
+          is_gone: boolean
+          message: string | null
+          status_code: number | null
+          subscription_id: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          broadcast_id: string
+          created_at?: string
+          endpoint_host?: string | null
+          error?: string | null
+          id?: string
+          is_auth_error?: boolean
+          is_gone?: boolean
+          message?: string | null
+          status_code?: number | null
+          subscription_id?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          broadcast_id?: string
+          created_at?: string
+          endpoint_host?: string | null
+          error?: string | null
+          id?: string
+          is_auth_error?: boolean
+          is_gone?: boolean
+          message?: string | null
+          status_code?: number | null
+          subscription_id?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_resubscribe_flags: {
+        Row: {
+          created_at: string
+          last_error: string | null
+          last_status_code: number | null
+          reason: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_error?: string | null
+          last_status_code?: number | null
+          reason?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          last_error?: string | null
+          last_status_code?: number | null
+          reason?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
