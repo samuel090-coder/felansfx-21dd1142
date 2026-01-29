@@ -8,6 +8,7 @@ import {
   ShieldOff,
   Eye,
   BarChart3,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
@@ -50,12 +52,52 @@ interface UserDetails {
   depositTotal: number;
 }
 
+// Welcome message template - professional, no emojis, avoids spam triggers
+const generateWelcomeMessage = (userName: string) => {
+  const siteName = "FelansFX";
+  const siteUrl = "https://felansfx.lovable.app";
+  
+  return {
+    subject: `Welcome to ${siteName} - Your Trading Journey Starts Here`,
+    body: `Dear ${userName},
+
+Thank you for joining ${siteName}. We are excited to have you as part of our growing community of traders.
+
+Our platform offers powerful tools to enhance your trading experience:
+
+- AI-Powered Chart Analysis: Upload your trading charts and receive detailed analysis with entry points, stop-loss, and take-profit recommendations tailored to your strategy.
+
+- Live Trading: Execute trades directly on our platform with real-time market data. Practice with our demo account or trade with real funds when you are ready.
+
+- Daily Market Insights: Access expert signals, market news, and educational content to stay ahead of market movements.
+
+Getting Started:
+1. Complete your profile setup
+2. Add funds to your wallet
+3. Start with our AI analysis or jump into live trading
+
+Our support team is available to assist you with any questions. Simply reply to this email or visit our Help Center.
+
+We look forward to supporting your trading success.
+
+Best regards,
+The ${siteName} Team
+
+${siteUrl}
+
+---
+This message was sent to you because you recently created an account on ${siteName}. If you did not create this account, please disregard this email.`
+  };
+};
+
 export const UserManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [welcomeDialogOpen, setWelcomeDialogOpen] = useState(false);
+  const [welcomeTarget, setWelcomeTarget] = useState<UserProfile | null>(null);
 
   const fetchUsers = async () => {
     try {
@@ -160,6 +202,28 @@ export const UserManagement = () => {
     window.open(`mailto:${email}`, "_blank");
   };
 
+  const handleOpenWelcomeMessage = (user: UserProfile) => {
+    setWelcomeTarget(user);
+    setWelcomeDialogOpen(true);
+  };
+
+  const handleSendWelcomeMessage = () => {
+    if (!welcomeTarget?.email) {
+      toast.error("User has no email");
+      return;
+    }
+    
+    const userName = welcomeTarget.full_name || "Valued Trader";
+    const { subject, body } = generateWelcomeMessage(userName);
+    
+    const mailtoUrl = `mailto:${welcomeTarget.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoUrl, "_blank");
+    
+    setWelcomeDialogOpen(false);
+    setWelcomeTarget(null);
+    toast.success("Email client opened with welcome message");
+  };
+
   const filteredUsers = users.filter(
     (user) =>
       user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -220,11 +284,20 @@ export const UserManagement = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleOpenWelcomeMessage(user)}
+                    title="Send Welcome Message"
+                  >
+                    <MessageSquare className="w-4 h-4 text-primary" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleSendEmail(user.email)}
+                    title="Send Email"
                   >
                     <Mail className="w-4 h-4" />
                   </Button>
@@ -232,6 +305,7 @@ export const UserManagement = () => {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleViewUser(user)}
+                    title="View Details"
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
@@ -345,6 +419,70 @@ export const UserManagement = () => {
                       Make Admin
                     </>
                   )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Welcome Message Dialog */}
+      <Dialog open={welcomeDialogOpen} onOpenChange={setWelcomeDialogOpen}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              Send Welcome Message
+            </DialogTitle>
+            <DialogDescription>
+              Send a professional welcome email to {welcomeTarget?.full_name || "this user"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {welcomeTarget && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="text-sm font-medium mb-1">Recipient</p>
+                <p className="text-sm">{welcomeTarget.full_name || "Unknown"}</p>
+                <p className="text-xs text-muted-foreground">{welcomeTarget.email}</p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="text-sm font-medium mb-2">Message Preview</p>
+                <div className="text-xs text-muted-foreground space-y-2 max-h-48 overflow-y-auto">
+                  <p><strong>Subject:</strong> Welcome to FelansFX - Your Trading Journey Starts Here</p>
+                  <p className="whitespace-pre-line">
+                    Dear {welcomeTarget.full_name || "Valued Trader"},
+
+Thank you for joining FelansFX. We are excited to have you as part of our growing community of traders.
+
+Our platform offers powerful tools including AI-Powered Chart Analysis, Live Trading, and Daily Market Insights.
+
+Getting Started:
+1. Complete your profile setup
+2. Add funds to your wallet
+3. Start with our AI analysis or jump into live trading
+
+Best regards,
+The FelansFX Team
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setWelcomeDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 gradient-primary"
+                  onClick={handleSendWelcomeMessage}
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Open in Email
                 </Button>
               </div>
             </div>
