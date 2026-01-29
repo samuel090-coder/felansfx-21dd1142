@@ -34,7 +34,7 @@ export const TradingHeader = ({
   };
 
   return (
-    <header className="flex items-center justify-between p-2 bg-[hsl(222,47%,11%)] border-b border-border/30">
+    <header className="flex items-center justify-between p-2 bg-card border-b border-border/30">
       {/* Menu Button */}
       <Button 
         variant="ghost" 
@@ -66,7 +66,7 @@ export const TradingHeader = ({
             </span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" className="w-56 bg-[hsl(222,47%,14%)] border-border/50">
+        <DropdownMenuContent align="center" className="w-56 bg-card border-border/50 z-[100]">
           <DropdownMenuItem 
             onClick={() => onAccountChange("demo")}
             className={cn(
