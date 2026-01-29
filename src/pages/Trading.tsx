@@ -1,15 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePriceSimulation, useMultiSymbolPrices } from "@/hooks/usePriceSimulation";
 import { useDemoTrading } from "@/hooks/useDemoTrading";
 import { useWallet } from "@/hooks/useWallet";
+import { useTradeSound } from "@/hooks/useTradeSound";
 import { TradingHeader } from "@/components/trading/TradingHeader";
 import { FullscreenChart } from "@/components/trading/FullscreenChart";
 import { LiveTradersOverlay } from "@/components/trading/LiveTradersOverlay";
 import { TradingBottomControls } from "@/components/trading/TradingBottomControls";
 import { SymbolSelectorCompact } from "@/components/trading/SymbolSelectorCompact";
+import { ActivePositions } from "@/components/trading/ActivePositions";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 const ALL_SYMBOLS = [
@@ -18,12 +21,25 @@ const ALL_SYMBOLS = [
   "XAUUSD", "XAGUSD", "XTIUSD", "XBRUSD",
 ];
 
+interface ActivePosition {
+  id: string;
+  symbol: string;
+  trade_type: string;
+  entry_price: number;
+  amount: number;
+  opened_at: string;
+  duration: number;
+}
+
 const Trading = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { wallet: realWallet } = useWallet();
+  const { wallet: realWallet, refetch: refetchWallet } = useWallet();
+  const { playEntrySound, playWinSound, playLossSound } = useTradeSound();
   const [selectedSymbol, setSelectedSymbol] = useState("XAUUSD");
   const [accountType, setAccountType] = useState<"demo" | "real">("demo");
+  const [activePositions, setActivePositions] = useState<ActivePosition[]>([]);
+  const [currentDuration, setCurrentDuration] = useState(30);
 
   const { currentPrice, candles, getFormattedPrice } = usePriceSimulation(selectedSymbol, 3000);
   const allPrices = useMultiSymbolPrices(ALL_SYMBOLS);
@@ -33,6 +49,8 @@ const Trading = () => {
     positions,
     loading: tradingLoading,
     openPosition,
+    closePosition,
+    refetch: refetchDemo,
   } = useDemoTrading();
 
   useEffect(() => {
@@ -50,50 +68,183 @@ const Trading = () => {
   }
 
   const handleTrade = async (type: "buy" | "sell", amount: number, duration: number) => {
-    // Block real wallet trading completely
-    if (accountType === "real") {
-      toast.error("Real trading is not available yet", {
-        description: "Please switch to Demo account to practice trading",
-        action: {
-          label: "Use Demo",
-          onClick: () => handleAccountChange("demo"),
-        },
-      });
-      return;
-    }
+    setCurrentDuration(duration);
     
-    // Ensure user has demo wallet before trading
-    if (!demoWallet) {
-      toast.error("Demo wallet not ready", {
-        description: "Please wait a moment and try again",
+    if (accountType === "real") {
+      // Real wallet trading
+      if (!realWallet || realWallet.balance < amount) {
+        toast.error("Insufficient balance", {
+          description: "Fund your account to start trading",
+          action: {
+            label: "Deposit",
+            onClick: () => navigate("/deposit"),
+          },
+        });
+        return;
+      }
+
+      // Deduct from real wallet
+      const { data: deductSuccess, error: deductError } = await supabase
+        .rpc("deduct_user_wallet", { p_user_id: user.id, p_amount: amount });
+
+      if (deductError || !deductSuccess) {
+        toast.error("Failed to process trade", {
+          description: "Please try again",
+        });
+        return;
+      }
+
+      // Create position
+      const { data: position, error } = await supabase
+        .from("demo_positions")
+        .insert({
+          user_id: user.id,
+          symbol: selectedSymbol,
+          trade_type: type,
+          entry_price: currentPrice,
+          current_price: currentPrice,
+          amount,
+          leverage: 1,
+          status: "open",
+        })
+        .select()
+        .single();
+
+      if (error) {
+        // Refund on failure
+        await supabase.rpc("credit_user_wallet", { p_user_id: user.id, p_amount: amount });
+        toast.error("Failed to open position");
+        return;
+      }
+
+      // Play entry sound and add to active positions
+      playEntrySound();
+      setActivePositions(prev => [...prev, {
+        id: position.id,
+        symbol: selectedSymbol,
+        trade_type: type,
+        entry_price: currentPrice,
+        amount,
+        opened_at: position.opened_at,
+        duration,
+      }]);
+
+      toast.success(`${type.toUpperCase()} position opened!`, {
+        description: `${selectedSymbol} @ ${getFormattedPrice(currentPrice)} - ₦${amount}`,
       });
-      return;
+
+      refetchWallet();
+    } else {
+      // Demo trading
+      if (!demoWallet) {
+        toast.error("Demo wallet not ready");
+        return;
+      }
+
+      if (amount > demoWallet.balance) {
+        toast.error("Insufficient demo balance", {
+          description: `You need $${amount} but only have $${demoWallet.balance.toFixed(2)}`,
+        });
+        return;
+      }
+      
+      const result = await openPosition(
+        selectedSymbol, 
+        type, 
+        amount, 
+        currentPrice, 
+        1,
+        undefined,
+        undefined
+      );
+      
+      if (result) {
+        playEntrySound();
+        setActivePositions(prev => [...prev, {
+          id: result.id,
+          symbol: selectedSymbol,
+          trade_type: type,
+          entry_price: currentPrice,
+          amount,
+          opened_at: result.opened_at,
+          duration,
+        }]);
+
+        toast.success(`${type.toUpperCase()} position opened!`, {
+          description: `${selectedSymbol} @ ${getFormattedPrice(currentPrice)} - $${amount}`,
+        });
+      }
+    }
+  };
+
+  const handlePositionExpire = async (positionId: string, exitPrice: number) => {
+    const position = activePositions.find(p => p.id === positionId);
+    if (!position) return;
+
+    // Calculate win/loss
+    const isWin = position.trade_type === "buy" 
+      ? exitPrice > position.entry_price 
+      : exitPrice < position.entry_price;
+    
+    const pnl = isWin ? position.amount * 0.84 : -position.amount;
+
+    // Update position in database
+    await supabase
+      .from("demo_positions")
+      .update({
+        status: "closed",
+        current_price: exitPrice,
+        pnl,
+        pnl_percent: isWin ? 84 : -100,
+        closed_at: new Date().toISOString(),
+        close_reason: "expired",
+      })
+      .eq("id", positionId);
+
+    // Credit wallet if real trading and won
+    if (accountType === "real" && isWin) {
+      const returnAmount = position.amount + pnl;
+      await supabase.rpc("credit_user_wallet", { p_user_id: user.id, p_amount: returnAmount });
+      refetchWallet();
     }
 
-    // Check balance
-    if (amount > demoWallet.balance) {
-      toast.error("Insufficient demo balance", {
-        description: `You need $${amount} but only have $${demoWallet.balance.toFixed(2)}`,
+    // Create history entry
+    await supabase.from("demo_trade_history").insert({
+      user_id: user.id,
+      position_id: positionId,
+      symbol: position.symbol,
+      trade_type: position.trade_type,
+      entry_price: position.entry_price,
+      exit_price: exitPrice,
+      amount: position.amount,
+      leverage: 1,
+      pnl,
+      pnl_percent: isWin ? 84 : -100,
+      duration_seconds: position.duration,
+      opened_at: position.opened_at,
+      close_reason: "expired",
+    });
+
+    // Play sound and show toast
+    if (isWin) {
+      playWinSound();
+      toast.success("Trade Won! 🎉", {
+        description: `+${accountType === "demo" ? "$" : "₦"}${pnl.toFixed(2)}`,
       });
-      return;
-    }
-    
-    // For binary options style, we use duration instead of SL/TP
-    const result = await openPosition(
-      selectedSymbol, 
-      type, 
-      amount, 
-      currentPrice, 
-      1, // leverage
-      undefined, // stop loss
-      undefined  // take profit
-    );
-    
-    if (result) {
-      toast.success(`${type.toUpperCase()} position opened!`, {
-        description: `${selectedSymbol} @ ${getFormattedPrice(currentPrice)} - $${amount}`,
+    } else {
+      playLossSound();
+      toast.error("Trade Lost", {
+        description: `${accountType === "demo" ? "$" : "₦"}${pnl.toFixed(2)}`,
       });
     }
+
+    // Remove from active positions
+    setActivePositions(prev => prev.filter(p => p.id !== positionId));
+    refetchDemo();
+  };
+
+  const handlePositionClose = async (positionId: string, exitPrice: number) => {
+    await handlePositionExpire(positionId, exitPrice);
   };
 
   const handleFinancesClick = () => {
@@ -102,6 +253,7 @@ const Trading = () => {
 
   const handleAccountChange = (type: "demo" | "real") => {
     setAccountType(type);
+    setActivePositions([]); // Clear active positions when switching
     if (type === "real" && (!realWallet || realWallet.balance === 0)) {
       toast.info("Fund your real account to start trading", {
         action: {
@@ -143,6 +295,15 @@ const Trading = () => {
         </div>
       </div>
 
+      {/* Active positions with countdown */}
+      <ActivePositions
+        positions={activePositions}
+        currentPrice={currentPrice}
+        onExpire={handlePositionExpire}
+        onClose={handlePositionClose}
+        accountType={accountType}
+      />
+
       {/* Main chart area with live traders overlay */}
       <div className="flex-1 relative">
         <FullscreenChart
@@ -165,7 +326,7 @@ const Trading = () => {
         currentPrice={currentPrice}
         symbol={selectedSymbol}
         onTrade={handleTrade}
-        disabled={!demoWallet && accountType === "demo"}
+        disabled={accountType === "demo" ? !demoWallet : !realWallet}
         accountType={accountType}
       />
     </div>
