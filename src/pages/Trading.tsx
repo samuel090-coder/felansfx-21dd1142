@@ -1,45 +1,38 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, RefreshCw, BarChart3, ListOrdered, History, Bot } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePriceSimulation, useMultiSymbolPrices } from "@/hooks/usePriceSimulation";
 import { useDemoTrading } from "@/hooks/useDemoTrading";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { TradingChart } from "@/components/trading/TradingChart";
-import { SymbolSelector } from "@/components/trading/SymbolSelector";
-import { TradingControls } from "@/components/trading/TradingControls";
-import { OpenPositions } from "@/components/trading/OpenPositions";
-import { TradeHistory } from "@/components/trading/TradeHistory";
-import { AccountStats } from "@/components/trading/AccountStats";
+import { useWallet } from "@/hooks/useWallet";
+import { TradingHeader } from "@/components/trading/TradingHeader";
+import { FullscreenChart } from "@/components/trading/FullscreenChart";
+import { LiveTradersOverlay } from "@/components/trading/LiveTradersOverlay";
+import { TradingBottomControls } from "@/components/trading/TradingBottomControls";
+import { SymbolSelectorCompact } from "@/components/trading/SymbolSelectorCompact";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const ALL_SYMBOLS = [
-  "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD", "NZDUSD",
-  "EURGBP", "EURJPY", "GBPJPY",
-  "BTCUSD", "ETHUSD", "BNBUSD", "XRPUSD", "SOLUSD", "ADAUSD", "DOGEUSD", "DOTUSD", "LTCUSD", "LINKUSD",
+  "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD",
+  "BTCUSD", "ETHUSD", "BNBUSD", "XRPUSD", "SOLUSD", "ADAUSD",
   "XAUUSD", "XAGUSD", "XTIUSD", "XBRUSD",
 ];
 
 const Trading = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [selectedSymbol, setSelectedSymbol] = useState("BTCUSD");
-  const [activeTab, setActiveTab] = useState("chart");
+  const { wallet: realWallet } = useWallet();
+  const [selectedSymbol, setSelectedSymbol] = useState("XAUUSD");
+  const [accountType, setAccountType] = useState<"demo" | "real">("demo");
 
   const { currentPrice, candles, getFormattedPrice } = usePriceSimulation(selectedSymbol, 1000);
   const allPrices = useMultiSymbolPrices(ALL_SYMBOLS);
   
   const {
-    wallet,
+    wallet: demoWallet,
     positions,
-    history,
     loading: tradingLoading,
     openPosition,
-    closePosition,
-    resetAccount,
   } = useDemoTrading();
 
   useEffect(() => {
@@ -56,145 +49,99 @@ const Trading = () => {
     return null;
   }
 
-  const handleTrade = async (
-    type: "buy" | "sell",
-    amount: number,
-    leverage: number,
-    stopLoss?: number,
-    takeProfit?: number
-  ) => {
-    await openPosition(selectedSymbol, type, amount, currentPrice, leverage, stopLoss, takeProfit);
+  const handleTrade = async (type: "buy" | "sell", amount: number, duration: number) => {
+    if (accountType === "real") {
+      toast.info("Real trading coming soon! Using demo for now.");
+    }
+    
+    // For binary options style, we use duration instead of SL/TP
+    await openPosition(
+      selectedSymbol, 
+      type, 
+      amount, 
+      currentPrice, 
+      1, // leverage
+      undefined, // stop loss
+      undefined  // take profit
+    );
+    
+    toast.success(`${type.toUpperCase()} order placed for $${amount}`, {
+      description: `${selectedSymbol} @ ${getFormattedPrice(currentPrice)}`,
+    });
   };
 
-  const handleClosePosition = async (positionId: string, exitPrice: number) => {
-    await closePosition(positionId, exitPrice);
+  const handleFinancesClick = () => {
+    navigate("/deposit");
   };
 
-  const priceChange = allPrices[selectedSymbol]?.changePercent || 0;
-  const isUp = priceChange >= 0;
+  const handleAccountChange = (type: "demo" | "real") => {
+    setAccountType(type);
+    if (type === "real" && (!realWallet || realWallet.balance === 0)) {
+      toast.info("Fund your real account to start trading", {
+        action: {
+          label: "Deposit",
+          onClick: () => navigate("/deposit"),
+        },
+      });
+    }
+  };
+
+  // Calculate price range for overlay positioning
+  const prices = candles.flatMap(c => [c.high, c.low]);
+  const priceRange = {
+    min: Math.min(...prices),
+    max: Math.max(...prices),
+  };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-        <div className="flex items-center justify-between p-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-          
-          <SymbolSelector
-            selectedSymbol={selectedSymbol}
-            onSymbolChange={setSelectedSymbol}
-            prices={allPrices}
-          />
+    <div className="min-h-screen bg-[hsl(222,47%,8%)] flex flex-col">
+      {/* Header with account switcher */}
+      <TradingHeader
+        demoBalance={demoWallet?.balance || 10000}
+        realBalance={realWallet?.balance || 0}
+        accountType={accountType}
+        onAccountChange={handleAccountChange}
+        onFinancesClick={handleFinancesClick}
+      />
 
-          <Button variant="ghost" size="icon" onClick={resetAccount}>
-            <RefreshCw className="w-5 h-5" />
-          </Button>
+      {/* Symbol selector row */}
+      <SymbolSelectorCompact
+        selectedSymbol={selectedSymbol}
+        onSymbolChange={setSelectedSymbol}
+      />
+
+      {/* Current price display */}
+      <div className="absolute left-2 top-32 z-10">
+        <div className="bg-primary px-3 py-1 rounded text-sm font-bold text-primary-foreground tabular-nums">
+          {getFormattedPrice(currentPrice)}
         </div>
-
-        {/* Price Display */}
-        <div className="flex items-center justify-center pb-2 gap-3">
-          <span className={cn(
-            "text-3xl font-bold tabular-nums",
-            isUp ? "text-green-500" : "text-red-500"
-          )}>
-            {getFormattedPrice(currentPrice)}
-          </span>
-          <Badge variant={isUp ? "default" : "destructive"} className={cn(
-            "font-medium",
-            isUp ? "bg-green-500/20 text-green-500 hover:bg-green-500/30" : "bg-red-500/20 text-red-500 hover:bg-red-500/30"
-          )}>
-            {isUp ? "+" : ""}{priceChange.toFixed(2)}%
-          </Badge>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="grid grid-cols-4 mx-4 mt-2">
-            <TabsTrigger value="chart" className="gap-1.5">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Chart</span>
-            </TabsTrigger>
-            <TabsTrigger value="trade" className="gap-1.5">
-              <Bot className="w-4 h-4" />
-              <span className="hidden sm:inline">Trade</span>
-            </TabsTrigger>
-            <TabsTrigger value="positions" className="gap-1.5 relative">
-              <ListOrdered className="w-4 h-4" />
-              <span className="hidden sm:inline">Positions</span>
-              {positions.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">
-                  {positions.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="history" className="gap-1.5">
-              <History className="w-4 h-4" />
-              <span className="hidden sm:inline">History</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="chart" className="flex-1 m-0 p-2">
-            <div className="h-[calc(100vh-280px)] bg-card rounded-lg border overflow-hidden">
-              <TradingChart
-                candles={candles}
-                currentPrice={currentPrice}
-                symbol={selectedSymbol}
-              />
-            </div>
-            
-            {/* Quick Stats */}
-            <div className="mt-3">
-              <AccountStats
-                balance={wallet?.balance || 0}
-                totalPnl={wallet?.total_pnl || 0}
-                totalTrades={wallet?.total_trades || 0}
-                winningTrades={wallet?.winning_trades || 0}
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="trade" className="flex-1 m-0 p-4">
-            <div className="h-32 mb-4 bg-card rounded-lg border overflow-hidden">
-              <TradingChart
-                candles={candles}
-                currentPrice={currentPrice}
-                symbol={selectedSymbol}
-                className="h-full"
-              />
-            </div>
-            <TradingControls
-              symbol={selectedSymbol}
-              currentPrice={currentPrice}
-              balance={wallet?.balance || 0}
-              onTrade={handleTrade}
-              disabled={!wallet}
-            />
-          </TabsContent>
-
-          <TabsContent value="positions" className="flex-1 m-0 p-4">
-            <OpenPositions
-              positions={positions}
-              onClose={handleClosePosition}
-              prices={allPrices}
-            />
-          </TabsContent>
-
-          <TabsContent value="history" className="flex-1 m-0 p-4">
-            <TradeHistory trades={history} />
-          </TabsContent>
-        </Tabs>
       </div>
 
-      {/* Demo Badge */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2">
-        <Badge variant="secondary" className="bg-amber-500/20 text-amber-600 border-amber-500/30">
-          Demo Account - Virtual Trading
-        </Badge>
+      {/* Main chart area with live traders overlay */}
+      <div className="flex-1 relative">
+        <FullscreenChart
+          candles={candles}
+          currentPrice={currentPrice}
+          symbol={selectedSymbol}
+        />
+        
+        {/* Live traders overlay */}
+        <LiveTradersOverlay
+          symbol={selectedSymbol}
+          currentPrice={currentPrice}
+          priceRange={priceRange}
+        />
       </div>
+
+      {/* Bottom trading controls */}
+      <TradingBottomControls
+        balance={accountType === "demo" ? (demoWallet?.balance || 10000) : (realWallet?.balance || 0)}
+        currentPrice={currentPrice}
+        symbol={selectedSymbol}
+        onTrade={handleTrade}
+        disabled={!demoWallet && accountType === "demo"}
+        accountType={accountType}
+      />
     </div>
   );
 };
