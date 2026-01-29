@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTradeSound } from "@/hooks/useTradeSound";
+import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 
 interface Position {
   id: string;
@@ -29,7 +30,9 @@ export const ActivePositions = ({
   accountType,
 }: ActivePositionsProps) => {
   const [countdowns, setCountdowns] = useState<Record<string, number>>({});
+  const [isMinimized, setIsMinimized] = useState(false);
   const { playWinSound, playLossSound, playTickSound } = useTradeSound();
+  const { vibrateWin, vibrateLoss, vibrateTick } = useHapticFeedback();
 
   // Initialize and update countdowns
   useEffect(() => {
@@ -54,14 +57,17 @@ export const ActivePositions = ({
           
           if (isWin) {
             playWinSound();
+            vibrateWin();
           } else {
             playLossSound();
+            vibrateLoss();
           }
           
           onExpire(pos.id, currentPrice);
         } else if (remaining <= 5 && remaining > 0) {
           // Play tick sound in last 5 seconds
           playTickSound();
+          vibrateTick();
         }
       });
       
@@ -72,7 +78,7 @@ export const ActivePositions = ({
     const interval = setInterval(updateCountdowns, 1000);
     
     return () => clearInterval(interval);
-  }, [positions, currentPrice, onExpire, playWinSound, playLossSound, playTickSound]);
+  }, [positions, currentPrice, onExpire, playWinSound, playLossSound, playTickSound, vibrateWin, vibrateLoss, vibrateTick]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -84,7 +90,21 @@ export const ActivePositions = ({
 
   return (
     <div className="absolute top-24 right-2 z-20 flex flex-col gap-2 max-w-[200px]">
-      {positions.map((pos) => {
+      {/* Toggle button */}
+      <button
+        onClick={() => setIsMinimized(!isMinimized)}
+        className="self-end bg-card/80 backdrop-blur-sm border border-border rounded-lg px-2 py-1 flex items-center gap-1"
+      >
+        <span className="text-[10px] text-muted-foreground">{positions.length} active</span>
+        {isMinimized ? (
+          <ChevronDown className="w-3 h-3 text-muted-foreground" />
+        ) : (
+          <ChevronUp className="w-3 h-3 text-muted-foreground" />
+        )}
+      </button>
+
+      {/* Position cards - collapsible */}
+      {!isMinimized && positions.map((pos) => {
         const remaining = countdowns[pos.id] || 0;
         const isWinning = pos.trade_type === "buy" 
           ? currentPrice > pos.entry_price 
