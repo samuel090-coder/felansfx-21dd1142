@@ -146,6 +146,72 @@ export type Database = {
         }
         Relationships: []
       }
+      copy_follows: {
+        Row: {
+          created_at: string
+          fixed_amount: number
+          follower_id: string
+          id: string
+          is_active: boolean
+          leader_id: string
+        }
+        Insert: {
+          created_at?: string
+          fixed_amount: number
+          follower_id: string
+          id?: string
+          is_active?: boolean
+          leader_id: string
+        }
+        Update: {
+          created_at?: string
+          fixed_amount?: number
+          follower_id?: string
+          id?: string
+          is_active?: boolean
+          leader_id?: string
+        }
+        Relationships: []
+      }
+      copy_leaders: {
+        Row: {
+          avatar_url: string | null
+          display_id: string | null
+          full_name: string | null
+          id: string
+          total_pnl: number
+          total_trades: number
+          updated_at: string
+          user_id: string
+          win_rate: number
+          winning_trades: number
+        }
+        Insert: {
+          avatar_url?: string | null
+          display_id?: string | null
+          full_name?: string | null
+          id?: string
+          total_pnl?: number
+          total_trades?: number
+          updated_at?: string
+          user_id: string
+          win_rate?: number
+          winning_trades?: number
+        }
+        Update: {
+          avatar_url?: string | null
+          display_id?: string | null
+          full_name?: string | null
+          id?: string
+          total_pnl?: number
+          total_trades?: number
+          updated_at?: string
+          user_id?: string
+          win_rate?: number
+          winning_trades?: number
+        }
+        Relationships: []
+      }
       daily_signals: {
         Row: {
           created_at: string
@@ -926,6 +992,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      refresh_copy_leaders: { Args: never; Returns: undefined }
       settle_binary_position: {
         Args: {
           p_close_reason?: string

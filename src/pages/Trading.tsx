@@ -12,6 +12,7 @@ import { TradingBottomControls } from "@/components/trading/TradingBottomControl
 import { SymbolSelectorCompact } from "@/components/trading/SymbolSelectorCompact";
 import { ActivePositions } from "@/components/trading/ActivePositions";
 import { TradeHistoryDrawer } from "@/components/trading/TradeHistoryDrawer";
+import { CopyTradingDrawer } from "@/components/trading/CopyTradingDrawer";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { supabase } from "@/lib/supabase";
@@ -97,7 +98,7 @@ const Trading = () => {
         return;
       }
 
-      // Create position
+      // Create position with account_type = 'real'
       const { data: position, error } = await supabase
         .from("demo_positions")
         .insert({
@@ -109,6 +110,7 @@ const Trading = () => {
           amount,
           leverage: 1,
           status: "open",
+          account_type: "real",
         })
         .select()
         .single();
@@ -186,49 +188,20 @@ const Trading = () => {
     const position = activePositions.find(p => p.id === positionId);
     if (!position) return;
 
-    // Calculate win/loss
-    const isWin = position.trade_type === "buy" 
-      ? exitPrice > position.entry_price 
-      : exitPrice < position.entry_price;
-    
-    const pnl = isWin ? position.amount * 0.84 : -position.amount;
+    // Use the atomic settle RPC – handles demo + real wallet credits in one call
+    const { data, error } = await supabase.rpc("settle_binary_position", {
+      p_position_id: positionId,
+      p_exit_price: exitPrice,
+      p_close_reason: "expired",
+    });
 
-    // Update position in database
-    await supabase
-      .from("demo_positions")
-      .update({
-        status: "closed",
-        current_price: exitPrice,
-        pnl,
-        pnl_percent: isWin ? 84 : -100,
-        closed_at: new Date().toISOString(),
-        close_reason: "expired",
-      })
-      .eq("id", positionId);
-
-    // Credit wallet if real trading and won
-    if (accountType === "real" && isWin) {
-      const returnAmount = position.amount + pnl;
-      await supabase.rpc("credit_user_wallet", { p_user_id: user.id, p_amount: returnAmount });
-      refetchWallet();
+    if (error) {
+      console.error("Error settling position:", error);
     }
 
-    // Create history entry
-    await supabase.from("demo_trade_history").insert({
-      user_id: user.id,
-      position_id: positionId,
-      symbol: position.symbol,
-      trade_type: position.trade_type,
-      entry_price: position.entry_price,
-      exit_price: exitPrice,
-      amount: position.amount,
-      leverage: 1,
-      pnl,
-      pnl_percent: isWin ? 84 : -100,
-      duration_seconds: position.duration,
-      opened_at: position.opened_at,
-      close_reason: "expired",
-    });
+    const result = data as { status: string; is_win: boolean; pnl: number } | null;
+    const isWin = result?.is_win ?? false;
+    const pnl = result?.pnl ?? 0;
 
     // Play sound and show toast
     if (isWin) {
@@ -246,6 +219,7 @@ const Trading = () => {
     // Remove from active positions
     setActivePositions(prev => prev.filter(p => p.id !== positionId));
     refetchDemo();
+    refetchWallet();
   };
 
   const handlePositionClose = async (positionId: string, exitPrice: number) => {
@@ -326,6 +300,9 @@ const Trading = () => {
 
         {/* Trade history drawer */}
         <TradeHistoryDrawer accountType={accountType} />
+
+        {/* Copy trading drawer */}
+        {accountType === "real" && <CopyTradingDrawer />}
       </div>
 
       {/* Bottom trading controls */}
