@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Minus, Plus, ChevronLeft, ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -26,8 +27,12 @@ export const TradingBottomControls = ({
 }: TradingBottomControlsProps) => {
   const [investment, setInvestment] = useState(50);
   const [durationIndex, setDurationIndex] = useState(0);
+  const [isEditingAmount, setIsEditingAmount] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const duration = DURATIONS[durationIndex];
+  const currencySymbol = accountType === "demo" ? "$" : "₦";
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -45,6 +50,28 @@ export const TradingBottomControls = ({
     setDurationIndex(newIndex);
   };
 
+  const handleAmountClick = () => {
+    setInputValue(investment.toString());
+    setIsEditingAmount(true);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const handleAmountSubmit = () => {
+    const parsed = parseFloat(inputValue);
+    if (!isNaN(parsed) && parsed >= 1) {
+      setInvestment(Math.min(balance, Math.max(1, parsed)));
+    }
+    setIsEditingAmount(false);
+  };
+
+  const handleAmountKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleAmountSubmit();
+    } else if (e.key === "Escape") {
+      setIsEditingAmount(false);
+    }
+  };
+
   const handleTrade = (type: "buy" | "sell") => {
     if (disabled) {
       toast.error("Trading not available", {
@@ -60,23 +87,23 @@ export const TradingBottomControls = ({
     }
     if (investment > balance) {
       toast.error("Insufficient balance", {
-        description: `Maximum you can invest: ${accountType === "demo" ? "$" : "₦"}${balance.toFixed(2)}`,
+        description: `Maximum you can invest: ${currencySymbol}${balance.toFixed(2)}`,
       });
       return;
     }
     if (investment < 1) {
-      toast.error("Minimum investment is $1");
+      toast.error("Minimum investment is 1");
       return;
     }
     onTrade(type, investment, duration);
   };
 
   return (
-    <div className="bg-[hsl(222,47%,11%)] border-t border-border/30 p-3 space-y-3">
+    <div className="bg-card border-t border-border/30 p-3 space-y-3">
       {/* Investment and Duration Row */}
       <div className="flex gap-3">
         {/* Investment Control */}
-        <div className="flex-1 flex items-center justify-between bg-[hsl(222,47%,14%)] rounded-lg border border-border/30 px-3 py-2">
+        <div className="flex-1 flex items-center justify-between bg-muted/50 rounded-lg border border-border/30 px-3 py-2">
           <Button
             variant="ghost"
             size="icon"
@@ -85,11 +112,30 @@ export const TradingBottomControls = ({
           >
             <Minus className="w-4 h-4" />
           </Button>
-          <div className="text-center">
-            <p className="text-lg font-bold text-foreground">
-              {accountType === "demo" ? "$" : "₦"}{investment}
-            </p>
-            <p className="text-xs text-muted-foreground">investment</p>
+          <div className="text-center flex-1" onClick={handleAmountClick}>
+            {isEditingAmount ? (
+              <div className="flex items-center justify-center">
+                <span className="text-lg font-bold text-foreground">{currencySymbol}</span>
+                <Input
+                  ref={inputRef}
+                  type="number"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onBlur={handleAmountSubmit}
+                  onKeyDown={handleAmountKeyDown}
+                  className="w-20 h-7 text-center text-lg font-bold bg-transparent border-0 border-b-2 border-primary p-0 focus-visible:ring-0"
+                  min={1}
+                  max={balance}
+                />
+              </div>
+            ) : (
+              <>
+                <p className="text-lg font-bold text-foreground cursor-pointer hover:text-primary transition-colors">
+                  {currencySymbol}{investment}
+                </p>
+                <p className="text-xs text-muted-foreground">investment</p>
+              </>
+            )}
           </div>
           <Button
             variant="ghost"
@@ -102,7 +148,7 @@ export const TradingBottomControls = ({
         </div>
 
         {/* Duration Control */}
-        <div className="flex-1 flex items-center justify-between bg-[hsl(222,47%,14%)] rounded-lg border border-border/30 px-3 py-2">
+        <div className="flex-1 flex items-center justify-between bg-muted/50 rounded-lg border border-border/30 px-3 py-2">
           <Button
             variant="ghost"
             size="icon"

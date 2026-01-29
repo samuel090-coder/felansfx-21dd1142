@@ -122,6 +122,22 @@ const Trading = () => {
         return;
       }
 
+      // Trigger copy trades for followers (fire and forget)
+      supabase.functions.invoke("execute-copy-trades", {
+        body: {
+          leader_id: user.id,
+          symbol: selectedSymbol,
+          trade_type: type,
+          entry_price: currentPrice,
+        },
+      }).then(({ data, error: copyError }) => {
+        if (copyError) {
+          console.error("Copy trade error:", copyError);
+        } else if (data?.copied > 0) {
+          console.log(`Trade copied for ${data.copied} followers`);
+        }
+      });
+
       // Play entry sound/haptic and add to active positions
       playEntrySound();
       vibrateEntry();
@@ -188,6 +204,11 @@ const Trading = () => {
     const position = activePositions.find(p => p.id === positionId);
     if (!position) return;
 
+    // Determine win/loss locally first as backup (compare entry vs exit based on trade type)
+    const localIsWin = position.trade_type === "buy" 
+      ? exitPrice > position.entry_price 
+      : exitPrice < position.entry_price;
+    
     // Use the atomic settle RPC – handles demo + real wallet credits in one call
     const { data, error } = await supabase.rpc("settle_binary_position", {
       p_position_id: positionId,
@@ -197,22 +218,32 @@ const Trading = () => {
 
     if (error) {
       console.error("Error settling position:", error);
+      toast.error("Trade settlement failed", {
+        description: "Please contact support if your balance was affected",
+      });
+      setActivePositions(prev => prev.filter(p => p.id !== positionId));
+      return;
     }
 
-    const result = data as { status: string; is_win: boolean; pnl: number } | null;
-    const isWin = result?.is_win ?? false;
-    const pnl = result?.pnl ?? 0;
+    const result = data as { status: string; is_win: boolean; pnl: number; credited?: number } | null;
+    
+    // Use RPC result if available, otherwise fallback to local calculation
+    const isWin = result?.is_win ?? localIsWin;
+    const pnl = result?.pnl ?? (isWin ? position.amount * 0.84 : -position.amount);
+    const credited = result?.credited ?? (isWin ? position.amount + position.amount * 0.84 : 0);
+
+    console.log("Trade settled:", { positionId, isWin, pnl, credited, result });
 
     // Play sound and show toast
     if (isWin) {
       playWinSound();
       toast.success("Trade Won! 🎉", {
-        description: `+${accountType === "demo" ? "$" : "₦"}${pnl.toFixed(2)}`,
+        description: `Profit: +${accountType === "demo" ? "$" : "₦"}${Math.abs(pnl).toFixed(2)} | Credited: ${accountType === "demo" ? "$" : "₦"}${credited.toFixed(2)}`,
       });
     } else {
       playLossSound();
       toast.error("Trade Lost", {
-        description: `${accountType === "demo" ? "$" : "₦"}${pnl.toFixed(2)}`,
+        description: `Lost: ${accountType === "demo" ? "$" : "₦"}${Math.abs(pnl).toFixed(2)}`,
       });
     }
 
@@ -251,7 +282,7 @@ const Trading = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(222,47%,8%)] flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header with account switcher */}
       <TradingHeader
         demoBalance={demoWallet?.balance || 10000}

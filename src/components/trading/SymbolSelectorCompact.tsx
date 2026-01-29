@@ -45,7 +45,7 @@ export const SymbolSelectorCompact = ({
         <DropdownMenuTrigger asChild>
           <Button 
             variant="outline" 
-            className="bg-[hsl(222,47%,14%)] border-border/50 text-foreground hover:bg-muted/30 gap-2"
+            className="bg-card border-border/50 text-foreground hover:bg-muted/30 gap-2"
           >
             <span className="text-lg">{getSymbolIcon(selectedSymbol)}</span>
             <span className="font-medium">{selectedSymbol}</span>
@@ -54,7 +54,7 @@ export const SymbolSelectorCompact = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent 
           align="start" 
-          className="w-48 bg-[hsl(222,47%,14%)] border-border/50 max-h-80 overflow-y-auto"
+          className="w-48 bg-card border-border/50 max-h-80 overflow-y-auto z-[100]"
         >
           {Object.entries(SYMBOLS).map(([category, symbols]) => (
             <div key={category}>
@@ -66,7 +66,7 @@ export const SymbolSelectorCompact = ({
                   key={symbol}
                   onClick={() => onSymbolChange(symbol)}
                   className={cn(
-                    "cursor-pointer",
+                    "cursor-pointer text-foreground hover:bg-muted",
                     selectedSymbol === symbol && "bg-primary/20"
                   )}
                 >
@@ -74,7 +74,7 @@ export const SymbolSelectorCompact = ({
                   {symbol}
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-border/50" />
             </div>
           ))}
         </DropdownMenuContent>
@@ -84,7 +84,7 @@ export const SymbolSelectorCompact = ({
       <Button
         variant="outline"
         size="icon"
-        className="bg-[hsl(222,47%,14%)] border-border/50 hover:bg-muted/30"
+        className="bg-card border-border/50 hover:bg-muted/30"
       >
         <MessageSquare className="w-4 h-4" />
       </Button>
