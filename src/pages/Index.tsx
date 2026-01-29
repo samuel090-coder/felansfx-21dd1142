@@ -8,7 +8,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { QuickActionCard } from "@/components/home/QuickActionCard";
 import { RecommendedToolsCarousel } from "@/components/home/RecommendedToolsCarousel";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { MainMenuDrawer } from "@/components/layout/MainMenuDrawer";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,7 +63,7 @@ const Index = () => {
               </p>
             </div>
           </div>
-          <NotificationBell />
+          <MainMenuDrawer />
         </div>
 
         {/* Wallet Card */}
