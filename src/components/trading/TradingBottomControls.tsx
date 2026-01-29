@@ -47,11 +47,21 @@ export const TradingBottomControls = ({
 
   const handleTrade = (type: "buy" | "sell") => {
     if (disabled) {
-      toast.error("Trading not available");
+      toast.error("Trading not available", {
+        description: "Please wait for your account to load",
+      });
+      return;
+    }
+    if (balance <= 0) {
+      toast.error("No balance available", {
+        description: accountType === "demo" ? "Your demo balance is empty" : "Fund your real account to trade",
+      });
       return;
     }
     if (investment > balance) {
-      toast.error("Insufficient balance");
+      toast.error("Insufficient balance", {
+        description: `Maximum you can invest: ${accountType === "demo" ? "$" : "₦"}${balance.toFixed(2)}`,
+      });
       return;
     }
     if (investment < 1) {
