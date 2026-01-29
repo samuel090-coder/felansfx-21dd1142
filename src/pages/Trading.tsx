@@ -11,7 +11,9 @@ import { LiveTradersOverlay } from "@/components/trading/LiveTradersOverlay";
 import { TradingBottomControls } from "@/components/trading/TradingBottomControls";
 import { SymbolSelectorCompact } from "@/components/trading/SymbolSelectorCompact";
 import { ActivePositions } from "@/components/trading/ActivePositions";
+import { TradeHistoryDrawer } from "@/components/trading/TradeHistoryDrawer";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
+import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -43,6 +45,7 @@ const Trading = () => {
 
   const { currentPrice, candles, getFormattedPrice } = usePriceSimulation(selectedSymbol, 3000);
   const allPrices = useMultiSymbolPrices(ALL_SYMBOLS);
+  const { vibrateEntry } = useHapticFeedback();
   
   const {
     wallet: demoWallet,
@@ -117,8 +120,9 @@ const Trading = () => {
         return;
       }
 
-      // Play entry sound and add to active positions
+      // Play entry sound/haptic and add to active positions
       playEntrySound();
+      vibrateEntry();
       setActivePositions(prev => [...prev, {
         id: position.id,
         symbol: selectedSymbol,
@@ -160,6 +164,7 @@ const Trading = () => {
       
       if (result) {
         playEntrySound();
+        vibrateEntry();
         setActivePositions(prev => [...prev, {
           id: result.id,
           symbol: selectedSymbol,
@@ -318,6 +323,9 @@ const Trading = () => {
           currentPrice={currentPrice}
           priceRange={priceRange}
         />
+
+        {/* Trade history drawer */}
+        <TradeHistoryDrawer accountType={accountType} />
       </div>
 
       {/* Bottom trading controls */}
