@@ -25,7 +25,7 @@ const Trading = () => {
   const [selectedSymbol, setSelectedSymbol] = useState("XAUUSD");
   const [accountType, setAccountType] = useState<"demo" | "real">("demo");
 
-  const { currentPrice, candles, getFormattedPrice } = usePriceSimulation(selectedSymbol, 1000);
+  const { currentPrice, candles, getFormattedPrice } = usePriceSimulation(selectedSymbol, 3000);
   const allPrices = useMultiSymbolPrices(ALL_SYMBOLS);
   
   const {
@@ -50,12 +50,36 @@ const Trading = () => {
   }
 
   const handleTrade = async (type: "buy" | "sell", amount: number, duration: number) => {
+    // Block real wallet trading completely
     if (accountType === "real") {
-      toast.info("Real trading coming soon! Using demo for now.");
+      toast.error("Real trading is not available yet", {
+        description: "Please switch to Demo account to practice trading",
+        action: {
+          label: "Use Demo",
+          onClick: () => handleAccountChange("demo"),
+        },
+      });
+      return;
+    }
+    
+    // Ensure user has demo wallet before trading
+    if (!demoWallet) {
+      toast.error("Demo wallet not ready", {
+        description: "Please wait a moment and try again",
+      });
+      return;
+    }
+
+    // Check balance
+    if (amount > demoWallet.balance) {
+      toast.error("Insufficient demo balance", {
+        description: `You need $${amount} but only have $${demoWallet.balance.toFixed(2)}`,
+      });
+      return;
     }
     
     // For binary options style, we use duration instead of SL/TP
-    await openPosition(
+    const result = await openPosition(
       selectedSymbol, 
       type, 
       amount, 
@@ -65,9 +89,11 @@ const Trading = () => {
       undefined  // take profit
     );
     
-    toast.success(`${type.toUpperCase()} order placed for $${amount}`, {
-      description: `${selectedSymbol} @ ${getFormattedPrice(currentPrice)}`,
-    });
+    if (result) {
+      toast.success(`${type.toUpperCase()} position opened!`, {
+        description: `${selectedSymbol} @ ${getFormattedPrice(currentPrice)} - $${amount}`,
+      });
+    }
   };
 
   const handleFinancesClick = () => {

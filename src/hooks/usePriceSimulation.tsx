@@ -115,26 +115,32 @@ const generateCandle = (
   };
 };
 
-export const usePriceSimulation = (symbol: string, intervalMs: number = 1000) => {
+export const usePriceSimulation = (symbol: string, intervalMs: number = 3000) => {
   const [currentPrice, setCurrentPrice] = useState<number>(BASE_PRICES[symbol] || 1);
   const [previousClose, setPreviousClose] = useState<number>(BASE_PRICES[symbol] || 1);
   const [candles, setCandles] = useState<CandleData[]>([]);
   const [tick, setTick] = useState<TickData | null>(null);
   const priceRef = useRef(currentPrice);
+  const candleAccumulatorRef = useRef<{ high: number; low: number; open: number; tickCount: number }>({
+    high: 0,
+    low: Infinity,
+    open: 0,
+    tickCount: 0,
+  });
 
-  // Initialize with historical candles
+  // Initialize with historical candles - slower, more realistic
   useEffect(() => {
     const basePrice = BASE_PRICES[symbol] || 1;
-    const volatility = VOLATILITY[symbol] || VOLATILITY.default;
     
-    // Generate 100 historical candles
+    // Generate 50 historical candles with realistic spacing
     const historicalCandles: CandleData[] = [];
     let price = basePrice;
     const now = Date.now();
+    const candleInterval = 60000; // 1-minute candles for historical data
     
-    for (let i = 99; i >= 0; i--) {
-      const candle = generateCandle(symbol, price, intervalMs);
-      candle.time = now - i * intervalMs;
+    for (let i = 49; i >= 0; i--) {
+      const candle = generateCandle(symbol, price, candleInterval);
+      candle.time = now - i * candleInterval;
       historicalCandles.push(candle);
       price = candle.close;
     }
@@ -143,16 +149,21 @@ export const usePriceSimulation = (symbol: string, intervalMs: number = 1000) =>
     setCurrentPrice(price);
     setPreviousClose(basePrice);
     priceRef.current = price;
-  }, [symbol, intervalMs]);
+    candleAccumulatorRef.current = { high: price, low: price, open: price, tickCount: 0 };
+  }, [symbol]);
 
-  // Update prices in real-time
+  // Update prices in real-time with realistic tick-by-tick movement
   useEffect(() => {
-    const interval = setInterval(() => {
-      const basePrice = BASE_PRICES[symbol] || 1;
-      const volatility = VOLATILITY[symbol] || VOLATILITY.default;
-      
-      // Generate new price
-      const newPrice = generatePriceMovement(priceRef.current, basePrice, volatility);
+    const basePrice = BASE_PRICES[symbol] || 1;
+    const volatility = VOLATILITY[symbol] || VOLATILITY.default;
+    
+    // Price tick update every 800-1500ms (randomized for realism)
+    let tickTimeout: number;
+    
+    const updateTick = () => {
+      // Small incremental price movement
+      const microVolatility = volatility * 0.3; // Much smaller movements per tick
+      const newPrice = generatePriceMovement(priceRef.current, basePrice, microVolatility);
       priceRef.current = newPrice;
       
       setCurrentPrice(newPrice);
@@ -169,16 +180,52 @@ export const usePriceSimulation = (symbol: string, intervalMs: number = 1000) =>
         timestamp: Date.now(),
       });
       
-      // Add new candle every interval
-      setCandles(prev => {
-        const newCandle = generateCandle(symbol, prev[prev.length - 1]?.close || newPrice, intervalMs);
-        const updated = [...prev.slice(-99), newCandle];
-        return updated;
-      });
-    }, intervalMs);
+      // Track for candle formation
+      const acc = candleAccumulatorRef.current;
+      acc.high = Math.max(acc.high, newPrice);
+      acc.low = Math.min(acc.low, newPrice);
+      acc.tickCount++;
+      
+      // Schedule next tick with random delay for realism
+      const nextDelay = 800 + Math.random() * 700; // 800-1500ms
+      tickTimeout = window.setTimeout(updateTick, nextDelay);
+    };
     
-    return () => clearInterval(interval);
-  }, [symbol, intervalMs, previousClose]);
+    // Start tick updates
+    tickTimeout = window.setTimeout(updateTick, 1000);
+    
+    // Create new candle every 15-30 seconds (more realistic timeframe)
+    const candleInterval = setInterval(() => {
+      const acc = candleAccumulatorRef.current;
+      if (acc.tickCount === 0) return;
+      
+      setCandles(prev => {
+        const newCandle: CandleData = {
+          time: Date.now(),
+          open: acc.open,
+          high: acc.high,
+          low: acc.low,
+          close: priceRef.current,
+          volume: Math.floor(Math.random() * 500000) + 50000,
+        };
+        
+        // Reset accumulator for next candle
+        candleAccumulatorRef.current = {
+          high: priceRef.current,
+          low: priceRef.current,
+          open: priceRef.current,
+          tickCount: 0,
+        };
+        
+        return [...prev.slice(-49), newCandle];
+      });
+    }, 15000 + Math.random() * 15000); // 15-30 second candles
+    
+    return () => {
+      clearTimeout(tickTimeout);
+      clearInterval(candleInterval);
+    };
+  }, [symbol, previousClose]);
 
   const getFormattedPrice = useCallback((price: number) => {
     if (symbol.includes("JPY")) {
