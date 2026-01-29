@@ -229,6 +229,7 @@ export type Database = {
       }
       demo_positions: {
         Row: {
+          account_type: string
           amount: number
           close_reason: string | null
           closed_at: string | null
@@ -248,6 +249,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_type?: string
           amount: number
           close_reason?: string | null
           closed_at?: string | null
@@ -267,6 +269,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_type?: string
           amount?: number
           close_reason?: string | null
           closed_at?: string | null
@@ -289,6 +292,7 @@ export type Database = {
       }
       demo_trade_history: {
         Row: {
+          account_type: string
           amount: number
           close_reason: string | null
           closed_at: string
@@ -306,6 +310,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_type?: string
           amount: number
           close_reason?: string | null
           closed_at?: string
@@ -323,6 +328,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_type?: string
           amount?: number
           close_reason?: string | null
           closed_at?: string
@@ -919,6 +925,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      settle_binary_position: {
+        Args: {
+          p_close_reason?: string
+          p_exit_price: number
+          p_position_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {
