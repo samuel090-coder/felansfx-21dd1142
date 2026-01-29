@@ -21,6 +21,7 @@ import Patterns from "./pages/Patterns";
 import Notifications from "./pages/Notifications";
 import DailyStreak from "./pages/DailyStreak";
 import ScreenshotGuide from "./pages/ScreenshotGuide";
+import Trading from "./pages/Trading";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ const App = () => {
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/daily-streak" element={<DailyStreak />} />
               <Route path="/screenshot-guide" element={<ScreenshotGuide />} />
+              <Route path="/trading" element={<Trading />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
