@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, Wallet, Bot } from "lucide-react";
+import { TrendingUp, Wallet, Bot, BarChart3 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -101,14 +101,21 @@ const Index = () => {
         {/* Recommended Tools Carousel */}
         <RecommendedToolsCarousel />
 
-        {/* Start Analysis CTA - Bold and Prominent */}
-        <div className="flex justify-center py-6">
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-4 py-6">
           <Link
             to="/analyze"
-            className="inline-flex flex-col items-center justify-center w-32 h-32 rounded-full gradient-primary shadow-lg shadow-primary/30 transition-all hover:scale-105 active:scale-95"
+            className="flex flex-col items-center justify-center p-6 rounded-2xl gradient-primary shadow-lg shadow-primary/30 transition-all hover:scale-105 active:scale-95"
           >
             <Bot className="w-10 h-10 text-white mb-2" />
-            <span className="text-white text-base font-bold">Start Analysis</span>
+            <span className="text-white text-base font-bold">AI Analysis</span>
+          </Link>
+          <Link
+            to="/trading"
+            className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30 transition-all hover:scale-105 active:scale-95"
+          >
+            <BarChart3 className="w-10 h-10 text-white mb-2" />
+            <span className="text-white text-base font-bold">Live Trading</span>
           </Link>
         </div>
 

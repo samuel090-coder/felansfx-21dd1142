@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_signals: {
+        Row: {
+          analysis: string | null
+          confidence: number
+          created_at: string
+          entry_price: number | null
+          expires_at: string
+          id: string
+          signal_type: string
+          stop_loss: number | null
+          symbol: string
+          take_profit: number | null
+        }
+        Insert: {
+          analysis?: string | null
+          confidence: number
+          created_at?: string
+          entry_price?: number | null
+          expires_at: string
+          id?: string
+          signal_type: string
+          stop_loss?: number | null
+          symbol: string
+          take_profit?: number | null
+        }
+        Update: {
+          analysis?: string | null
+          confidence?: number
+          created_at?: string
+          entry_price?: number | null
+          expires_at?: string
+          id?: string
+          signal_type?: string
+          stop_loss?: number | null
+          symbol?: string
+          take_profit?: number | null
+        }
+        Relationships: []
+      }
       analyses: {
         Row: {
           analysis_text: string | null
@@ -185,6 +224,161 @@ export type Database = {
           title?: string
           unlock_price?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      demo_positions: {
+        Row: {
+          amount: number
+          close_reason: string | null
+          closed_at: string | null
+          created_at: string
+          current_price: number
+          entry_price: number
+          id: string
+          leverage: number
+          opened_at: string
+          pnl: number
+          pnl_percent: number
+          status: string
+          stop_loss: number | null
+          symbol: string
+          take_profit: number | null
+          trade_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          close_reason?: string | null
+          closed_at?: string | null
+          created_at?: string
+          current_price: number
+          entry_price: number
+          id?: string
+          leverage?: number
+          opened_at?: string
+          pnl?: number
+          pnl_percent?: number
+          status?: string
+          stop_loss?: number | null
+          symbol: string
+          take_profit?: number | null
+          trade_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          close_reason?: string | null
+          closed_at?: string | null
+          created_at?: string
+          current_price?: number
+          entry_price?: number
+          id?: string
+          leverage?: number
+          opened_at?: string
+          pnl?: number
+          pnl_percent?: number
+          status?: string
+          stop_loss?: number | null
+          symbol?: string
+          take_profit?: number | null
+          trade_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      demo_trade_history: {
+        Row: {
+          amount: number
+          close_reason: string | null
+          closed_at: string
+          duration_seconds: number | null
+          entry_price: number
+          exit_price: number
+          id: string
+          leverage: number
+          opened_at: string
+          pnl: number
+          pnl_percent: number
+          position_id: string | null
+          symbol: string
+          trade_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          close_reason?: string | null
+          closed_at?: string
+          duration_seconds?: number | null
+          entry_price: number
+          exit_price: number
+          id?: string
+          leverage?: number
+          opened_at: string
+          pnl: number
+          pnl_percent: number
+          position_id?: string | null
+          symbol: string
+          trade_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          close_reason?: string | null
+          closed_at?: string
+          duration_seconds?: number | null
+          entry_price?: number
+          exit_price?: number
+          id?: string
+          leverage?: number
+          opened_at?: string
+          pnl?: number
+          pnl_percent?: number
+          position_id?: string | null
+          symbol?: string
+          trade_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_trade_history_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "demo_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demo_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          total_pnl: number
+          total_trades: number
+          updated_at: string
+          user_id: string
+          winning_trades: number
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          total_pnl?: number
+          total_trades?: number
+          updated_at?: string
+          user_id: string
+          winning_trades?: number
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          total_pnl?: number
+          total_trades?: number
+          updated_at?: string
+          user_id?: string
+          winning_trades?: number
         }
         Relationships: []
       }
