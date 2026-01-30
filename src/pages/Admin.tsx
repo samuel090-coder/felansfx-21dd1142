@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Bell,
   Layers,
+  Mail,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -44,6 +45,7 @@ import { SubscriptionPlansManager } from "@/components/admin/SubscriptionPlansMa
 import { DailySignalsManager } from "@/components/admin/DailySignalsManager";
 import { MarketNewsManager } from "@/components/admin/MarketNewsManager";
 import { ProContentManager } from "@/components/admin/ProContentManager";
+import { AdminMessagingCenter } from "@/components/admin/AdminMessagingCenter";
 
 interface PendingDeposit {
   id: string;
@@ -374,7 +376,7 @@ const Admin = () => {
 
       <div className="px-4 py-4">
         <Tabs defaultValue="analytics">
-          <TabsList className="grid w-full grid-cols-7 mb-6 h-auto">
+          <TabsList className="grid w-full grid-cols-8 mb-6 h-auto">
             <TabsTrigger value="analytics" className="text-xs px-1 py-2">
               <BarChart3 className="w-4 h-4" />
             </TabsTrigger>
@@ -383,6 +385,9 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="users" className="text-xs px-1 py-2">
               <Users className="w-4 h-4" />
+            </TabsTrigger>
+            <TabsTrigger value="messaging" className="text-xs px-1 py-2">
+              <Mail className="w-4 h-4" />
             </TabsTrigger>
             <TabsTrigger value="push" className="text-xs px-1 py-2">
               <Bell className="w-4 h-4" />
@@ -674,6 +679,11 @@ const Admin = () => {
           {/* Users Tab */}
           <TabsContent value="users">
             <UserManagement />
+          </TabsContent>
+
+          {/* Messaging Center Tab */}
+          <TabsContent value="messaging">
+            <AdminMessagingCenter />
           </TabsContent>
 
           {/* Push Notifications Tab */}
