@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Menu, 
-  X, 
   TrendingUp, 
   Wallet, 
   Trophy, 
@@ -16,6 +15,11 @@ import {
   Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -78,32 +82,17 @@ export const MainMenuDrawer = () => {
   const displayId = profile?.display_id || "NEWBIE";
 
   return (
-    <>
-      {/* Hamburger Menu Trigger */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-10 w-10"
-        onClick={() => setIsOpen(true)}
-      >
-        <Menu className="w-6 h-6" />
-      </Button>
-
-      {/* Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
-      {/* Drawer */}
-      <div
-        className={cn(
-          "fixed top-0 left-0 h-full w-[85%] max-w-xs bg-card z-50 transform transition-transform duration-300 ease-out flex flex-col",
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10"
+        >
+          <Menu className="w-6 h-6" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-[85%] max-w-xs p-0 flex flex-col">
         {/* Header with User Info */}
         <div className="p-4 pb-6 border-b border-border">
           <div className="flex items-start justify-between mb-4">
@@ -197,7 +186,7 @@ export const MainMenuDrawer = () => {
             </button>
           </div>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 };
