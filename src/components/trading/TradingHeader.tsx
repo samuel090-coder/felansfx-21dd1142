@@ -56,12 +56,12 @@ export const TradingHeader = ({
           >
             <span className={cn(
               "text-xl font-bold tabular-nums",
-              accountType === "demo" ? "text-emerald-400" : "text-primary"
+              accountType === "demo" ? "text-chart-2" : "text-primary"
             )}>
               {formatBalance(currentBalance)}
             </span>
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              {accountType === "demo" ? "demo balance" : "real balance"}
+              {accountType === "demo" ? "Demo Balance" : "Real Account"}
               <ChevronDown className="w-3 h-3" />
             </span>
           </Button>
@@ -75,10 +75,10 @@ export const TradingHeader = ({
             )}
           >
             <span className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400" />
+              <div className="w-2 h-2 rounded-full bg-chart-2" />
               Demo Account
             </span>
-            <span className="text-emerald-400 font-medium">
+            <span className="text-chart-2 font-medium">
               ${demoBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </DropdownMenuItem>
