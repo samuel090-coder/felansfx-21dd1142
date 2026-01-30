@@ -22,6 +22,7 @@ import Notifications from "./pages/Notifications";
 import DailyStreak from "./pages/DailyStreak";
 import ScreenshotGuide from "./pages/ScreenshotGuide";
 import Trading from "./pages/Trading";
+import Withdraw from "./pages/Withdraw";
 import Invite from "./pages/Invite";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
@@ -73,6 +74,7 @@ const App = () => {
               <Route path="/daily-streak" element={<DailyStreak />} />
               <Route path="/screenshot-guide" element={<ScreenshotGuide />} />
               <Route path="/trading" element={<Trading />} />
+              <Route path="/withdraw" element={<Withdraw />} />
               <Route path="/invite" element={<Invite />} />
               <Route path="/help" element={<Help />} />
               <Route path="*" element={<NotFound />} />
