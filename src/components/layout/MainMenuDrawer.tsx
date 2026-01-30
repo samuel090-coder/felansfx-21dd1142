@@ -12,7 +12,8 @@ import {
   HelpCircle,
   Settings,
   LogOut,
-  Bell
+  Bell,
+  ArrowDownToLine
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { icon: TrendingUp, label: "Trade", path: "/trading" },
   { icon: Wallet, label: "Finances", path: "/deposit" },
+  { icon: ArrowDownToLine, label: "Withdraw", path: "/withdraw" },
   { icon: Trophy, label: "Battles", path: "/daily-streak" },
   { icon: Gift, label: "Invite Friends\nand Earn Money", path: "/invite", highlight: true },
   { icon: User, label: "Profile", path: "/profile" },
