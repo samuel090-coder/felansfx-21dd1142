@@ -19,12 +19,14 @@ import { useWallet } from "@/hooks/useWallet";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { formatCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
+import { DepositFlow } from "@/components/school/DepositFlow";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  showDepositFlow?: boolean;
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trading-mentor`;
@@ -32,7 +34,7 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trading-ment
 const SchoolHub = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { wallet } = useWallet();
+  const { wallet, refetch: refetchWallet } = useWallet();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -43,8 +45,7 @@ const SchoolHub = () => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showDepositPrompt, setShowDepositPrompt] = useState(false);
-  const [depositAmount, setDepositAmount] = useState("");
+  const [activeDepositFlow, setActiveDepositFlow] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -53,7 +54,7 @@ const SchoolHub = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, activeDepositFlow]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -136,10 +137,14 @@ const SchoolHub = () => {
       }
     }
 
-    // Check if AI mentioned deposit
-    if (assistantContent.toLowerCase().includes("deposit") || 
-        assistantContent.toLowerCase().includes("add funds")) {
-      setShowDepositPrompt(true);
+    // Check if AI is initiating deposit flow
+    const lowerContent = assistantContent.toLowerCase();
+    if (
+      (lowerContent.includes("how much") && lowerContent.includes("deposit")) ||
+      (lowerContent.includes("ready to fund") || lowerContent.includes("let's add funds")) ||
+      lowerContent.includes("start your deposit")
+    ) {
+      setActiveDepositFlow(true);
     }
   }, []);
 
@@ -155,8 +160,20 @@ const SchoolHub = () => {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+
+    // Check if user wants to deposit - handle directly
+    const lowerInput = userMessage.content.toLowerCase();
+    if (
+      lowerInput.includes("deposit") || 
+      lowerInput.includes("add funds") || 
+      lowerInput.includes("fund my account") ||
+      lowerInput.includes("add money")
+    ) {
+      initiateDeposit();
+      return;
+    }
+
     setIsLoading(true);
-    setShowDepositPrompt(false);
 
     try {
       await streamChat([...messages, userMessage]);
@@ -184,8 +201,50 @@ const SchoolHub = () => {
     }, 100);
   };
 
-  const handleDeposit = () => {
-    navigate("/deposit");
+  const handleDepositComplete = (message: string) => {
+    setActiveDepositFlow(false);
+    refetchWallet();
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `assistant-deposit-${Date.now()}`,
+        role: "assistant",
+        content: message,
+        timestamp: new Date(),
+      },
+    ]);
+  };
+
+  const handleDepositCancel = () => {
+    setActiveDepositFlow(false);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `assistant-cancel-${Date.now()}`,
+        role: "assistant",
+        content: "No problem! 😊 We can do that later whenever you're ready. Let's continue learning! What would you like to explore next? 📚",
+        timestamp: new Date(),
+      },
+    ]);
+  };
+
+  const initiateDeposit = () => {
+    setActiveDepositFlow(true);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-deposit-${Date.now()}`,
+        role: "user",
+        content: "I want to deposit funds 💰",
+        timestamp: new Date(),
+      },
+      {
+        id: `assistant-deposit-init-${Date.now()}`,
+        role: "assistant",
+        content: "Awesome! Let's add funds to your account! 💰✨\n\nI'll guide you through the process right here - no need to leave our chat!",
+        timestamp: new Date(),
+      },
+    ]);
   };
 
   if (authLoading) {
@@ -286,25 +345,24 @@ const SchoolHub = () => {
           </div>
         )}
 
+        {/* In-Chat Deposit Flow */}
+        {activeDepositFlow && user && (
+          <div className="flex gap-3 justify-start">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+              <Bot className="w-4 h-4 text-white" />
+            </div>
+            <div className="max-w-[90%]">
+              <DepositFlow
+                userId={user.id}
+                onComplete={handleDepositComplete}
+                onCancel={handleDepositCancel}
+              />
+            </div>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
-
-      {/* Deposit Prompt */}
-      {showDepositPrompt && (
-        <div className="px-4 pb-2">
-          <Card className="p-3 bg-primary/10 border-primary/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-primary" />
-                <span className="text-sm font-medium">Ready to add funds?</span>
-              </div>
-              <Button size="sm" onClick={handleDeposit}>
-                Deposit Now
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
 
       {/* Quick Actions */}
       <div className="px-4 pb-2">
