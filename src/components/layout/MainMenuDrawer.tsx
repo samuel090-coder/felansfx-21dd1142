@@ -13,7 +13,8 @@ import {
   Settings,
   LogOut,
   Bell,
-  ArrowDownToLine
+  ArrowDownToLine,
+  MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,10 +38,11 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { icon: TrendingUp, label: "Trade", path: "/trading" },
+  { icon: MessageCircle, label: "School Hub", path: "/school", highlight: true },
   { icon: Wallet, label: "Finances", path: "/deposit" },
   { icon: ArrowDownToLine, label: "Withdraw", path: "/withdraw" },
   { icon: Trophy, label: "Battles", path: "/daily-streak" },
-  { icon: Gift, label: "Invite Friends\nand Earn Money", path: "/invite", highlight: true },
+  { icon: Gift, label: "Invite Friends\nand Earn Money", path: "/invite" },
   { icon: User, label: "Profile", path: "/profile" },
   { icon: GraduationCap, label: "Education", path: "/patterns" },
   { icon: Lightbulb, label: "Start Tips", path: "/screenshot-guide" },
