@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Send, Users, Trash2 } from "lucide-react";
+import { Bell, Send, Users, Trash2, RefreshCw, AlertTriangle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,10 +21,23 @@ interface Subscriber {
   };
 }
 
+interface DeliveryLog {
+  id: string;
+  user_id: string;
+  title: string | null;
+  status_code: number | null;
+  error: string | null;
+  is_gone: boolean;
+  created_at: string;
+}
+
 export const PushNotificationManager = () => {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [deliveryLogs, setDeliveryLogs] = useState<DeliveryLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [testingVapid, setTestingVapid] = useState(false);
+  const [vapidStatus, setVapidStatus] = useState<"unknown" | "valid" | "invalid">("unknown");
   const [notificationForm, setNotificationForm] = useState({
     title: "",
     message: "",
@@ -32,7 +45,31 @@ export const PushNotificationManager = () => {
 
   useEffect(() => {
     fetchSubscribers();
+    fetchDeliveryLogs();
+    testVapidConfig();
   }, []);
+
+  const testVapidConfig = async () => {
+    setTestingVapid(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("push-notifications", {
+        body: { action: "get-vapid-key" },
+      });
+      
+      if (error || !data?.publicKey) {
+        setVapidStatus("invalid");
+        console.error("VAPID test failed:", error);
+      } else {
+        setVapidStatus("valid");
+        console.log("VAPID public key:", data.publicKey.substring(0, 20) + "...");
+      }
+    } catch (error) {
+      console.error("VAPID test error:", error);
+      setVapidStatus("invalid");
+    } finally {
+      setTestingVapid(false);
+    }
+  };
 
   const fetchSubscribers = async () => {
     try {
@@ -69,6 +106,21 @@ export const PushNotificationManager = () => {
       console.error("Error fetching subscribers:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDeliveryLogs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("push_delivery_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setDeliveryLogs(data || []);
+    } catch (error) {
+      console.error("Error fetching delivery logs:", error);
     }
   };
 
@@ -130,6 +182,29 @@ export const PushNotificationManager = () => {
     }
   };
 
+  const handleRefreshAllSubscriptions = async () => {
+    try {
+      // Flag all users to re-subscribe
+      const { error } = await supabase
+        .from("push_resubscribe_flags")
+        .upsert(
+          subscribers.map((s) => ({
+            user_id: s.user_id,
+            reason: "admin_requested_refresh",
+          })),
+          { onConflict: "user_id" }
+        );
+
+      if (error) throw error;
+
+      toast.success(
+        "Refresh flags set! Users will be prompted to re-subscribe when they visit the app."
+      );
+    } catch (error: any) {
+      toast.error(error.message || "Failed to set refresh flags");
+    }
+  };
+
   const handleSendNotification = async () => {
     if (!notificationForm.title || !notificationForm.message) {
       toast.error("Please fill in both title and message");
@@ -157,6 +232,9 @@ export const PushNotificationManager = () => {
 
       const result = data as { sent: number; total: number; failed: number; expired?: number };
       
+      // Refresh logs after sending
+      setTimeout(fetchDeliveryLogs, 2000);
+      
       if (result.failed > 0 && result.sent === 0) {
         toast.warning(
           `Push failed to ${result.failed} subscriber(s). They may need to refresh their subscription in Profile settings.`,
@@ -164,6 +242,7 @@ export const PushNotificationManager = () => {
         );
       } else if (result.expired && result.expired > 0) {
         toast.info(`Cleaned up ${result.expired} expired subscription(s)`);
+        fetchSubscribers();
       }
       
       toast.success(`Push notification sent to ${result.sent} of ${result.total} subscribers`);
@@ -186,6 +265,29 @@ export const PushNotificationManager = () => {
 
   return (
     <div className="space-y-4">
+      {/* VAPID Status */}
+      <Card className="border-0 shadow-md">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            {testingVapid ? (
+              <LoadingSpinner size="sm" />
+            ) : vapidStatus === "valid" ? (
+              <CheckCircle className="w-4 h-4 text-green-500" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+            )}
+            VAPID Configuration: {vapidStatus === "valid" ? "Valid ✓" : vapidStatus === "invalid" ? "Invalid ✗" : "Checking..."}
+          </CardTitle>
+        </CardHeader>
+        {vapidStatus === "invalid" && (
+          <CardContent className="pt-0">
+            <p className="text-xs text-destructive">
+              VAPID keys may be misconfigured. Push notifications will not work. Check Supabase secrets.
+            </p>
+          </CardContent>
+        )}
+      </Card>
+
       {/* Send Notification Card */}
       <Card className="border-0 shadow-md">
         <CardHeader>
@@ -219,7 +321,7 @@ export const PushNotificationManager = () => {
           <Button
             className="w-full gradient-primary"
             onClick={handleSendNotification}
-            disabled={sending || subscribers.length === 0}
+            disabled={sending || subscribers.length === 0 || vapidStatus !== "valid"}
           >
             {sending ? (
               <LoadingSpinner size="sm" />
@@ -233,20 +335,65 @@ export const PushNotificationManager = () => {
         </CardContent>
       </Card>
 
+      {/* Recent Delivery Logs */}
+      {deliveryLogs.length > 0 && (
+        <Card className="border-0 shadow-md">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Recent Delivery Logs
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {deliveryLogs.slice(0, 10).map((log) => (
+                <div
+                  key={log.id}
+                  className={`text-xs p-2 rounded ${
+                    log.status_code === 201
+                      ? "bg-green-500/10 text-green-700"
+                      : log.is_gone
+                      ? "bg-amber-500/10 text-amber-700"
+                      : "bg-red-500/10 text-red-700"
+                  }`}
+                >
+                  <div className="flex justify-between">
+                    <span>{log.title || "Notification"}</span>
+                    <span>Status: {log.status_code || "N/A"}</span>
+                  </div>
+                  {log.error && <p className="mt-1 opacity-80">{log.error}</p>}
+                  <p className="opacity-60">{new Date(log.created_at).toLocaleString()}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Subscribers List */}
       <Card className="border-0 shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Push Notification Subscribers ({subscribers.length})
+            Push Subscribers ({subscribers.length})
           </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCleanupDuplicates}
-          >
-            Cleanup Duplicates
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefreshAllSubscriptions}
+            >
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Flag Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCleanupDuplicates}
+            >
+              Cleanup
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {subscribers.length === 0 ? (
@@ -272,6 +419,9 @@ export const PushNotificationManager = () => {
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Subscribed: {new Date(subscriber.created_at).toLocaleDateString()}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/70 truncate max-w-[200px]">
+                      {subscriber.endpoint.replace("https://", "").split("/")[0]}
                     </p>
                   </div>
                   <Button
