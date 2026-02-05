@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.trading-mentor]
 verify_jwt = false
+
+[functions.validate-receipt]
+verify_jwt = false

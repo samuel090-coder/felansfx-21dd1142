@@ -10,7 +10,8 @@ import {
   Copy, 
   CheckCircle,
   AlertCircle,
-  Clock
+  Clock,
+  XCircle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,7 +24,7 @@ interface DepositFlowProps {
   onCancel: () => void;
 }
 
-type FlowStep = "amount" | "payment" | "upload" | "validating" | "pending" | "complete";
+type FlowStep = "amount" | "payment" | "upload" | "validating" | "invalid" | "pending" | "complete";
 
 const DEPOSIT_AMOUNTS = [
   { value: 5000, label: "₦5,000" },
@@ -44,6 +45,7 @@ export const DepositFlow = ({ userId, onComplete, onCancel }: DepositFlowProps) 
   } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [invalidReason, setInvalidReason] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchPaymentDetails = async () => {
@@ -98,8 +100,7 @@ export const DepositFlow = ({ userId, onComplete, onCancel }: DepositFlowProps) 
     setStep("upload");
   };
 
-  const validateScreenshot = (file: File): boolean => {
-    // Basic validation
+  const validateFileType = (file: File): boolean => {
     const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
     if (!validTypes.includes(file.type)) {
       toast({
@@ -122,17 +123,39 @@ export const DepositFlow = ({ userId, onComplete, onCancel }: DepositFlowProps) 
     return true;
   };
 
+  const validateReceiptWithAI = async (imageUrl: string): Promise<{ valid: boolean; reason: string }> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-receipt", {
+        body: { imageUrl },
+      });
+
+      if (error) {
+        console.error("Receipt validation error:", error);
+        // Fallback: accept for manual review
+        return { valid: true, reason: "Accepted for manual review" };
+      }
+
+      return {
+        valid: data.valid === true,
+        reason: data.reason || "Validation complete",
+      };
+    } catch (error) {
+      console.error("Receipt validation failed:", error);
+      return { valid: true, reason: "Accepted for manual review" };
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!validateScreenshot(file)) return;
+    if (!validateFileType(file)) return;
 
     setStep("validating");
     setIsUploading(true);
 
     try {
-      // Upload to Supabase storage
+      // Upload to Supabase storage first
       const fileName = `${userId}/${Date.now()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from("uploads")
@@ -145,20 +168,33 @@ export const DepositFlow = ({ userId, onComplete, onCancel }: DepositFlowProps) 
         .from("uploads")
         .getPublicUrl(fileName);
 
-      // Create deposit record
+      const imageUrl = urlData.publicUrl;
+
+      // Validate the receipt with AI
+      console.log("Validating receipt with AI...");
+      const validation = await validateReceiptWithAI(imageUrl);
+
+      if (!validation.valid) {
+        // Receipt is invalid - ask user to upload a real one
+        setInvalidReason(validation.reason);
+        setStep("invalid");
+        
+        // Delete the invalid upload
+        await supabase.storage.from("uploads").remove([fileName]);
+        return;
+      }
+
+      // Receipt is valid - create deposit record
       const { error: insertError } = await supabase
         .from("deposits")
         .insert({
           user_id: userId,
           amount: selectedAmount!,
-          screenshot_url: urlData.publicUrl,
+          screenshot_url: imageUrl,
           status: "pending",
         });
 
       if (insertError) throw insertError;
-
-      // Simulate AI "scanning" the screenshot
-      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       setStep("pending");
       
@@ -182,6 +218,14 @@ export const DepositFlow = ({ userId, onComplete, onCancel }: DepositFlowProps) 
       setStep("upload");
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleRetryUpload = () => {
+    setInvalidReason("");
+    setStep("upload");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -343,9 +387,40 @@ export const DepositFlow = ({ userId, onComplete, onCancel }: DepositFlowProps) 
           <div>
             <h3 className="font-semibold">Scanning your screenshot... 🔍</h3>
             <p className="text-sm text-muted-foreground">
-              Verifying payment details
+              Coach Alex is verifying your payment receipt
             </p>
           </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (step === "invalid") {
+    return (
+      <Card className="p-6 bg-muted/50 border-red-500/20">
+        <div className="text-center space-y-4">
+          <XCircle className="w-12 h-12 mx-auto text-red-500" />
+          <div>
+            <h3 className="font-semibold text-red-600">Invalid Screenshot 😕</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              {invalidReason || "This doesn't look like a valid payment receipt."}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Please upload a real bank transfer or payment confirmation screenshot.
+            </p>
+          </div>
+          
+          <Button 
+            onClick={handleRetryUpload}
+            className="w-full bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Upload Real Screenshot
+          </Button>
+          
+          <Button variant="ghost" size="sm" onClick={onCancel} className="w-full">
+            Cancel
+          </Button>
         </div>
       </Card>
     );

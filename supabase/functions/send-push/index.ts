@@ -163,8 +163,14 @@ serve(async (req) => {
     let successCount = 0;
     const expiredIds: string[] = [];
     let failedCount = 0;
+    const broadcastId = crypto.randomUUID();
 
     for (const sub of uniqueSubscriptions) {
+      let statusCode: number | null = null;
+      let errorMsg: string | null = null;
+      let isGone = false;
+      let isAuthError = false;
+
       try {
         // Create a subscriber using the library
         const subscriber = server.subscribe({
@@ -181,33 +187,53 @@ serve(async (req) => {
           ttl: 86400,
         });
 
+        statusCode = 201;
         successCount++;
         console.log(`Push sent to endpoint: ${sub.endpoint.substring(0, 50)}...`);
       } catch (error: unknown) {
         failedCount++;
         
         // Use PushMessageError properly for detailed logging
-        let errorDetails = "Unknown error";
-        let isExpired = false;
-        
         if (error instanceof PushMessageError) {
-          errorDetails = error.toString();
-          isExpired = error.isGone();
-          console.error(`PushMessageError for ${sub.endpoint.substring(0, 50)}...: ${errorDetails}`);
+          errorMsg = error.toString();
+          isGone = error.isGone();
+          statusCode = error.response?.status || null;
+          isAuthError = statusCode === 401 || statusCode === 403;
+          console.error(`PushMessageError for ${sub.endpoint.substring(0, 50)}...: ${errorMsg}`);
           if (error.response) {
             console.error(`Response status: ${error.response.status}`);
           }
         } else if (error instanceof Error) {
-          errorDetails = error.message || error.toString();
-          console.error(`Error for ${sub.endpoint.substring(0, 50)}...: ${errorDetails}`);
+          errorMsg = error.message || error.toString();
+          console.error(`Error for ${sub.endpoint.substring(0, 50)}...: ${errorMsg}`);
         } else {
+          errorMsg = "Unknown error";
           console.error(`Unknown error type for ${sub.endpoint.substring(0, 50)}...:`, error);
         }
           
-        if (isExpired) {
+        if (isGone) {
           console.log(`Subscription ${sub.id} is expired/gone, marking for cleanup`);
           expiredIds.push(sub.id);
         }
+      }
+
+      // Log delivery result
+      try {
+        const endpointHost = new URL(sub.endpoint).hostname;
+        await supabase.from("push_delivery_logs").insert({
+          broadcast_id: broadcastId,
+          user_id: sub.user_id,
+          subscription_id: sub.id,
+          title,
+          message,
+          status_code: statusCode,
+          error: errorMsg,
+          is_gone: isGone,
+          is_auth_error: isAuthError,
+          endpoint_host: endpointHost,
+        });
+      } catch (logError) {
+        console.error("Failed to log delivery:", logError);
       }
     }
 

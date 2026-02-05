@@ -9,7 +9,8 @@ import {
   Wallet,
   ArrowLeft,
   Loader2,
-  GraduationCap
+  GraduationCap,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,8 @@ import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { formatCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { DepositFlow } from "@/components/school/DepositFlow";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -31,20 +34,21 @@ interface Message {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trading-mentor`;
 
+const WELCOME_MESSAGE: Message = {
+  id: "welcome",
+  role: "assistant",
+  content: "Hey there, future trader! 👋 I'm Coach Alex, your personal trading mentor here at FelansFX Academy! 🎓\n\nI'm here to teach you everything about trading - from reading charts to managing your risk like a pro! 📊\n\nWhat would you like to learn today? You can:\n\n📚 Ask me anything about trading\n📝 Request a lesson or assignment\n💰 Add funds to start practicing\n🎯 Get tips on chart analysis\n\nLet's begin your journey to becoming a confident trader! What's on your mind? 🚀",
+  timestamp: new Date(),
+};
+
 const SchoolHub = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { wallet, refetch: refetchWallet } = useWallet();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: "Hey there, future trader! 👋 I'm Coach Alex, your personal trading mentor here at FelansFX Academy! 🎓\n\nI'm here to teach you everything about trading - from reading charts to managing your risk like a pro! 📊\n\nWhat would you like to learn today? You can:\n\n📚 Ask me anything about trading\n📝 Request a lesson or assignment\n💰 Add funds to start practicing\n🎯 Get tips on chart analysis\n\nLet's begin your journey to becoming a confident trader! What's on your mind? 🚀",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [activeDepositFlow, setActiveDepositFlow] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -62,7 +66,80 @@ const SchoolHub = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const streamChat = useCallback(async (userMessages: Message[]) => {
+  // Load chat history from database
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("school_chat_messages")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          console.error("Error loading chat history:", error);
+          setMessages([WELCOME_MESSAGE]);
+        } else if (data && data.length > 0) {
+          // Convert DB records to Message format
+          const loadedMessages: Message[] = data.map((msg) => ({
+            id: msg.id,
+            role: msg.role as "user" | "assistant",
+            content: msg.content,
+            timestamp: new Date(msg.created_at),
+          }));
+          setMessages(loadedMessages);
+        } else {
+          // No history - show welcome message and save it
+          setMessages([WELCOME_MESSAGE]);
+          await saveMessage(WELCOME_MESSAGE, user.id);
+        }
+      } catch (error) {
+        console.error("Failed to load chat history:", error);
+        setMessages([WELCOME_MESSAGE]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    if (user) {
+      loadChatHistory();
+    }
+  }, [user]);
+
+  // Save message to database
+  const saveMessage = async (message: Message, userId: string) => {
+    try {
+      await supabase.from("school_chat_messages").insert({
+        user_id: userId,
+        role: message.role,
+        content: message.content,
+      });
+    } catch (error) {
+      console.error("Failed to save message:", error);
+    }
+  };
+
+  const clearChatHistory = async () => {
+    if (!user) return;
+    
+    try {
+      await supabase
+        .from("school_chat_messages")
+        .delete()
+        .eq("user_id", user.id);
+      
+      setMessages([WELCOME_MESSAGE]);
+      await saveMessage(WELCOME_MESSAGE, user.id);
+      toast.success("Chat history cleared!");
+    } catch (error) {
+      console.error("Failed to clear chat:", error);
+      toast.error("Failed to clear chat history");
+    }
+  };
+
+  const streamChat = useCallback(async (userMessages: Message[], userId: string) => {
     const apiMessages = userMessages.map((m) => ({
       role: m.role,
       content: m.content,
@@ -86,6 +163,7 @@ const SchoolHub = () => {
     let textBuffer = "";
     let assistantContent = "";
     let streamDone = false;
+    let assistantMessageId = `assistant-${Date.now()}`;
 
     while (!streamDone) {
       const { done, value } = await reader.read();
@@ -114,7 +192,7 @@ const SchoolHub = () => {
             assistantContent += content;
             setMessages((prev) => {
               const last = prev[prev.length - 1];
-              if (last?.role === "assistant" && last.id !== "welcome") {
+              if (last?.role === "assistant" && last.id === assistantMessageId) {
                 return prev.map((m, i) =>
                   i === prev.length - 1 ? { ...m, content: assistantContent } : m
                 );
@@ -122,7 +200,7 @@ const SchoolHub = () => {
               return [
                 ...prev,
                 {
-                  id: `assistant-${Date.now()}`,
+                  id: assistantMessageId,
                   role: "assistant",
                   content: assistantContent,
                   timestamp: new Date(),
@@ -137,6 +215,17 @@ const SchoolHub = () => {
       }
     }
 
+    // Save the complete assistant message to database
+    if (assistantContent) {
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        role: "assistant",
+        content: assistantContent,
+        timestamp: new Date(),
+      };
+      await saveMessage(assistantMessage, userId);
+    }
+
     // Check if AI is initiating deposit flow
     const lowerContent = assistantContent.toLowerCase();
     if (
@@ -149,7 +238,7 @@ const SchoolHub = () => {
   }, []);
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !user) return;
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -160,6 +249,9 @@ const SchoolHub = () => {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    
+    // Save user message to database
+    await saveMessage(userMessage, user.id);
 
     // Check if user wants to deposit - handle directly
     const lowerInput = userMessage.content.toLowerCase();
@@ -176,18 +268,17 @@ const SchoolHub = () => {
     setIsLoading(true);
 
     try {
-      await streamChat([...messages, userMessage]);
+      await streamChat([...messages, userMessage], user.id);
     } catch (error) {
       console.error("Chat error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `error-${Date.now()}`,
-          role: "assistant",
-          content: "Oops! Something went wrong 😅 Let's try that again!",
-          timestamp: new Date(),
-        },
-      ]);
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        role: "assistant",
+        content: "Oops! Something went wrong 😅 Let's try that again!",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      await saveMessage(errorMessage, user.id);
     } finally {
       setIsLoading(false);
     }
@@ -201,53 +292,67 @@ const SchoolHub = () => {
     }, 100);
   };
 
-  const handleDepositComplete = (message: string) => {
+  const handleDepositComplete = async (message: string) => {
     setActiveDepositFlow(false);
     refetchWallet();
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `assistant-deposit-${Date.now()}`,
-        role: "assistant",
-        content: message,
-        timestamp: new Date(),
-      },
-    ]);
+    
+    const assistantMessage: Message = {
+      id: `assistant-deposit-${Date.now()}`,
+      role: "assistant",
+      content: message,
+      timestamp: new Date(),
+    };
+    
+    setMessages((prev) => [...prev, assistantMessage]);
+    
+    if (user) {
+      await saveMessage(assistantMessage, user.id);
+    }
   };
 
-  const handleDepositCancel = () => {
+  const handleDepositCancel = async () => {
     setActiveDepositFlow(false);
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `assistant-cancel-${Date.now()}`,
-        role: "assistant",
-        content: "No problem! 😊 We can do that later whenever you're ready. Let's continue learning! What would you like to explore next? 📚",
-        timestamp: new Date(),
-      },
-    ]);
+    
+    const cancelMessage: Message = {
+      id: `assistant-cancel-${Date.now()}`,
+      role: "assistant",
+      content: "No problem! 😊 We can do that later whenever you're ready. Let's continue learning! What would you like to explore next? 📚",
+      timestamp: new Date(),
+    };
+    
+    setMessages((prev) => [...prev, cancelMessage]);
+    
+    if (user) {
+      await saveMessage(cancelMessage, user.id);
+    }
   };
 
-  const initiateDeposit = () => {
+  const initiateDeposit = async () => {
     setActiveDepositFlow(true);
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `user-deposit-${Date.now()}`,
-        role: "user",
-        content: "I want to deposit funds 💰",
-        timestamp: new Date(),
-      },
-      {
-        id: `assistant-deposit-init-${Date.now()}`,
-        role: "assistant",
-        content: "Awesome! Let's add funds to your account! 💰✨\n\nI'll guide you through the process right here - no need to leave our chat!",
-        timestamp: new Date(),
-      },
-    ]);
+    
+    const userDepositMessage: Message = {
+      id: `user-deposit-${Date.now()}`,
+      role: "user",
+      content: "I want to deposit funds 💰",
+      timestamp: new Date(),
+    };
+    
+    const assistantInitMessage: Message = {
+      id: `assistant-deposit-init-${Date.now()}`,
+      role: "assistant",
+      content: "Awesome! Let's add funds to your account! 💰✨\n\nI'll guide you through the process right here - no need to leave our chat!",
+      timestamp: new Date(),
+    };
+    
+    setMessages((prev) => [...prev, userDepositMessage, assistantInitMessage]);
+    
+    if (user) {
+      await saveMessage(userDepositMessage, user.id);
+      await saveMessage(assistantInitMessage, user.id);
+    }
   };
 
-  if (authLoading) {
+  if (authLoading || isLoadingHistory) {
     return <LoadingScreen />;
   }
 
@@ -280,6 +385,15 @@ const SchoolHub = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={clearChatHistory}
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              title="Clear chat history"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
             <Card className="px-3 py-1.5 bg-secondary/50">
               <div className="flex items-center gap-1.5">
                 <Wallet className="w-3.5 h-3.5 text-primary" />
