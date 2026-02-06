@@ -1,11 +1,12 @@
  // Shared helper for sending push notifications
  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
- import {
-   ApplicationServer,
-   importVapidKeys,
-   Urgency,
- } from "jsr:@negrel/webpush";
- import { getVapidKeysAsJwk } from "./vapid.ts";
+  import {
+    ApplicationServer,
+    importVapidKeys,
+    Urgency,
+    PushMessageError,
+  } from "jsr:@negrel/webpush";
+  import { getVapidKeysAsJwk } from "./vapid.ts";
  
  let appServerCache: ApplicationServer | null = null;
  
@@ -107,36 +108,70 @@
        icon: "/favicon-512.png",
      });
  
-     const expiredIds: string[] = [];
- 
-     for (const [, sub] of uniqueByEndpoint) {
-       try {
-         const subscriber = server.subscribe({
-           endpoint: sub.endpoint,
-           keys: { p256dh: sub.p256dh, auth: sub.auth },
-         });
- 
-         await subscriber.pushTextMessage(payload, {
-           urgency: Urgency.High,
-           ttl: 86400,
-         });
- 
-         result.sent++;
+      const expiredIds: string[] = [];
+      const authErrorByUser = new Map<string, { statusCode: number | null; error: string | null }>();
+
+      for (const [, sub] of uniqueByEndpoint) {
+        try {
+          const subscriber = server.subscribe({
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          });
+
+          await subscriber.pushTextMessage(payload, {
+            urgency: Urgency.High,
+            ttl: 86400,
+          });
+
+          result.sent++;
         } catch (error: any) {
           result.failed++;
-          const errDetails = error.message || "Unknown error";
+
+          let statusCode: number | null = null;
+          let errDetails = error?.message || "Unknown error";
+
+          if (error instanceof PushMessageError) {
+            statusCode = error.response?.status || null;
+            errDetails = error.toString();
+          } else {
+            statusCode = error?.response?.status ?? error?.status ?? null;
+          }
+
           console.error(`Push to ${sub.endpoint.substring(0, 40)}... failed: ${errDetails}`);
-          
-          // Check for expired subscription
-          const isExpired = 
-            (typeof error.isGone === "function" && error.isGone()) ||
-            error.status === 410 ||
-            (error.response && error.response.status === 410);
-            
+
+          // Expired/gone subscription
+          const isExpired =
+            (typeof error?.isGone === "function" && error.isGone()) ||
+            statusCode === 410 ||
+            (error?.response && error.response.status === 410);
+
           if (isExpired) {
             expiredIds.push(sub.id);
           }
+
+          // Unauthorized (usually VAPID/public key mismatch) => flag user for refresh
+          if (statusCode === 401 || statusCode === 403) {
+            authErrorByUser.set(sub.user_id, { statusCode, error: errDetails });
+          }
         }
+      }
+
+      // Flag users that need a resubscribe
+      if (authErrorByUser.size > 0) {
+        const nowIso = new Date().toISOString();
+        const rows = [...authErrorByUser.entries()].map(([userId, v]) => ({
+          user_id: userId,
+          reason: "push_auth_error",
+          last_status_code: v.statusCode,
+          last_error: v.error,
+          updated_at: nowIso,
+        }));
+
+        const { error: flagError } = await supabase
+          .from("push_resubscribe_flags")
+          .upsert(rows, { onConflict: "user_id" });
+
+        if (flagError) console.error("Failed to set push resubscribe flags:", flagError);
       }
  
      // Clean up expired subscriptions

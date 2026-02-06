@@ -123,25 +123,42 @@ export const DepositFlow = ({ userId, onComplete, onCancel }: DepositFlowProps) 
     return true;
   };
 
-  const validateReceiptWithAI = async (imageUrl: string): Promise<{ valid: boolean; reason: string }> => {
+  const validateReceiptWithAI = async (params: {
+    imageUrl: string;
+    expectedAmountNgn?: number;
+    expectedBeneficiary?: {
+      receiver_name?: string;
+      receiver_bank?: string;
+      receiver_account?: string;
+    };
+  }): Promise<{ valid: boolean; reason: string }> => {
     try {
       const { data, error } = await supabase.functions.invoke("validate-receipt", {
-        body: { imageUrl },
+        body: {
+          imageUrl: params.imageUrl,
+          expectedAmountNgn: params.expectedAmountNgn,
+          expectedBeneficiary: params.expectedBeneficiary,
+        },
       });
 
       if (error) {
         console.error("Receipt validation error:", error);
-        // Fallback: accept for manual review
-        return { valid: true, reason: "Accepted for manual review" };
+        return {
+          valid: false,
+          reason: "I couldn't verify that screenshot. Please upload a clear bank transfer confirmation screenshot.",
+        };
       }
 
       return {
-        valid: data.valid === true,
-        reason: data.reason || "Validation complete",
+        valid: data?.valid === true,
+        reason: data?.reason || "Validation complete",
       };
     } catch (error) {
       console.error("Receipt validation failed:", error);
-      return { valid: true, reason: "Accepted for manual review" };
+      return {
+        valid: false,
+        reason: "I couldn't verify that screenshot. Please upload a clear bank transfer confirmation screenshot.",
+      };
     }
   };
 
@@ -170,9 +187,28 @@ export const DepositFlow = ({ userId, onComplete, onCancel }: DepositFlowProps) 
 
       const imageUrl = urlData.publicUrl;
 
-      // Validate the receipt with AI
+      // Validate the receipt with AI (strict match against expected amount + beneficiary)
       console.log("Validating receipt with AI...");
-      const validation = await validateReceiptWithAI(imageUrl);
+
+      const expectedBeneficiary = (() => {
+        const parsedDetails = paymentDetails?.details ? parsePaymentDetails(paymentDetails.details) : [];
+        const pick = (labelVariants: string[]) =>
+          parsedDetails.find((d) => labelVariants.includes(d.label.toLowerCase()))?.value;
+
+        const receiver_account =
+          pick(["account number", "acct number", "account no", "acct no"]) || undefined;
+        const receiver_bank = pick(["bank", "bank name"]) || undefined;
+        const receiver_name = pick(["account name", "beneficiary", "beneficiary name", "name"]) || undefined;
+
+        if (!receiver_account && !receiver_bank && !receiver_name) return undefined;
+        return { receiver_account, receiver_bank, receiver_name };
+      })();
+
+      const validation = await validateReceiptWithAI({
+        imageUrl,
+        expectedAmountNgn: selectedAmount || undefined,
+        expectedBeneficiary,
+      });
 
       if (!validation.valid) {
         // Receipt is invalid - ask user to upload a real one

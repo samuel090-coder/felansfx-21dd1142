@@ -165,6 +165,9 @@ serve(async (req) => {
     let failedCount = 0;
     const broadcastId = crypto.randomUUID();
 
+    // Track 401/403 so clients can auto-refresh their subscription (usually VAPID key rotation)
+    const authErrorByUser = new Map<string, { statusCode: number | null; error: string | null }>();
+
     for (const sub of uniqueSubscriptions) {
       let statusCode: number | null = null;
       let errorMsg: string | null = null;
@@ -215,8 +218,14 @@ serve(async (req) => {
           console.log(`Subscription ${sub.id} is expired/gone, marking for cleanup`);
           expiredIds.push(sub.id);
         }
-      }
 
+        if (isAuthError) {
+          authErrorByUser.set(sub.user_id, {
+            statusCode,
+            error: errorMsg,
+          });
+        }
+      }
       // Log delivery result
       try {
         const endpointHost = new URL(sub.endpoint).hostname;
@@ -261,16 +270,39 @@ serve(async (req) => {
         .in("id", expiredIds);
     }
 
+    // Flag users to refresh their subscription if we got 401/403 from the push service
+    if (authErrorByUser.size > 0) {
+      const nowIso = new Date().toISOString();
+      const rows = [...authErrorByUser.entries()].map(([userId, v]) => ({
+        user_id: userId,
+        reason: "push_auth_error",
+        last_status_code: v.statusCode,
+        last_error: v.error,
+        updated_at: nowIso,
+      }));
+
+      const { error: flagError } = await supabase
+        .from("push_resubscribe_flags")
+        .upsert(rows, { onConflict: "user_id" });
+
+      if (flagError) {
+        console.error("Failed to set push resubscribe flags:", flagError);
+      } else {
+        console.log(`Flagged ${rows.length} user(s) for push resubscribe`);
+      }
+    }
+
     console.log(`Push notifications sent: ${successCount}/${uniqueSubscriptions.length}`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        sent: successCount, 
+      JSON.stringify({
+        success: true,
+        sent: successCount,
         total: uniqueSubscriptions.length,
         users: uniqueUserIds.length,
         failed: failedCount,
-        expired: expiredIds.length
+        expired: expiredIds.length,
+        needs_refresh: authErrorByUser.size,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
