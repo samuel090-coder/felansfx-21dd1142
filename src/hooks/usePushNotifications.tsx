@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ export const usePushNotifications = () => {
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isLoading, setIsLoading] = useState(false);
+  const autoRefreshAttemptedRef = useRef(false);
 
   // Check if push notifications are supported
   useEffect(() => {
@@ -201,6 +202,39 @@ export const usePushNotifications = () => {
       setIsLoading(false);
     }
   }, [isSupported, user, requestPermission]);
+
+  // Auto-heal: if backend flags this user for resubscribe (401/403), refresh their subscription.
+  useEffect(() => {
+    const maybeAutoRefresh = async () => {
+      if (!isSupported || !user) return;
+      if (autoRefreshAttemptedRef.current) return;
+
+      const { data, error } = await supabase
+        .from("push_resubscribe_flags")
+        .select("reason, last_status_code")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error || !data) return;
+
+      // Only attempt once per page load (if it fails, user can still hit Refresh manually)
+      autoRefreshAttemptedRef.current = true;
+
+      // Only auto-refresh if permission is already granted
+      if (Notification.permission !== "granted") return;
+
+      console.log("Push resubscribe flag found; refreshing subscription...");
+      const ok = await subscribe(true);
+      if (ok) {
+        await supabase.from("push_resubscribe_flags").delete().eq("user_id", user.id);
+      } else {
+        // Allow a future attempt if subscription failed
+        autoRefreshAttemptedRef.current = false;
+      }
+    };
+
+    maybeAutoRefresh();
+  }, [isSupported, user, subscribe]);
 
   // Listen for refresh event from auth (auto-refresh on login)
   useEffect(() => {
