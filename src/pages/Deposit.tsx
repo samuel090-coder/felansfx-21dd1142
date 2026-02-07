@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase, uploadFile } from "@/lib/supabase";
 import { toast } from "sonner";
-import { formatCurrency, formatWithConversion, convertToNGN } from "@/lib/currency";
+import { formatCurrency, formatWithConversion } from "@/lib/currency";
 
 interface DepositMethod {
   id: string;
@@ -167,10 +167,8 @@ const Deposit = () => {
     }
 
     const amountNum = parseFloat(amount);
-    const minDepositUSD = parseFloat(settings.min_deposit);
-    const maxDepositUSD = parseFloat(settings.max_deposit);
-    const minDepositNGN = Math.round(convertToNGN(minDepositUSD, "USD") / 100) * 100;
-    const maxDepositNGN = Math.round(convertToNGN(maxDepositUSD, "USD") / 100) * 100;
+    const minDepositNGN = parseFloat(settings.min_deposit);
+    const maxDepositNGN = parseFloat(settings.max_deposit);
 
     if (amountNum < minDepositNGN || amountNum > maxDepositNGN) {
       toast.error(`Amount must be between ${formatCurrency(minDepositNGN, "NGN", { decimals: 0 })} and ${formatCurrency(maxDepositNGN, "NGN", { decimals: 0 })}`);
@@ -356,8 +354,8 @@ const Deposit = () => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Min: {formatCurrency(Math.round(convertToNGN(parseFloat(settings.min_deposit), "USD") / 100) * 100, "NGN", { decimals: 0 })} | 
-                  Max: {formatCurrency(Math.round(convertToNGN(parseFloat(settings.max_deposit), "USD") / 100) * 100, "NGN", { decimals: 0 })}
+                  Min: {formatCurrency(parseFloat(settings.min_deposit), "NGN", { decimals: 0 })} | 
+                  Max: {formatCurrency(parseFloat(settings.max_deposit), "NGN", { decimals: 0 })}
                 </p>
                 {amount && parseFloat(amount) > 0 && (
                   <p className="text-xs text-primary">
