@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, Clock, CheckCircle, XCircle, AlertCircle, Copy, Check } from "lucide-react";
+import { Upload, Clock, CheckCircle, XCircle, AlertCircle, Copy, Check, Loader2, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -116,6 +116,48 @@ const Deposit = () => {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
+  const [validationStatus, setValidationStatus] = useState<"idle" | "validating" | "invalid">("idle");
+  const [invalidReason, setInvalidReason] = useState("");
+
+  const parsePaymentDetails = (details: string) => {
+    const lines = details.split("\n").filter(Boolean);
+    const parsed: { label: string; value: string }[] = [];
+    lines.forEach((line) => {
+      const [label, ...valueParts] = line.split(":");
+      if (label && valueParts.length) {
+        parsed.push({ label: label.trim(), value: valueParts.join(":").trim() });
+      }
+    });
+    return parsed;
+  };
+
+  const validateReceiptWithAI = async (imageUrl: string, amountNgn: number) => {
+    try {
+      // Extract beneficiary info from selected payment method
+      let expectedBeneficiary: Record<string, string | undefined> | undefined;
+      if (selectedMethodDetails) {
+        const parsed = parsePaymentDetails(selectedMethodDetails.details);
+        const pick = (labels: string[]) =>
+          parsed.find((d) => labels.includes(d.label.toLowerCase()))?.value;
+        const receiver_account = pick(["account number", "acct number", "account no", "acct no"]);
+        const receiver_bank = pick(["bank", "bank name"]);
+        const receiver_name = pick(["account name", "beneficiary", "beneficiary name", "name"]);
+        if (receiver_account || receiver_bank || receiver_name) {
+          expectedBeneficiary = { receiver_account, receiver_bank, receiver_name };
+        }
+      }
+
+      const { data, error } = await supabase.functions.invoke("validate-receipt", {
+        body: { imageUrl, expectedAmountNgn: amountNgn, expectedBeneficiary },
+      });
+
+      if (error) return { valid: false, reason: "Could not verify screenshot. Please try again." };
+      return { valid: data?.valid === true, reason: data?.reason || "Validation complete" };
+    } catch {
+      return { valid: false, reason: "Could not verify screenshot. Please try again." };
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -125,10 +167,9 @@ const Deposit = () => {
     }
 
     const amountNum = parseFloat(amount);
-    // Settings store values in USD, convert to NGN for validation - round to clean numbers
     const minDepositUSD = parseFloat(settings.min_deposit);
     const maxDepositUSD = parseFloat(settings.max_deposit);
-    const minDepositNGN = Math.round(convertToNGN(minDepositUSD, "USD") / 100) * 100; // Round to nearest 100
+    const minDepositNGN = Math.round(convertToNGN(minDepositUSD, "USD") / 100) * 100;
     const maxDepositNGN = Math.round(convertToNGN(maxDepositUSD, "USD") / 100) * 100;
 
     if (amountNum < minDepositNGN || amountNum > maxDepositNGN) {
@@ -137,11 +178,28 @@ const Deposit = () => {
     }
 
     setIsSubmitting(true);
+    setValidationStatus("validating");
+    setInvalidReason("");
 
     try {
       // Upload screenshot
       const filePath = `${user.id}/${Date.now()}_${file.name}`;
       const screenshotUrl = await uploadFile("uploads", filePath, file);
+
+      // AI receipt validation
+      const validation = await validateReceiptWithAI(screenshotUrl, amountNum);
+
+      if (!validation.valid) {
+        setValidationStatus("invalid");
+        setInvalidReason(validation.reason);
+        // Delete invalid upload
+        await supabase.storage.from("uploads").remove([filePath]);
+        setFile(null);
+        setIsSubmitting(false);
+        return;
+      }
+
+      setValidationStatus("idle");
 
       // Create deposit request
       const { error } = await supabase.from("deposits").insert({
@@ -154,15 +212,15 @@ const Deposit = () => {
 
       if (error) throw error;
 
-      toast.success("Deposit request submitted! Awaiting admin approval.");
+      toast.success("Screenshot verified ✅ Deposit submitted! Awaiting admin approval.");
       setAmount("");
       setFile(null);
       setSelectedMethod("");
 
-      // Refresh deposits
       await fetchDeposits();
     } catch (error: any) {
       toast.error(error.message || "Failed to submit deposit request");
+      setValidationStatus("idle");
     } finally {
       setIsSubmitting(false);
     }
@@ -327,6 +385,32 @@ const Deposit = () => {
                   </label>
                 </div>
               </div>
+
+              {/* Validation Status */}
+              {validationStatus === "validating" && (
+                <Card className="bg-muted/50 border-primary/20">
+                  <CardContent className="py-4 text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary mb-2" />
+                    <p className="text-sm font-medium">Scanning your screenshot... 🔍</p>
+                    <p className="text-xs text-muted-foreground">Verifying payment receipt</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {validationStatus === "invalid" && (
+                <Card className="bg-destructive/5 border-destructive/20">
+                  <CardContent className="py-4">
+                    <div className="flex items-start gap-3">
+                      <ShieldAlert className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-destructive">Invalid Screenshot</p>
+                        <p className="text-xs text-muted-foreground mt-1">{invalidReason}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Please upload a valid bank transfer confirmation screenshot.</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               <Button
                 type="submit"
