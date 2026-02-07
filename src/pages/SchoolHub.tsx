@@ -66,6 +66,57 @@ const SchoolHub = () => {
     }
   }, [user, authLoading, navigate]);
 
+  // Realtime listener for deposit approval/rejection
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('deposit-status')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'deposits',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          const deposit = payload.new as any;
+          const oldDeposit = payload.old as any;
+
+          // Only react to status changes
+          if (oldDeposit.status === deposit.status) return;
+
+          if (deposit.status === 'approved') {
+            const congratsMsg: Message = {
+              id: `system-approved-${Date.now()}`,
+              role: 'assistant',
+              content: `🎉🎉🎉 CONGRATULATIONS! 🎉🎉🎉\n\nYour deposit of ${formatCurrency(deposit.amount, "NGN")} has been APPROVED! ✅💰\n\nYour wallet has been credited and you're all set! You now have access to all premium features:\n\n🔥 Live Trading\n📊 AI Chart Analysis\n📈 Daily Signals & Market News\n👥 Copy Trading\n\nLet's put that capital to work! What would you like to do first? 🚀`,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, congratsMsg]);
+            await saveMessage(congratsMsg, user.id);
+            refetchWallet();
+            toast.success("Deposit approved! 🎉");
+          } else if (deposit.status === 'rejected') {
+            const rejectMsg: Message = {
+              id: `system-rejected-${Date.now()}`,
+              role: 'assistant',
+              content: `😔 Unfortunately, your deposit of ${formatCurrency(deposit.amount, "NGN")} was not approved.\n\n${deposit.admin_notes ? `Reason: ${deposit.admin_notes}\n\n` : ''}Please make sure you:\n1. Upload a clear transfer confirmation screenshot\n2. Send the exact amount\n3. Transfer to the correct account\n\nWould you like to try again? Just say "deposit" and I'll help you! 💪`,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, rejectMsg]);
+            await saveMessage(rejectMsg, user.id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   // Load chat history from database
   useEffect(() => {
     const loadChatHistory = async () => {
