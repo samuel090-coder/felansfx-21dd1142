@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, CheckCircle2, AlertCircle, Building2, CreditCard, Wallet } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle2, AlertCircle, Building2, CreditCard, Wallet, ShieldAlert } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,12 +58,27 @@ const Withdraw = () => {
   
   const [submitting, setSubmitting] = useState(false);
   const [withdrawalHistory, setWithdrawalHistory] = useState<any[]>([]);
+  const [kycVerified, setKycVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth", { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  // Check KYC status
+  useEffect(() => {
+    const checkKYC = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("kyc_verifications")
+        .select("status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setKycVerified(data?.status === "approved");
+    };
+    if (user) checkKYC();
+  }, [user]);
 
   // Fetch banks on mount
   useEffect(() => {
@@ -177,6 +192,12 @@ const Withdraw = () => {
 
   const handleSubmitWithdrawal = async () => {
     if (!verifiedAccount || !amount || !user || !wallet) return;
+
+    if (!kycVerified) {
+      toast.error("Please complete KYC verification before withdrawing.");
+      navigate("/kyc");
+      return;
+    }
 
     const withdrawAmount = parseFloat(amount);
     const minimumWithdrawal = calculateMinimumWithdrawal(wallet.balance);
@@ -312,6 +333,30 @@ const Withdraw = () => {
             </p>
           </CardContent>
         </Card>
+
+        {/* KYC Gate */}
+        {kycVerified === false && (
+          <Card className="mb-6 border-0 shadow-md bg-warning/5 border-warning/20">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="w-6 h-6 text-warning flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-warning">Identity Verification Required</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    You must complete KYC verification before you can withdraw funds.
+                  </p>
+                  <Button
+                    className="mt-3"
+                    size="sm"
+                    onClick={() => navigate("/kyc")}
+                  >
+                    Verify Now
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Withdrawal Form */}
         <Card className="mb-6 border-0 shadow-md">

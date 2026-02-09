@@ -199,18 +199,32 @@ const Deposit = () => {
 
       setValidationStatus("idle");
 
+      // Check auto-approve threshold
+      const autoApproveThreshold = parseFloat(settings.auto_approve_threshold || "0");
+      const shouldAutoApprove = autoApproveThreshold > 0 && amountNum <= autoApproveThreshold;
+
       // Create deposit request
       const { error } = await supabase.from("deposits").insert({
         user_id: user.id,
         amount: amountNum,
         screenshot_url: screenshotUrl,
         deposit_method_id: selectedMethod || null,
-        status: "pending",
+        status: shouldAutoApprove ? "approved" : "pending",
       });
 
       if (error) throw error;
 
-      toast.success("Screenshot verified ✅ Deposit submitted! Awaiting admin approval.");
+      // If auto-approved, credit wallet
+      if (shouldAutoApprove) {
+        await supabase.rpc("credit_user_wallet", {
+          p_user_id: user.id,
+          p_amount: amountNum,
+        });
+        toast.success("Deposit auto-approved and credited! ✅💰");
+        refetchWallet();
+      } else {
+        toast.success("Screenshot verified ✅ Deposit submitted! Awaiting admin approval.");
+      }
       setAmount("");
       setFile(null);
       setSelectedMethod("");

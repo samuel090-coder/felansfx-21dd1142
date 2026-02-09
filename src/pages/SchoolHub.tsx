@@ -37,7 +37,32 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trading-ment
 const WELCOME_MESSAGE: Message = {
   id: "welcome",
   role: "assistant",
-  content: "Hey there, future trader! 👋 I'm Coach Alex, your personal trading mentor here at FelansFX Academy! 🎓\n\nI'm here to teach you everything about trading - from reading charts to managing your risk like a pro! 📊\n\nWhat would you like to learn today? You can:\n\n📚 Ask me anything about trading\n📝 Request a lesson or assignment\n💰 Add funds to start practicing\n🎯 Get tips on chart analysis\n\nLet's begin your journey to becoming a confident trader! What's on your mind? 🚀",
+  content: `Hey there, welcome to FelansFX Academy! 👋🎓 I'm Coach Alex, your personal trading mentor!
+
+Let me give you a quick tour of what you can do here:
+
+📊 **Live Trading Room** – Practice with demo money or trade with real NGN
+📈 **AI Chart Analysis** – Upload any chart and get instant AI breakdown  
+🔥 **Daily Signals** – Get curated trade setups from our pros
+💰 **Deposit & Withdraw** – Fund your account to trade real
+🏆 **Leaderboard** – Compete with other traders weekly
+👥 **Copy Trading** – Follow top traders' signals
+
+**Your first lesson starts NOW!** 🚀
+
+🎯 **Lesson 1: What is Trading?**
+Trading is buying and selling assets (like currencies, gold, crypto) to make profit from price changes. For example:
+- You buy EUR/USD at 1.0800
+- Price goes up to 1.0850
+- You sell and pocket the difference! 💸
+
+**Key terms you'll need:**
+• **Bull** 🐂 = Price going UP
+• **Bear** 🐻 = Price going DOWN  
+• **Stop Loss** = Your safety net (limits how much you lose)
+• **Take Profit** = Your target (locks in your profit)
+
+Ready for more? Just type "next lesson" or ask me anything! I'm here 24/7 to help you become a confident trader! 💪`,
   timestamp: new Date(),
 };
 

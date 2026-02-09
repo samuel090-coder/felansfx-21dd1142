@@ -26,6 +26,7 @@ import Withdraw from "./pages/Withdraw";
 import Invite from "./pages/Invite";
 import Help from "./pages/Help";
 import SchoolHub from "./pages/SchoolHub";
+import KYC from "./pages/KYC";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,7 @@ const App = () => {
               <Route path="/invite" element={<Invite />} />
               <Route path="/help" element={<Help />} />
               <Route path="/school" element={<SchoolHub />} />
+              <Route path="/kyc" element={<KYC />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

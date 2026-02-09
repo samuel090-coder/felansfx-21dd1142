@@ -11,29 +11,39 @@ import {
   Crown,
   Bell,
   BellOff,
+  Sun,
+  Moon,
+  Monitor,
+  ShieldCheck,
+  Globe,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useTheme } from "@/hooks/useTheme";
+import { useCurrencyPreference } from "@/hooks/useCurrencyPreference";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProfilePictureUpload } from "@/components/profile/ProfilePictureUpload";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/currency";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { wallet, loading: walletLoading } = useWallet();
   const { isSupported, isSubscribed, isLoading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
+  const { theme, setTheme } = useTheme();
+  const { currency, setCurrency, format, availableCurrencies } = useCurrencyPreference();
   const [savedCount, setSavedCount] = useState(0);
   const [displayId, setDisplayId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -45,7 +55,6 @@ const Profile = () => {
     const fetchUserData = async () => {
       if (!user) return;
       
-      // Fetch saved count
       const { count } = await supabase
         .from("analyses")
         .select("*", { count: "exact", head: true })
@@ -53,7 +62,6 @@ const Profile = () => {
         .eq("is_saved", true);
       setSavedCount(count || 0);
       
-      // Fetch display ID and avatar
       const { data: profile } = await supabase
         .from("profiles")
         .select("display_id, avatar_url")
@@ -61,6 +69,13 @@ const Profile = () => {
         .maybeSingle();
       setDisplayId(profile?.display_id || null);
       setAvatarUrl(profile?.avatar_url || null);
+
+      const { data: kyc } = await supabase
+        .from("kyc_verifications")
+        .select("status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setKycStatus(kyc?.status || null);
     };
     fetchUserData();
   }, [user]);
@@ -80,7 +95,7 @@ const Profile = () => {
   };
 
   const handleRefreshSubscription = async () => {
-    await subscribe(true); // Force refresh
+    await subscribe(true);
   };
 
   if (authLoading || walletLoading) {
@@ -96,6 +111,7 @@ const Profile = () => {
 
   const menuItems = [
     { icon: CreditCard, label: "Manage deposits", to: "/deposit" },
+    { icon: ShieldCheck, label: kycStatus === "approved" ? "KYC Verified ✅" : "Verify Identity (KYC)", to: "/kyc" },
     { icon: FileText, label: "Screenshot Guide", to: "/screenshot-guide" },
     { icon: Share2, label: "Invite friends", to: "/invite" },
     { icon: Bookmark, label: "My saved setups", to: "/saved" },
@@ -107,7 +123,6 @@ const Profile = () => {
         {/* Profile Card */}
         <Card className="mb-6 border-0 shadow-md">
           <CardContent className="pt-6">
-            {/* Badge */}
             <div className="mb-4">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
                 <Crown className="w-3 h-3" />
@@ -115,7 +130,6 @@ const Profile = () => {
               </span>
             </div>
 
-            {/* Avatar and Name */}
             <div className="flex items-center gap-4 mb-6">
               <ProfilePictureUpload
                 currentUrl={avatarUrl}
@@ -131,14 +145,13 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Stats */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="text-center p-3 rounded-xl bg-muted/50">
                 <p className="text-2xl font-bold">{savedCount}</p>
                 <p className="text-xs text-muted-foreground">Saved trades</p>
               </div>
               <div className="text-center p-3 rounded-xl bg-muted/50">
-                <p className="text-2xl font-bold">{formatCurrency(wallet?.balance || 0, "NGN", { decimals: 0 })}</p>
+                <p className="text-2xl font-bold">{format(wallet?.balance || 0)}</p>
                 <p className="text-xs text-muted-foreground">Credit balance</p>
               </div>
             </div>
@@ -180,8 +193,48 @@ const Profile = () => {
               </div>
             )}
 
-            {/* Invite Button */}
-            <Button className="w-full gradient-primary shadow-primary">
+            {/* Theme Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 mb-3">
+              <div className="flex items-center gap-3">
+                {theme === "dark" ? <Moon className="w-5 h-5 text-primary" /> : theme === "light" ? <Sun className="w-5 h-5 text-warning" /> : <Monitor className="w-5 h-5 text-muted-foreground" />}
+                <p className="text-sm font-medium">Theme</p>
+              </div>
+              <div className="flex gap-1">
+                {(["light", "dark", "system"] as const).map((t) => (
+                  <Button
+                    key={t}
+                    variant={theme === t ? "default" : "ghost"}
+                    size="sm"
+                    className="h-7 px-2 text-xs capitalize"
+                    onClick={() => setTheme(t)}
+                  >
+                    {t === "light" ? <Sun className="w-3 h-3" /> : t === "dark" ? <Moon className="w-3 h-3" /> : <Monitor className="w-3 h-3" />}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Currency Selector */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 mb-4">
+              <div className="flex items-center gap-3">
+                <Globe className="w-5 h-5 text-primary" />
+                <p className="text-sm font-medium">Currency</p>
+              </div>
+              <Select value={currency} onValueChange={(v: any) => setCurrency(v)}>
+                <SelectTrigger className="w-28 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableCurrencies.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.symbol} {c.code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button className="w-full gradient-primary shadow-primary" onClick={() => navigate("/invite")}>
               <Share2 className="w-4 h-4 mr-2" />
               Invite friends
             </Button>

@@ -8,6 +8,7 @@ interface AppSettings {
   max_deposit: string;
   first_deposit_bonus: string;
   daily_analysis_limit: string;
+  auto_approve_threshold: string;
 }
 
 const defaultSettings: AppSettings = {
@@ -17,6 +18,7 @@ const defaultSettings: AppSettings = {
   max_deposit: "500000",
   first_deposit_bonus: "0",
   daily_analysis_limit: "4",
+  auto_approve_threshold: "0",
 };
 
 export const useAppSettings = () => {

@@ -17,6 +17,7 @@ import {
   Layers,
   Mail,
   ArrowDownToLine,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -48,6 +49,7 @@ import { MarketNewsManager } from "@/components/admin/MarketNewsManager";
 import { ProContentManager } from "@/components/admin/ProContentManager";
 import { AdminMessagingCenter } from "@/components/admin/AdminMessagingCenter";
 import { WithdrawalManager } from "@/components/admin/WithdrawalManager";
+import { KYCManager } from "@/components/admin/KYCManager";
 
 interface PendingDeposit {
   id: string;
@@ -85,6 +87,7 @@ const Admin = () => {
     min_deposit: "",
     max_deposit: "",
     daily_analysis_limit: "",
+    auto_approve_threshold: "",
   });
   const [rejectReason, setRejectReason] = useState("");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -378,7 +381,7 @@ const Admin = () => {
 
       <div className="px-4 py-4">
         <Tabs defaultValue="analytics">
-          <TabsList className="grid w-full grid-cols-9 mb-6 h-auto">
+          <TabsList className="grid w-full grid-cols-10 mb-6 h-auto">
             <TabsTrigger value="analytics" className="text-xs px-1 py-2">
               <BarChart3 className="w-4 h-4" />
             </TabsTrigger>
@@ -387,6 +390,9 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="withdrawals" className="text-xs px-1 py-2">
               <ArrowDownToLine className="w-4 h-4" />
+            </TabsTrigger>
+            <TabsTrigger value="kyc" className="text-xs px-1 py-2">
+              <ShieldCheck className="w-4 h-4" />
             </TabsTrigger>
             <TabsTrigger value="users" className="text-xs px-1 py-2">
               <Users className="w-4 h-4" />
@@ -416,6 +422,11 @@ const Admin = () => {
           {/* Withdrawals Tab */}
           <TabsContent value="withdrawals" className="space-y-4">
             <WithdrawalManager />
+          </TabsContent>
+
+          {/* KYC Tab */}
+          <TabsContent value="kyc" className="space-y-4">
+            <KYCManager />
           </TabsContent>
 
           {/* Deposits Tab */}
@@ -793,6 +804,22 @@ const Admin = () => {
                       })
                     }
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Auto-Approve Threshold (NGN)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">₦</span>
+                    <Input
+                      type="number"
+                      className="pl-7"
+                      value={settingsForm.auto_approve_threshold}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsForm, auto_approve_threshold: e.target.value })
+                      }
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Deposits at or below this amount with valid receipts are auto-approved. Set to 0 to disable.</p>
                 </div>
 
                 <Button className="w-full gradient-primary" onClick={handleSaveSettings}>
