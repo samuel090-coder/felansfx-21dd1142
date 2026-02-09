@@ -558,6 +558,54 @@ export type Database = {
           },
         ]
       }
+      kyc_verifications: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          date_of_birth: string | null
+          full_name: string | null
+          id: string
+          id_document_url: string | null
+          id_number: string | null
+          selfie_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          verification_type: string
+          verified_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          full_name?: string | null
+          id?: string
+          id_document_url?: string | null
+          id_number?: string | null
+          selfie_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          verification_type?: string
+          verified_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          full_name?: string | null
+          id?: string
+          id_document_url?: string | null
+          id_number?: string | null
+          selfie_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verification_type?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       market_news: {
         Row: {
           content: string
