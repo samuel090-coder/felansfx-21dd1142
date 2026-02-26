@@ -112,6 +112,7 @@ const Profile = () => {
   const menuItems = [
     { icon: CreditCard, label: "Manage deposits", to: "/deposit" },
     { icon: ShieldCheck, label: kycStatus === "approved" ? "KYC Verified ✅" : "Verify Identity (KYC)", to: "/kyc" },
+    { icon: Bell, label: "Notification Settings", to: "/notification-settings" },
     { icon: FileText, label: "Screenshot Guide", to: "/screenshot-guide" },
     { icon: Share2, label: "Invite friends", to: "/invite" },
     { icon: Bookmark, label: "My saved setups", to: "/saved" },
@@ -182,12 +183,12 @@ const Profile = () => {
                 {isSubscribed && (
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="w-full text-xs"
+                    size="default"
+                    className="w-full border-primary text-primary font-semibold"
                     onClick={handleRefreshSubscription}
                     disabled={pushLoading}
                   >
-                    {pushLoading ? "Refreshing..." : "Refresh Push Subscription"}
+                    🔄 {pushLoading ? "Refreshing..." : "Refresh My Push Subscription"}
                   </Button>
                 )}
               </div>

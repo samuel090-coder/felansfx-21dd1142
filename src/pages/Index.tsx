@@ -20,7 +20,7 @@ const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { wallet, loading: walletLoading } = useWallet();
   const { settings } = useAppSettings();
-  const { requestPermission, permission } = usePushNotifications();
+  const { requestPermission, permission, isSubscribed, subscribe, isLoading: pushLoading } = usePushNotifications();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -97,6 +97,21 @@ const Index = () => {
           <QuickActionCard title="Share" to="/invite" />
           <QuickActionCard title="More" to="/saved" />
         </div>
+
+        {/* Subscribe CTA */}
+        {!isSubscribed && (
+          <Card className="mb-4 border-0 shadow-md bg-gradient-to-r from-primary/10 to-primary/5">
+            <CardContent className="p-4">
+              <Button
+                className="w-full gradient-primary font-semibold"
+                onClick={() => subscribe()}
+                disabled={pushLoading}
+              >
+                🔔 {pushLoading ? "Enabling..." : "Get Daily FX Signals & Alerts – Free"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recommended Tools Carousel */}
         <RecommendedToolsCarousel />

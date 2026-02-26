@@ -3,6 +3,13 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+// Helper to safely access pushManager
+const getPushManager = (reg: ServiceWorkerRegistration) =>
+  (reg as any).pushManager as {
+    getSubscription(): Promise<PushSubscription | null>;
+    subscribe(options: any): Promise<PushSubscription>;
+  };
+
 export const usePushNotifications = () => {
   const { user } = useAuth();
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -36,7 +43,8 @@ export const usePushNotifications = () => {
 
       try {
         const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
+        const pm = getPushManager(registration);
+        const subscription = await pm.getSubscription();
         
         if (subscription) {
           // Verify subscription exists in database
@@ -138,7 +146,7 @@ export const usePushNotifications = () => {
 
       // If force refresh, unsubscribe existing first
       if (forceRefresh) {
-        const existingSub = await registration.pushManager.getSubscription();
+        const existingSub = await getPushManager(registration).getSubscription();
         if (existingSub) {
           await existingSub.unsubscribe();
           // Also remove from database
@@ -165,7 +173,7 @@ export const usePushNotifications = () => {
       console.log("VAPID key received, creating subscription...");
 
       // Subscribe to push manager
-      const subscription = await registration.pushManager.subscribe({
+      const subscription = await getPushManager(registration).subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey),
       });
@@ -257,7 +265,7 @@ export const usePushNotifications = () => {
 
     try {
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
+      const subscription = await getPushManager(registration).getSubscription();
 
       if (subscription) {
         // Unsubscribe from browser

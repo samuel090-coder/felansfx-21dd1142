@@ -27,6 +27,7 @@ import Invite from "./pages/Invite";
 import Help from "./pages/Help";
 import SchoolHub from "./pages/SchoolHub";
 import KYC from "./pages/KYC";
+import NotificationSettings from "./pages/NotificationSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -81,6 +82,7 @@ const App = () => {
               <Route path="/help" element={<Help />} />
               <Route path="/school" element={<SchoolHub />} />
               <Route path="/kyc" element={<KYC />} />
+              <Route path="/notification-settings" element={<NotificationSettings />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
