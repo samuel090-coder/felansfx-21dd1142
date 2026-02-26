@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.validate-receipt]
 verify_jwt = false
+
+[functions.daily-notifications]
+verify_jwt = false

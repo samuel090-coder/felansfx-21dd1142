@@ -645,6 +645,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          evening_recap: boolean
+          id: string
+          midday_opportunities: boolean
+          morning_brief: boolean
+          preferred_pairs: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          evening_recap?: boolean
+          id?: string
+          midday_opportunities?: boolean
+          morning_brief?: boolean
+          preferred_pairs?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          evening_recap?: boolean
+          id?: string
+          midday_opportunities?: boolean
+          morning_brief?: boolean
+          preferred_pairs?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_templates: {
         Row: {
           body: string

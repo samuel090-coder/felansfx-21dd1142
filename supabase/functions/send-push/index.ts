@@ -11,15 +11,8 @@ import { getVapidKeysAsJwk } from "../_shared/vapid.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-interface PushPayload {
-  title: string;
-  body: string;
-  url?: string;
-  icon?: string;
-}
 
 type SubscriptionRow = {
   id: string;
@@ -29,34 +22,21 @@ type SubscriptionRow = {
   auth: string;
 };
 
-// Initialize application server once
 let appServer: ApplicationServer | null = null;
 
 async function getAppServer(): Promise<ApplicationServer> {
   if (appServer) return appServer;
 
-  // Get VAPID keys from env and convert to JWK
   const jwkKeys = getVapidKeysAsJwk();
-  if (!jwkKeys) {
-    throw new Error("VAPID keys not configured");
-  }
+  if (!jwkKeys) throw new Error("VAPID keys not configured");
 
-  try {
-    // Import VAPID keys in JWK format
-    const vapidKeys = await importVapidKeys(jwkKeys);
-
-    // Create application server
-    appServer = await ApplicationServer.new({
-      contactInformation: "mailto:admin@felansfx.com",
-      vapidKeys,
-    });
-
-    console.log("VAPID server initialized successfully");
-    return appServer;
-  } catch (error) {
-    console.error("Failed to initialize VAPID:", error);
-    throw new Error("Failed to initialize push notifications");
-  }
+  const vapidKeys = await importVapidKeys(jwkKeys);
+  appServer = await ApplicationServer.new({
+    contactInformation: "mailto:admin@felansfx.com",
+    vapidKeys,
+  });
+  console.log("VAPID server initialized successfully");
+  return appServer;
 }
 
 serve(async (req) => {
@@ -68,41 +48,44 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+    // Auth client: uses the caller's JWT for permission checks
     const authHeader = req.headers.get("Authorization");
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      global: {
-        headers: authHeader ? { Authorization: authHeader } : {},
-      },
+    const authClient = createClient(supabaseUrl, supabaseServiceKey, {
+      global: { headers: authHeader ? { Authorization: authHeader } : {} },
     });
 
-    // Require auth + admin role (prevents anyone from broadcasting)
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Service client: uses service role key, bypasses RLS for DB writes
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData?.user) {
-      console.error("Auth error:", authError);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Check if this is an internal call (from cron/other edge functions) or admin call
+    const isInternalCall = req.headers.get("x-internal-key") === supabaseServiceKey;
 
-    const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
-      _role: "admin",
-      _user_id: authData.user.id,
-    });
-    if (roleError || !isAdmin) {
-      console.error("Role check error:", roleError);
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!isInternalCall) {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: authData, error: authError } = await authClient.auth.getUser();
+      if (authError || !authData?.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: isAdmin } = await authClient.rpc("has_role", {
+        _role: "admin",
+        _user_id: authData.user.id,
       });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const body = await req.json();
@@ -117,14 +100,13 @@ serve(async (req) => {
 
     console.log(`Sending push notifications to ${userIds?.length || "all"} users`);
 
-    // Fetch push subscriptions
-    let query = supabase.from("push_subscriptions").select("*");
+    // Use SERVICE client (bypasses RLS) for all DB operations
+    let query = serviceClient.from("push_subscriptions").select("*");
     if (userIds && userIds.length > 0) {
       query = query.in("user_id", userIds);
     }
 
     const { data: subscriptionsRaw, error: fetchError } = await query;
-
     if (fetchError) {
       console.error("Error fetching subscriptions:", fetchError);
       throw fetchError;
@@ -135,37 +117,32 @@ serve(async (req) => {
     if (!subscriptions || subscriptions.length === 0) {
       console.log("No push subscriptions found");
       return new Response(
-        JSON.stringify({ success: true, sent: 0, message: "No subscribers" }),
+        JSON.stringify({ success: true, sent: 0, total: 0, message: "No subscribers" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Dedupe by endpoint (extra safety)
+    // Dedupe by endpoint
     const uniqueByEndpoint = new Map<string, SubscriptionRow>();
     for (const s of subscriptions) {
       if (!uniqueByEndpoint.has(s.endpoint)) uniqueByEndpoint.set(s.endpoint, s);
     }
     const uniqueSubscriptions = [...uniqueByEndpoint.values()];
-
     console.log(`Found ${uniqueSubscriptions.length} unique subscriptions`);
 
-    // Get the application server
     const server = await getAppServer();
 
-    const payload: PushPayload = {
+    const payloadString = JSON.stringify({
       title,
       body: message,
       url: url || "/",
       icon: "/favicon-512.png",
-    };
-    const payloadString = JSON.stringify(payload);
+    });
 
     let successCount = 0;
     const expiredIds: string[] = [];
     let failedCount = 0;
     const broadcastId = crypto.randomUUID();
-
-    // Track 401/403 so clients can auto-refresh their subscription (usually VAPID key rotation)
     const authErrorByUser = new Map<string, { statusCode: number | null; error: string | null }>();
 
     for (const sub of uniqueSubscriptions) {
@@ -175,16 +152,11 @@ serve(async (req) => {
       let isAuthError = false;
 
       try {
-        // Create a subscriber using the library
         const subscriber = server.subscribe({
           endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.p256dh,
-            auth: sub.auth,
-          },
+          keys: { p256dh: sub.p256dh, auth: sub.auth },
         });
 
-        // Send push message
         await subscriber.pushTextMessage(payloadString, {
           urgency: Urgency.High,
           ttl: 86400,
@@ -192,44 +164,35 @@ serve(async (req) => {
 
         statusCode = 201;
         successCount++;
-        console.log(`Push sent to endpoint: ${sub.endpoint.substring(0, 50)}...`);
+        console.log(`✅ Push sent to ${sub.endpoint.substring(0, 50)}...`);
       } catch (error: unknown) {
         failedCount++;
-        
-        // Use PushMessageError properly for detailed logging
+
         if (error instanceof PushMessageError) {
           errorMsg = error.toString();
           isGone = error.isGone();
           statusCode = error.response?.status || null;
           isAuthError = statusCode === 401 || statusCode === 403;
-          console.error(`PushMessageError for ${sub.endpoint.substring(0, 50)}...: ${errorMsg}`);
-          if (error.response) {
-            console.error(`Response status: ${error.response.status}`);
-          }
+          console.error(`❌ PushMessageError [${statusCode}] for ${sub.endpoint.substring(0, 50)}...: ${errorMsg}`);
         } else if (error instanceof Error) {
-          errorMsg = error.message || error.toString();
-          console.error(`Error for ${sub.endpoint.substring(0, 50)}...: ${errorMsg}`);
+          errorMsg = error.message;
+          console.error(`❌ Error for ${sub.endpoint.substring(0, 50)}...: ${errorMsg}`);
         } else {
           errorMsg = "Unknown error";
-          console.error(`Unknown error type for ${sub.endpoint.substring(0, 50)}...:`, error);
-        }
-          
-        if (isGone) {
-          console.log(`Subscription ${sub.id} is expired/gone, marking for cleanup`);
-          expiredIds.push(sub.id);
         }
 
+        if (isGone) expiredIds.push(sub.id);
         if (isAuthError) {
-          authErrorByUser.set(sub.user_id, {
-            statusCode,
-            error: errorMsg,
-          });
+          // 403 from FCM means VAPID mismatch - subscription needs refresh
+          expiredIds.push(sub.id);
+          authErrorByUser.set(sub.user_id, { statusCode, error: errorMsg });
         }
       }
-      // Log delivery result
+
+      // Log delivery result using service client (bypasses RLS)
       try {
         const endpointHost = new URL(sub.endpoint).hostname;
-        await supabase.from("push_delivery_logs").insert({
+        await serviceClient.from("push_delivery_logs").insert({
           broadcast_id: broadcastId,
           user_id: sub.user_id,
           subscription_id: sub.id,
@@ -246,31 +209,26 @@ serve(async (req) => {
       }
     }
 
-    // Also create in-app notifications for all targeted users
+    // Create in-app notifications using service client
     const uniqueUserIds = [...new Set(uniqueSubscriptions.map((s) => s.user_id))];
-    const notifications = uniqueUserIds.map((userId: string) => ({
-      user_id: userId,
-      title,
-      message,
-      type: "info" as const,
-      action_url: url || "/",
-    }));
+    await serviceClient.from("notifications").insert(
+      uniqueUserIds.map((userId: string) => ({
+        user_id: userId,
+        title,
+        message,
+        type: "info",
+        action_url: url || "/",
+      }))
+    );
 
-    const { error: notifError } = await supabase.from("notifications").insert(notifications);
-    if (notifError) {
-      console.error("Error creating in-app notifications:", notifError);
-    }
-
-    // Clean up expired subscriptions
+    // Clean up expired/invalid subscriptions
     if (expiredIds.length > 0) {
-      console.log(`Removing ${expiredIds.length} expired subscriptions`);
-      await supabase
-        .from("push_subscriptions")
-        .delete()
-        .in("id", expiredIds);
+      const uniqueExpired = [...new Set(expiredIds)];
+      console.log(`🧹 Removing ${uniqueExpired.length} expired/invalid subscriptions`);
+      await serviceClient.from("push_subscriptions").delete().in("id", uniqueExpired);
     }
 
-    // Flag users to refresh their subscription if we got 401/403 from the push service
+    // Flag users for resubscribe
     if (authErrorByUser.size > 0) {
       const nowIso = new Date().toISOString();
       const rows = [...authErrorByUser.entries()].map(([userId, v]) => ({
@@ -281,18 +239,15 @@ serve(async (req) => {
         updated_at: nowIso,
       }));
 
-      const { error: flagError } = await supabase
+      const { error: flagError } = await serviceClient
         .from("push_resubscribe_flags")
         .upsert(rows, { onConflict: "user_id" });
 
-      if (flagError) {
-        console.error("Failed to set push resubscribe flags:", flagError);
-      } else {
-        console.log(`Flagged ${rows.length} user(s) for push resubscribe`);
-      }
+      if (flagError) console.error("Failed to set resubscribe flags:", flagError);
+      else console.log(`🔄 Flagged ${rows.length} user(s) for push resubscribe`);
     }
 
-    console.log(`Push notifications sent: ${successCount}/${uniqueSubscriptions.length}`);
+    console.log(`📊 Push results: ${successCount} sent, ${failedCount} failed, ${expiredIds.length} cleaned`);
 
     return new Response(
       JSON.stringify({
