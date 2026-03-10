@@ -200,57 +200,73 @@ const Trading = () => {
     }
   };
 
+  // Settlement queue to prevent concurrent RPCs from fighting over wallet
+  const settlementQueue = useRef<Promise<void>>(Promise.resolve());
+  const settledIds = useRef<Set<string>>(new Set());
+
   const handlePositionExpire = async (positionId: string, exitPrice: number) => {
+    // Skip if already settled
+    if (settledIds.current.has(positionId)) return;
+    settledIds.current.add(positionId);
+
     const position = activePositions.find(p => p.id === positionId);
     if (!position) return;
 
-    // Determine win/loss locally first as backup (compare entry vs exit based on trade type)
-    const localIsWin = position.trade_type === "buy" 
-      ? exitPrice > position.entry_price 
-      : exitPrice < position.entry_price;
-    
-    // Use the atomic settle RPC – handles demo + real wallet credits in one call
-    const { data, error } = await supabase.rpc("settle_binary_position", {
-      p_position_id: positionId,
-      p_exit_price: exitPrice,
-      p_close_reason: "expired",
+    // Queue settlements sequentially to avoid race conditions
+    settlementQueue.current = settlementQueue.current.then(async () => {
+      const localIsWin = position.trade_type === "buy" 
+        ? exitPrice > position.entry_price 
+        : exitPrice < position.entry_price;
+      
+      try {
+        const { data, error } = await supabase.rpc("settle_binary_position", {
+          p_position_id: positionId,
+          p_exit_price: exitPrice,
+          p_close_reason: "expired",
+        });
+
+        if (error) {
+          console.error("Error settling position:", error);
+          toast.error("Trade settlement failed", {
+            description: "Please contact support if your balance was affected",
+          });
+          setActivePositions(prev => prev.filter(p => p.id !== positionId));
+          return;
+        }
+
+        const result = data as { status: string; is_win: boolean; pnl: number; credited?: number } | null;
+        
+        // Handle already_closed gracefully
+        if (result?.status === "already_closed") {
+          console.log("Position already settled:", positionId);
+          setActivePositions(prev => prev.filter(p => p.id !== positionId));
+          return;
+        }
+
+        const isWin = result?.is_win ?? localIsWin;
+        const pnl = result?.pnl ?? (isWin ? position.amount * 0.84 : -position.amount);
+        const credited = result?.credited ?? (isWin ? position.amount + position.amount * 0.84 : 0);
+
+        console.log("Trade settled:", { positionId, isWin, pnl, credited, result });
+
+        if (isWin) {
+          toast.success("Trade Won! 🎉", {
+            description: `Profit: +${accountType === "demo" ? "$" : "₦"}${Math.abs(pnl).toFixed(2)} | Credited: ${accountType === "demo" ? "$" : "₦"}${credited.toFixed(2)}`,
+          });
+        } else {
+          toast.error("Trade Lost", {
+            description: `Lost: ${accountType === "demo" ? "$" : "₦"}${Math.abs(pnl).toFixed(2)}`,
+          });
+        }
+
+        setActivePositions(prev => prev.filter(p => p.id !== positionId));
+        refetchDemo();
+        refetchWallet();
+      } catch (err) {
+        console.error("Settlement exception:", err);
+        setActivePositions(prev => prev.filter(p => p.id !== positionId));
+      }
     });
-
-    if (error) {
-      console.error("Error settling position:", error);
-      toast.error("Trade settlement failed", {
-        description: "Please contact support if your balance was affected",
-      });
-      setActivePositions(prev => prev.filter(p => p.id !== positionId));
-      return;
-    }
-
-    const result = data as { status: string; is_win: boolean; pnl: number; credited?: number } | null;
-    
-    // Use RPC result if available, otherwise fallback to local calculation
-    const isWin = result?.is_win ?? localIsWin;
-    const pnl = result?.pnl ?? (isWin ? position.amount * 0.84 : -position.amount);
-    const credited = result?.credited ?? (isWin ? position.amount + position.amount * 0.84 : 0);
-
-    console.log("Trade settled:", { positionId, isWin, pnl, credited, result });
-
-    // Play sound and show toast
-    if (isWin) {
-      playWinSound();
-      toast.success("Trade Won! 🎉", {
-        description: `Profit: +${accountType === "demo" ? "$" : "₦"}${Math.abs(pnl).toFixed(2)} | Credited: ${accountType === "demo" ? "$" : "₦"}${credited.toFixed(2)}`,
-      });
-    } else {
-      playLossSound();
-      toast.error("Trade Lost", {
-        description: `Lost: ${accountType === "demo" ? "$" : "₦"}${Math.abs(pnl).toFixed(2)}`,
-      });
-    }
-
-    // Remove from active positions
-    setActivePositions(prev => prev.filter(p => p.id !== positionId));
-    refetchDemo();
-    refetchWallet();
   };
 
   const handlePositionClose = async (positionId: string, exitPrice: number) => {
