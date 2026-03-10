@@ -202,9 +202,6 @@ const Trading = () => {
     }
   };
 
-  // Settlement queue to prevent concurrent RPCs from fighting over wallet
-  const settlementQueue = useRef<Promise<void>>(Promise.resolve());
-  const settledIds = useRef<Set<string>>(new Set());
 
   const handlePositionExpire = async (positionId: string, exitPrice: number) => {
     // Skip if already settled
