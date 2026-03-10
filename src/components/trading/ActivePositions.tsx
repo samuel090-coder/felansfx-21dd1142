@@ -33,6 +33,7 @@ export const ActivePositions = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const { playWinSound, playLossSound, playTickSound } = useTradeSound();
   const { vibrateWin, vibrateLoss, vibrateTick } = useHapticFeedback();
+  const settlingRef = useRef<Set<string>>(new Set());
 
   // Draggable state
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,9 +75,10 @@ export const ActivePositions = ({
         const remaining = Math.max(0, Math.floor((expiryTime - now) / 1000));
         newCountdowns[pos.id] = remaining;
 
-        // Check for expiry
-        if (remaining === 0) {
-          // Determine win/loss
+        // Check for expiry - only settle once per position
+        if (remaining === 0 && !settlingRef.current.has(pos.id)) {
+          settlingRef.current.add(pos.id);
+
           const isWin =
             pos.trade_type === "buy"
               ? currentPrice > pos.entry_price
