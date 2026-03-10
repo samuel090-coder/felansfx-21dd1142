@@ -1,11 +1,12 @@
-import { Home, Bookmark, User, Flame } from "lucide-react";
+import { Home, Bookmark, User, Flame, Users } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
+  { icon: Users, label: "Feed", path: "/feed" },
   { icon: Bookmark, label: "Saved", path: "/saved" },
-  { icon: Flame, label: "Daily Streak", path: "/daily-streak" },
+  { icon: Flame, label: "Streak", path: "/daily-streak" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
