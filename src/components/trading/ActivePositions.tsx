@@ -33,6 +33,7 @@ export const ActivePositions = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const { playWinSound, playLossSound, playTickSound } = useTradeSound();
   const { vibrateWin, vibrateLoss, vibrateTick } = useHapticFeedback();
+  const settlingRef = useRef<Set<string>>(new Set());
 
   // Draggable state
   const containerRef = useRef<HTMLDivElement>(null);
