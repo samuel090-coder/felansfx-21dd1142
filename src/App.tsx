@@ -87,6 +87,10 @@ const App = () => {
               <Route path="/school" element={<SchoolHub />} />
               <Route path="/kyc" element={<KYC />} />
               <Route path="/notification-settings" element={<NotificationSettings />} />
+              <Route path="/feed" element={<Feed />} />
+              <Route path="/trade/:id" element={<TradeDetail />} />
+              <Route path="/chat-rooms" element={<ChatRooms />} />
+              <Route path="/chat/:id" element={<ChatRoom />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
