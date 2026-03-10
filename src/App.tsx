@@ -29,6 +29,10 @@ import SchoolHub from "./pages/SchoolHub";
 import KYC from "./pages/KYC";
 import NotificationSettings from "./pages/NotificationSettings";
 import NotFound from "./pages/NotFound";
+import Feed from "./pages/Feed";
+import TradeDetail from "./pages/TradeDetail";
+import ChatRooms from "./pages/ChatRooms";
+import ChatRoom from "./pages/ChatRoom";
 
 const queryClient = new QueryClient();
 
