@@ -43,6 +43,8 @@ const Trading = () => {
   const [accountType, setAccountType] = useState<"demo" | "real">("demo");
   const [activePositions, setActivePositions] = useState<ActivePosition[]>([]);
   const [currentDuration, setCurrentDuration] = useState(30);
+  const settlementQueue = useRef<Promise<void>>(Promise.resolve());
+  const settledIds = useRef<Set<string>>(new Set());
 
   const { currentPrice, candles, getFormattedPrice } = usePriceSimulation(selectedSymbol, 3000);
   const allPrices = useMultiSymbolPrices(ALL_SYMBOLS);
