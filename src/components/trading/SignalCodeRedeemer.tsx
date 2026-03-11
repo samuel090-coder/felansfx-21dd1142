@@ -59,7 +59,7 @@ export const SignalCodeRedeemer = ({ onExecuteTrade, onSymbolChange, accountType
         return;
       }
 
-      setSignal(match.signal_data as SignalData);
+      setSignal(match.signal_data as unknown as SignalData);
       setShowDialog(true);
     } catch {
       toast.error("Failed to fetch signal");
