@@ -12,6 +12,7 @@ import { TradingBottomControls } from "@/components/trading/TradingBottomControl
 import { SymbolSelectorCompact } from "@/components/trading/SymbolSelectorCompact";
 import { ActivePositions } from "@/components/trading/ActivePositions";
 import { TradeHistoryDrawer } from "@/components/trading/TradeHistoryDrawer";
+import { SignalCodeRedeemer } from "@/components/trading/SignalCodeRedeemer";
 import { CopyTradingDrawer } from "@/components/trading/CopyTradingDrawer";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
@@ -276,6 +277,12 @@ const Trading = () => {
     navigate("/deposit");
   };
 
+  const handleSignalTrade = async (symbol: string, tradeType: "buy" | "sell", amount: number, duration: number) => {
+    setSelectedSymbol(symbol);
+    setCurrentDuration(duration);
+    await handleTrade(tradeType, amount, duration);
+  };
+
   const handleAccountChange = (type: "demo" | "real") => {
     setAccountType(type);
     setActivePositions([]); // Clear active positions when switching
@@ -311,6 +318,13 @@ const Trading = () => {
       <SymbolSelectorCompact
         selectedSymbol={selectedSymbol}
         onSymbolChange={setSelectedSymbol}
+      />
+
+      {/* Signal code redeemer */}
+      <SignalCodeRedeemer
+        onExecuteTrade={handleSignalTrade}
+        onSymbolChange={setSelectedSymbol}
+        accountType={accountType}
       />
 
       {/* Current price display */}
