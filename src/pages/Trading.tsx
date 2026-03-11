@@ -277,6 +277,12 @@ const Trading = () => {
     navigate("/deposit");
   };
 
+  const handleSignalTrade = async (symbol: string, tradeType: "buy" | "sell", amount: number, duration: number) => {
+    setSelectedSymbol(symbol);
+    setCurrentDuration(duration);
+    await handleTrade(tradeType, amount, duration);
+  };
+
   const handleAccountChange = (type: "demo" | "real") => {
     setAccountType(type);
     setActivePositions([]); // Clear active positions when switching
