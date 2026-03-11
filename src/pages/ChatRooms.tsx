@@ -5,9 +5,9 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Users, MessageSquare } from "lucide-react";
+import { ArrowLeft, Plus, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
@@ -83,14 +83,23 @@ const ChatRooms = () => {
         ) : rooms.length === 0 ? (
           <p className="text-center text-muted-foreground py-12">No rooms yet. Create one!</p>
         ) : rooms.map(room => (
-          <Card key={room.id} className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => myRoomIds.has(room.id) ? navigate(`/chat/${room.id}`) : joinRoom(room.id)}>
+          <Card key={room.id} className="cursor-pointer hover:bg-muted/30 transition-colors overflow-hidden" onClick={() => myRoomIds.has(room.id) ? navigate(`/chat/${room.id}`) : joinRoom(room.id)}>
+            {/* Cover image */}
+            {room.cover_image_url && (
+              <div className="h-20 w-full bg-cover bg-center" style={{ backgroundImage: `url(${room.cover_image_url})` }} />
+            )}
             <CardContent className="p-4 flex items-center gap-3">
               <Avatar className="w-12 h-12">
+                <AvatarImage src={room.avatar_url} />
                 <AvatarFallback className="bg-primary/10 text-primary font-bold">{room.name[0]}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm truncate">{room.name}</p>
                 {room.description && <p className="text-xs text-muted-foreground truncate">{room.description}</p>}
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Users className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">{room.members_count || 0}</span>
+                </div>
               </div>
               {myRoomIds.has(room.id) ? (
                 <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Joined</Badge>
