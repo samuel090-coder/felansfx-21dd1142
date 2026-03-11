@@ -143,11 +143,11 @@ export const SignalCodeRedeemer = ({ onExecuteTrade, onSymbolChange, accountType
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Stop Loss</span>
-                  <span className="font-mono text-red-400">{signal.sl}</span>
+                  <span className="font-mono text-destructive">{signal.sl}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Take Profit</span>
-                  <span className="font-mono text-green-400">{signal.tp}</span>
+                  <span className="font-mono text-primary">{signal.tp}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">R:R Ratio</span>
