@@ -12,6 +12,7 @@ import { TradingBottomControls } from "@/components/trading/TradingBottomControl
 import { SymbolSelectorCompact } from "@/components/trading/SymbolSelectorCompact";
 import { ActivePositions } from "@/components/trading/ActivePositions";
 import { TradeHistoryDrawer } from "@/components/trading/TradeHistoryDrawer";
+import { SignalCodeRedeemer } from "@/components/trading/SignalCodeRedeemer";
 import { CopyTradingDrawer } from "@/components/trading/CopyTradingDrawer";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
