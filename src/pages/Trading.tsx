@@ -320,6 +320,13 @@ const Trading = () => {
         onSymbolChange={setSelectedSymbol}
       />
 
+      {/* Signal code redeemer */}
+      <SignalCodeRedeemer
+        onExecuteTrade={handleSignalTrade}
+        onSymbolChange={setSelectedSymbol}
+        accountType={accountType}
+      />
+
       {/* Current price display */}
       <div className="absolute left-2 top-32 z-10">
         <div className="bg-primary px-3 py-1 rounded text-sm font-bold text-primary-foreground tabular-nums">
