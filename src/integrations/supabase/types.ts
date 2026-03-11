@@ -220,6 +220,38 @@ export type Database = {
           },
         ]
       }
+      chat_room_blocked_users: {
+        Row: {
+          blocked_at: string
+          blocked_by: string
+          id: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          blocked_at?: string
+          blocked_by: string
+          id?: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          blocked_at?: string
+          blocked_by?: string
+          id?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_room_blocked_users_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_room_members: {
         Row: {
           id: string
@@ -252,6 +284,7 @@ export type Database = {
       chat_rooms: {
         Row: {
           avatar_url: string | null
+          cover_image_url: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -262,6 +295,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          cover_image_url?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -272,6 +306,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
