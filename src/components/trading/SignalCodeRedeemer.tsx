@@ -118,9 +118,9 @@ export const SignalCodeRedeemer = ({ onExecuteTrade, onSymbolChange, accountType
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {signal?.type === "BUY" ? (
-                <TrendingUp className="w-5 h-5 text-green-500" />
+                <TrendingUp className="w-5 h-5 text-primary" />
               ) : (
-                <TrendingDown className="w-5 h-5 text-red-500" />
+                <TrendingDown className="w-5 h-5 text-destructive" />
               )}
               {signal?.type} {signal?.symbol}
             </DialogTitle>
