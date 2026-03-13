@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
+import { Heart, MessageCircle, Share2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -15,6 +15,7 @@ interface PostData {
   tagged_trade_ids: string[];
   tagged_user_ids: string[];
   image_url: string | null;
+  video_url?: string | null;
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -49,12 +50,10 @@ export const PostCard = ({ post, onRefresh }: Props) => {
     if (!user) return toast.error("Login to like posts");
     if (liked) {
       await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
-      setLiked(false);
-      setLikesCount(c => c - 1);
+      setLiked(false); setLikesCount(c => c - 1);
     } else {
       await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id });
-      setLiked(true);
-      setLikesCount(c => c + 1);
+      setLiked(true); setLikesCount(c => c + 1);
     }
   };
 
@@ -68,16 +67,12 @@ export const PostCard = ({ post, onRefresh }: Props) => {
     }
   };
 
-  const toggleComments = () => {
-    if (!showComments) loadComments();
-    setShowComments(!showComments);
-  };
+  const toggleComments = () => { if (!showComments) loadComments(); setShowComments(!showComments); };
 
   const submitComment = async () => {
     if (!user || !commentText.trim()) return;
     await supabase.from("post_comments").insert({ post_id: post.id, user_id: user.id, content: commentText.trim() });
-    setCommentText("");
-    loadComments();
+    setCommentText(""); loadComments();
   };
 
   const handleShare = () => {
@@ -86,26 +81,17 @@ export const PostCard = ({ post, onRefresh }: Props) => {
     else { navigator.clipboard.writeText(url); toast.success("Link copied!"); }
   };
 
-  // Parse content for emojis and @mentions
   const renderContent = (text: string) => {
     const parts = text.split(/(@\w+)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith("@")) {
-        return <span key={i} className="text-primary font-medium">{part}</span>;
-      }
-      return <span key={i}>{part}</span>;
-    });
+    return parts.map((part, i) => part.startsWith("@") ? <span key={i} className="text-primary font-medium">{part}</span> : <span key={i}>{part}</span>);
   };
 
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden">
-      {/* Header */}
       <div className="flex items-center gap-3 p-4 pb-2">
         <Avatar className="w-10 h-10">
           <AvatarImage src={profile?.avatar_url} />
-          <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-            {(profile?.full_name || "U")[0]}
-          </AvatarFallback>
+          <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">{(profile?.full_name || "U")[0]}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <p className="font-semibold text-sm">{profile?.full_name || profile?.display_id || "Trader"}</p>
@@ -113,35 +99,34 @@ export const PostCard = ({ post, onRefresh }: Props) => {
         </div>
       </div>
 
-      {/* Content */}
       <div className="px-4 pb-2">
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{renderContent(post.content)}</p>
         {taggedProfiles.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {taggedProfiles.map(tp => (
-              <span key={tp.user_id} className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">@{tp.full_name || tp.display_id}</span>
-            ))}
+            {taggedProfiles.map(tp => (<span key={tp.user_id} className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">@{tp.full_name || tp.display_id}</span>))}
           </div>
         )}
       </div>
 
-      {/* Tagged Trades */}
       {post.tagged_trade_ids?.length > 0 && (
         <div className="px-4 pb-3 space-y-2">
-          {post.tagged_trade_ids.map(tid => (
-            <TradePreviewCard key={tid} tradeId={tid} />
-          ))}
+          {post.tagged_trade_ids.map(tid => (<TradePreviewCard key={tid} tradeId={tid} />))}
         </div>
       )}
 
-      {/* Image */}
       {post.image_url && (
         <div className="px-4 pb-3">
           <img src={post.image_url} alt="" className="rounded-xl w-full max-h-64 object-cover" />
         </div>
       )}
 
-      {/* Actions */}
+      {/* Embedded video */}
+      {post.video_url && (
+        <div className="px-4 pb-3">
+          <iframe src={post.video_url} className="w-full aspect-video rounded-xl" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+        </div>
+      )}
+
       <div className="flex items-center border-t border-border px-2">
         <Button variant="ghost" size="sm" className="flex-1 gap-1.5" onClick={toggleLike}>
           <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
@@ -156,7 +141,6 @@ export const PostCard = ({ post, onRefresh }: Props) => {
         </Button>
       </div>
 
-      {/* Comments section */}
       {showComments && (
         <div className="border-t border-border p-3 space-y-3">
           {comments.map(c => (
@@ -172,13 +156,7 @@ export const PostCard = ({ post, onRefresh }: Props) => {
           ))}
           {user && (
             <div className="flex gap-2">
-              <input
-                value={commentText}
-                onChange={e => setCommentText(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && submitComment()}
-                placeholder="Write a comment..."
-                className="flex-1 text-sm bg-muted/50 rounded-full px-3 py-1.5 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+              <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => e.key === "Enter" && submitComment()} placeholder="Write a comment..." className="flex-1 text-sm bg-muted/50 rounded-full px-3 py-1.5 border border-border focus:outline-none focus:ring-1 focus:ring-primary" />
               <Button size="sm" onClick={submitComment} disabled={!commentText.trim()}>Post</Button>
             </div>
           )}
