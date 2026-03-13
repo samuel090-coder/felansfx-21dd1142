@@ -290,8 +290,11 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_premium: boolean
+          join_price: number
           members_count: number
           name: string
+          requires_approval: boolean
         }
         Insert: {
           avatar_url?: string | null
@@ -301,8 +304,11 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_premium?: boolean
+          join_price?: number
           members_count?: number
           name: string
+          requires_approval?: boolean
         }
         Update: {
           avatar_url?: string | null
@@ -312,10 +318,63 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_premium?: boolean
+          join_price?: number
           members_count?: number
           name?: string
+          requires_approval?: boolean
         }
         Relationships: []
+      }
+      coin_flip_games: {
+        Row: {
+          created_at: string
+          creator_choice: string
+          creator_id: string
+          id: string
+          opponent_id: string | null
+          resolved_at: string | null
+          result: string | null
+          room_id: string
+          stake_amount: number
+          status: string
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          creator_choice?: string
+          creator_id: string
+          id?: string
+          opponent_id?: string | null
+          resolved_at?: string | null
+          result?: string | null
+          room_id: string
+          stake_amount: number
+          status?: string
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          creator_choice?: string
+          creator_id?: string
+          id?: string
+          opponent_id?: string | null
+          resolved_at?: string | null
+          result?: string | null
+          room_id?: string
+          stake_amount?: number
+          status?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coin_flip_games_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       copy_follows: {
         Row: {
@@ -949,6 +1008,7 @@ export type Database = {
           tagged_user_ids: string[] | null
           updated_at: string
           user_id: string
+          video_url: string | null
         }
         Insert: {
           comments_count?: number
@@ -961,6 +1021,7 @@ export type Database = {
           tagged_user_ids?: string[] | null
           updated_at?: string
           user_id: string
+          video_url?: string | null
         }
         Update: {
           comments_count?: number
@@ -973,6 +1034,7 @@ export type Database = {
           tagged_user_ids?: string[] | null
           updated_at?: string
           user_id?: string
+          video_url?: string | null
         }
         Relationships: []
       }
@@ -1179,6 +1241,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      room_join_requests: {
+        Row: {
+          created_at: string
+          id: string
+          reviewed_at: string | null
+          room_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          room_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          room_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_join_requests_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       school_chat_messages: {
         Row: {
