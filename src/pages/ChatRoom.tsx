@@ -50,25 +50,61 @@ const ChatRoom = () => {
   const { currentPrice } = usePriceSimulation(signalSymbol, 3000);
   const isCreator = room?.created_by === user?.id;
 
+  // Auto-join room if not already a member
+  const ensureMembership = async () => {
+    if (!user || !roomId) return;
+    const { data: existing } = await supabase
+      .from("chat_room_members")
+      .select("id")
+      .eq("room_id", roomId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!existing) {
+      // Check if blocked
+      const { data: blocked } = await supabase
+        .from("chat_room_blocked_users")
+        .select("id")
+        .eq("room_id", roomId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (blocked) {
+        toast.error("You are blocked from this room");
+        navigate("/chat-rooms");
+        return;
+      }
+      await supabase.from("chat_room_members").insert({ room_id: roomId, user_id: user.id });
+    }
+  };
+
   useEffect(() => {
-    if (!roomId) return;
-    supabase.from("chat_rooms").select("*").eq("id", roomId).single().then(({ data }) => {
-      setRoom(data);
-      if (data) { setEditName(data.name); setEditDesc(data.description || ""); }
-    });
-    loadMessages();
-    loadMembers();
+    if (!roomId || !user) return;
+
+    const init = async () => {
+      // Load room info first (public read)
+      const { data: roomData } = await supabase.from("chat_rooms").select("*").eq("id", roomId).single();
+      if (roomData) {
+        setRoom(roomData);
+        setEditName(roomData.name);
+        setEditDesc(roomData.description || "");
+      }
+
+      // Ensure user is a member before loading messages
+      await ensureMembership();
+      loadMessages();
+      loadMembers();
+    };
+    init();
 
     const channel = supabase
       .channel(`room-${roomId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `room_id=eq.${roomId}` }, (payload) => {
         setMessages(prev => [...prev, payload.new]);
-        loadProfile(payload.new.user_id);
+        loadProfileById(payload.new.user_id);
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [roomId]);
+  }, [roomId, user]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,13 +121,21 @@ const ChatRoom = () => {
     if (data) {
       setMessages(data);
       const uids = [...new Set(data.map(m => m.user_id))];
-      for (const uid of uids) loadProfile(uid);
+      // Batch load all profiles at once
+      if (uids.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("user_id, full_name, display_id, avatar_url").in("user_id", uids);
+        if (profs) {
+          const profileMap: Record<string, any> = {};
+          profs.forEach(p => { profileMap[p.user_id] = p; });
+          setProfiles(prev => ({ ...prev, ...profileMap }));
+        }
+      }
     }
   };
 
-  const loadProfile = async (userId: string) => {
-    if (profiles[userId]) return;
-    const { data } = await supabase.from("profiles").select("full_name, display_id, avatar_url").eq("user_id", userId).maybeSingle();
+  const loadProfileById = async (userId: string) => {
+    // Always fetch fresh to avoid stale closure issues
+    const { data } = await supabase.from("profiles").select("user_id, full_name, display_id, avatar_url").eq("user_id", userId).maybeSingle();
     if (data) setProfiles(prev => ({ ...prev, [userId]: data }));
   };
 
