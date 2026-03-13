@@ -174,7 +174,7 @@ const ChatRooms = () => {
                 <AvatarImage src={room.avatar_url} />
                 <AvatarFallback className="bg-primary/10 text-primary font-bold">{room.name[0]}</AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0" onClick={() => myRoomIds.has(room.id) && navigate(`/chat/${room.id}`)} className={`flex-1 min-w-0 ${myRoomIds.has(room.id) ? 'cursor-pointer' : ''}`}>
+              <div className={`flex-1 min-w-0 ${myRoomIds.has(room.id) ? 'cursor-pointer' : ''}`} onClick={() => myRoomIds.has(room.id) && navigate(`/chat/${room.id}`)}>
                 <div className="flex items-center gap-1">
                   <p className="font-semibold text-sm truncate">{room.name}</p>
                   {room.is_premium && <Lock className="w-3 h-3 text-amber-500 shrink-0" />}
