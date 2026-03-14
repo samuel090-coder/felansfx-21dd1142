@@ -433,6 +433,8 @@ const ChatRoom = () => {
         </div>
         <Button variant="ghost" size="icon" onClick={shareRoom}><Share2 className="w-4 h-4" /></Button>
         <Button variant="ghost" size="icon" onClick={() => setShowCoinFlip(true)}><Coins className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => setShowJackpot(true)}><Target className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/send-funds")}><DollarSign className="w-4 h-4" /></Button>
         <Button variant="ghost" size="icon" onClick={() => { loadMembers(); setShowMembers(true); }}><Users className="w-4 h-4" /></Button>
         {isCreator && <Button variant="ghost" size="icon" onClick={() => { loadMembers(); setShowSettings(true); }}><Settings className="w-4 h-4" /></Button>}
         <Button variant="outline" size="sm" onClick={() => setShowSignalGen(true)}><Zap className="w-4 h-4 mr-1" /> Signal</Button>
