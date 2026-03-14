@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { formatDistanceToNow } from "date-fns";
 import { usePriceSimulation } from "@/hooks/usePriceSimulation";
 import { useWallet } from "@/hooks/useWallet";
+import JackpotWheel from "@/components/chat/JackpotWheel";
 
 const SYMBOLS = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "NAS100", "BTCUSD", "ETHUSD", "XAGUSD"];
 
