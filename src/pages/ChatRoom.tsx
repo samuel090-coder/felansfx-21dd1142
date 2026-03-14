@@ -678,6 +678,19 @@ const ChatRoom = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Jackpot Wheel */}
+      <JackpotWheel
+        roomId={roomId!}
+        profiles={profiles}
+        open={showJackpot}
+        onOpenChange={setShowJackpot}
+        onGameMessage={async (content) => {
+          if (user && roomId) {
+            await supabase.from("chat_messages").insert({ room_id: roomId, user_id: user.id, content, message_type: "text" });
+          }
+        }}
+      />
     </div>
   );
 };
