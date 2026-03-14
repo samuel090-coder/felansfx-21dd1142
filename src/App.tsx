@@ -33,6 +33,7 @@ import Feed from "./pages/Feed";
 import TradeDetail from "./pages/TradeDetail";
 import ChatRooms from "./pages/ChatRooms";
 import ChatRoom from "./pages/ChatRoom";
+import SendFunds from "./pages/SendFunds";
 
 const queryClient = new QueryClient();
 
