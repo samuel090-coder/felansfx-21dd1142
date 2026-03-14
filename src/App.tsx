@@ -92,6 +92,7 @@ const App = () => {
               <Route path="/trade/:id" element={<TradeDetail />} />
               <Route path="/chat-rooms" element={<ChatRooms />} />
               <Route path="/chat/:id" element={<ChatRoom />} />
+              <Route path="/send-funds" element={<SendFunds />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
