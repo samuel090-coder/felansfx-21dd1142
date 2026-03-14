@@ -34,6 +34,12 @@ const ChatRoom = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showCoinFlip, setShowCoinFlip] = useState(false);
+  const [showJackpot, setShowJackpot] = useState(false);
+  const [showMoneyRequest, setShowMoneyRequest] = useState(false);
+  const [requestTargetUser, setRequestTargetUser] = useState<any>(null);
+  const [requestAmount, setRequestAmount] = useState("");
+  const [requestNote, setRequestNote] = useState("");
+  const [sendingRequest, setSendingRequest] = useState(false);
   const [signalSymbol, setSignalSymbol] = useState("XAUUSD");
   const [signalType, setSignalType] = useState<"BUY" | "SELL">("BUY");
   const [signalEntry, setSignalEntry] = useState("");
