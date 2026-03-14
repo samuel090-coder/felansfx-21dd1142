@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Send, Zap, Copy, Settings, Ban, Users, Camera, Image, TrendingUp, TrendingDown, Play, Coins, Share2 } from "lucide-react";
+import { ArrowLeft, Send, Zap, Copy, Settings, Ban, Users, Camera, Image, TrendingUp, TrendingDown, Play, Coins, Share2, DollarSign, Target } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { formatDistanceToNow } from "date-fns";
 import { usePriceSimulation } from "@/hooks/usePriceSimulation";
 import { useWallet } from "@/hooks/useWallet";
+import JackpotWheel from "@/components/chat/JackpotWheel";
 
 const SYMBOLS = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "NAS100", "BTCUSD", "ETHUSD", "XAGUSD"];
 
@@ -33,6 +34,12 @@ const ChatRoom = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showCoinFlip, setShowCoinFlip] = useState(false);
+  const [showJackpot, setShowJackpot] = useState(false);
+  const [showMoneyRequest, setShowMoneyRequest] = useState(false);
+  const [requestTargetUser, setRequestTargetUser] = useState<any>(null);
+  const [requestAmount, setRequestAmount] = useState("");
+  const [requestNote, setRequestNote] = useState("");
+  const [sendingRequest, setSendingRequest] = useState(false);
   const [signalSymbol, setSignalSymbol] = useState("XAUUSD");
   const [signalType, setSignalType] = useState<"BUY" | "SELL">("BUY");
   const [signalEntry, setSignalEntry] = useState("");
@@ -426,6 +433,8 @@ const ChatRoom = () => {
         </div>
         <Button variant="ghost" size="icon" onClick={shareRoom}><Share2 className="w-4 h-4" /></Button>
         <Button variant="ghost" size="icon" onClick={() => setShowCoinFlip(true)}><Coins className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => setShowJackpot(true)}><Target className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/send-funds")}><DollarSign className="w-4 h-4" /></Button>
         <Button variant="ghost" size="icon" onClick={() => { loadMembers(); setShowMembers(true); }}><Users className="w-4 h-4" /></Button>
         {isCreator && <Button variant="ghost" size="icon" onClick={() => { loadMembers(); setShowSettings(true); }}><Settings className="w-4 h-4" /></Button>}
         <Button variant="outline" size="sm" onClick={() => setShowSignalGen(true)}><Zap className="w-4 h-4 mr-1" /> Signal</Button>
@@ -669,6 +678,19 @@ const ChatRoom = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Jackpot Wheel */}
+      <JackpotWheel
+        roomId={roomId!}
+        profiles={profiles}
+        open={showJackpot}
+        onOpenChange={setShowJackpot}
+        onGameMessage={async (content) => {
+          if (user && roomId) {
+            await supabase.from("chat_messages").insert({ room_id: roomId, user_id: user.id, content, message_type: "text" });
+          }
+        }}
+      />
     </div>
   );
 };

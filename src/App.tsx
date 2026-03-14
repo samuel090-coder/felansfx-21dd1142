@@ -33,6 +33,7 @@ import Feed from "./pages/Feed";
 import TradeDetail from "./pages/TradeDetail";
 import ChatRooms from "./pages/ChatRooms";
 import ChatRoom from "./pages/ChatRoom";
+import SendFunds from "./pages/SendFunds";
 
 const queryClient = new QueryClient();
 
@@ -91,6 +92,7 @@ const App = () => {
               <Route path="/trade/:id" element={<TradeDetail />} />
               <Route path="/chat-rooms" element={<ChatRooms />} />
               <Route path="/chat/:id" element={<ChatRoom />} />
+              <Route path="/send-funds" element={<SendFunds />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
