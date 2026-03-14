@@ -752,6 +752,115 @@ export type Database = {
           },
         ]
       }
+      fund_transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          receiver_id: string
+          sender_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          receiver_id: string
+          sender_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          receiver_id?: string
+          sender_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      jackpot_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          game_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          game_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          game_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jackpot_entries_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "jackpot_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jackpot_games: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          max_players: number
+          min_entry: number
+          resolved_at: string | null
+          room_id: string
+          status: string
+          total_pot: number
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          max_players?: number
+          min_entry?: number
+          resolved_at?: string | null
+          room_id: string
+          status?: string
+          total_pot?: number
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          max_players?: number
+          min_entry?: number
+          resolved_at?: string | null
+          room_id?: string
+          status?: string
+          total_pot?: number
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jackpot_games_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kyc_verifications: {
         Row: {
           admin_notes: string | null
@@ -838,6 +947,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      money_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          requester_id: string
+          resolved_at: string | null
+          room_id: string | null
+          status: string
+          target_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          requester_id: string
+          resolved_at?: string | null
+          room_id?: string | null
+          status?: string
+          target_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          requester_id?: string
+          resolved_at?: string | null
+          room_id?: string | null
+          status?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "money_requests_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_preferences: {
         Row: {
