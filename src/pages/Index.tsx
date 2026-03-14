@@ -79,14 +79,24 @@ const Index = () => {
                   <p className="text-xl font-bold">{formatCurrency(wallet?.balance || 0, "NGN")}</p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate("/deposit")}
-                className="border-primary text-primary hover:bg-primary hover:text-white"
-              >
-                Add Funds
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/send-funds")}
+                  className="border-primary text-primary hover:bg-primary hover:text-white"
+                >
+                  Send
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/deposit")}
+                  className="border-primary text-primary hover:bg-primary hover:text-white"
+                >
+                  Add Funds
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
