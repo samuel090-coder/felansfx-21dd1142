@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Send, Zap, Copy, Settings, Ban, Users, Camera, Image, TrendingUp, TrendingDown, Play, Coins, Share2 } from "lucide-react";
+import { ArrowLeft, Send, Zap, Copy, Settings, Ban, Users, Camera, Image, TrendingUp, TrendingDown, Play, Coins, Share2, DollarSign, Target } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
