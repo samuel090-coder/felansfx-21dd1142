@@ -1,8 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendPushNotifications } from "../_shared/push-helper.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -16,47 +17,55 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     // Verify the calling user
-    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: { user }, error: authErr } = await userClient.auth.getUser();
     if (authErr || !user) throw new Error("Unauthorized");
 
-    const { receiver_id, amount } = await req.json();
+    const { receiver_id, amount, note } = await req.json();
     if (!receiver_id || !amount || amount <= 0) throw new Error("Invalid params");
 
-    // Use service role to credit receiver
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verify receiver exists
-    const { data: receiverWallet } = await adminClient.from("wallets").select("id").eq("user_id", receiver_id).maybeSingle();
+    const { data: receiverWallet } = await adminClient.from("wallets").select("id, balance").eq("user_id", receiver_id).maybeSingle();
     if (!receiverWallet) throw new Error("Receiver wallet not found");
 
-    // Credit receiver
-    const { error: creditErr } = await adminClient.from("wallets").update({
-      balance: undefined // We need to use rpc or raw update
-    }).eq("user_id", receiver_id);
-
-    // Actually use raw SQL increment via rpc-like approach
-    const { error } = await adminClient.rpc("credit_user_wallet_service", {
-      p_user_id: receiver_id, p_amount: amount,
+    // Credit receiver using service function
+    await adminClient.rpc("credit_user_wallet_service", {
+      p_user_id: receiver_id,
+      p_amount: amount,
     });
 
-    // If the function doesn't exist, do it manually
-    if (error) {
-      // Direct update with increment
-      const { data: w } = await adminClient.from("wallets").select("balance").eq("user_id", receiver_id).single();
-      if (w) {
-        await adminClient.from("wallets").update({ balance: w.balance + amount, updated_at: new Date().toISOString() }).eq("user_id", receiver_id);
-      }
+    // Send push notification to receiver
+    try {
+      const { data: senderProfile } = await adminClient
+        .from("profiles")
+        .select("full_name, display_id")
+        .eq("user_id", user.id)
+        .single();
+
+      const senderName = senderProfile?.full_name || senderProfile?.display_id || "Someone";
+
+      await sendPushNotifications({
+        userIds: [receiver_id],
+        title: "💸 You Received Funds!",
+        message: `${senderName} sent you ₦${Number(amount).toLocaleString()}${note ? ` — "${note}"` : ""}`,
+        url: "/send-funds",
+        type: "success",
+      });
+    } catch (e) {
+      console.error("Push notification error:", e);
     }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
+  } catch (e: any) {
     return new Response(JSON.stringify({ error: e.message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

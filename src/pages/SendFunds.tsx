@@ -141,6 +141,14 @@ const SendFunds = () => {
       await supabase.from("money_requests").insert({
         requester_id: user.id, target_id: requestTarget.user_id, amount: amt, note: requestNote.trim() || null,
       });
+
+      // Notify target user
+      try {
+        await supabase.functions.invoke("notify-activity", {
+          body: { type: "money_request", target_user_id: requestTarget.user_id, amount: amt, note: requestNote.trim() || null },
+        });
+      } catch {}
+
       toast.success("Money request sent!");
       setShowRequest(false);
       setRequestTarget(null);
@@ -172,6 +180,18 @@ const SendFunds = () => {
     await supabase.from("money_requests").update({
       status: accept ? "accepted" : "declined", resolved_at: new Date().toISOString(),
     }).eq("id", req.id);
+
+    // Notify requester of result
+    try {
+      await supabase.functions.invoke("notify-activity", {
+        body: {
+          type: accept ? "money_request_accepted" : "money_request_declined",
+          target_user_id: req.requester_id,
+          amount: req.amount,
+        },
+      });
+    } catch {}
+
     toast.success(accept ? "Payment sent!" : "Request declined");
     loadRequests();
     loadHistory();

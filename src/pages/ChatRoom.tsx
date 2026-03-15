@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Send, Zap, Copy, Settings, Ban, Users, Camera, Image, TrendingUp, TrendingDown, Play, Coins, Share2, DollarSign, Target } from "lucide-react";
+import { ArrowLeft, Send, Zap, Copy, Settings, Ban, Users, Camera, Image, TrendingUp, TrendingDown, Play, Coins, Share2, DollarSign, Target, Paperclip, FileText, Film, AlertTriangle, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -65,7 +65,16 @@ const ChatRoom = () => {
   const [activeGames, setActiveGames] = useState<any[]>([]);
   const [flipping, setFlipping] = useState(false);
   const [flipResult, setFlipResult] = useState<any>(null);
+  // Media sharing
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  // User reporting
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportTargetUser, setReportTargetUser] = useState<any>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDetails, setReportDetails] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { currentPrice } = usePriceSimulation(signalSymbol, 3000);
   const isCreator = room?.created_by === user?.id;
@@ -317,32 +326,21 @@ const ChatRoom = () => {
     if (!wallet || wallet.balance < game.stake_amount) return toast.error("Insufficient balance");
     setFlipping(true);
     try {
-      const { data: ok } = await supabase.rpc("deduct_user_wallet", { p_user_id: user.id, p_amount: game.stake_amount });
-      if (!ok) throw new Error("Deduction failed");
+      // Server-side resolution to prevent fraud
+      const { data, error } = await supabase.functions.invoke("resolve-coin-flip", {
+        body: { game_id: game.id },
+      });
 
-      // Provably fair: use crypto random
-      const randomBytes = new Uint8Array(1);
-      crypto.getRandomValues(randomBytes);
-      const result = randomBytes[0] % 2 === 0 ? "heads" : "tails";
-      const winnerId = result === game.creator_choice ? game.creator_id : user.id;
-      const totalPot = game.stake_amount * 2;
+      if (error || !data?.success) throw new Error(data?.error || "Game resolution failed");
 
-      // Update game
-      await supabase.from("coin_flip_games").update({
-        opponent_id: user.id, result, winner_id: winnerId, status: "resolved", resolved_at: new Date().toISOString(),
-      }).eq("id", game.id);
-
-      // Credit winner
-      await supabase.rpc("credit_user_wallet", { p_user_id: winnerId, p_amount: totalPot });
       refetchWallet();
-
-      const iWon = winnerId === user.id;
-      setFlipResult({ result, won: iWon, amount: totalPot });
+      const iWon = data.winner_id === user.id;
+      setFlipResult({ result: data.result, won: iWon, amount: data.total_pot });
 
       const creatorProfile = profiles[game.creator_id];
       await supabase.from("chat_messages").insert({
         room_id: roomId, user_id: user.id,
-        content: `🪙 COIN FLIP RESULT: ${result.toUpperCase()}!\n\n${iWon ? "🎉 I won" : `😤 ${creatorProfile?.full_name || "Opponent"} won`} ₦${totalPot.toLocaleString()}!`,
+        content: `🪙 COIN FLIP RESULT: ${data.result.toUpperCase()}!\n\n${iWon ? "🎉 I won" : `😤 ${creatorProfile?.full_name || "Opponent"} won`} ₦${data.total_pot.toLocaleString()}!`,
         message_type: "text",
       });
       loadGames();
@@ -350,10 +348,71 @@ const ChatRoom = () => {
     setFlipping(false);
   };
 
+  // MEDIA SHARING
+  const handleMediaUpload = async (file: File) => {
+    if (!user || !roomId) return;
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) return toast.error("File too large. Max 10MB.");
+
+    setUploadingMedia(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+      const path = `chat/${roomId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("uploads").upload(path, file, { upsert: true });
+      if (upErr) throw new Error("Upload failed");
+      const { data: urlData } = supabase.storage.from("uploads").getPublicUrl(path);
+
+      let mediaType = "file";
+      if (file.type.startsWith("image/")) mediaType = "image";
+      else if (file.type.startsWith("video/")) mediaType = "video";
+
+      await supabase.from("chat_messages").insert({
+        room_id: roomId, user_id: user.id,
+        content: mediaType === "file" ? `📎 ${file.name}` : "",
+        message_type: "media",
+        media_url: urlData.publicUrl,
+        media_type: mediaType,
+      });
+      toast.success("File sent!");
+    } catch (e: any) { toast.error(e.message); }
+    setUploadingMedia(false);
+  };
+
+  // USER REPORTING
+  const submitReport = async () => {
+    if (!user || !reportTargetUser || !reportReason) return;
+    setSubmittingReport(true);
+    try {
+      const { error } = await supabase.from("user_reports").insert({
+        reporter_id: user.id,
+        reported_user_id: reportTargetUser.user_id,
+        reason: reportReason,
+        details: reportDetails.trim() || null,
+      });
+      if (error) throw error;
+
+      // Notify admins
+      try {
+        await supabase.functions.invoke("notify-activity", {
+          body: { type: "user_reported", target_user_id: reportTargetUser.user_id },
+        });
+      } catch {}
+
+      toast.success("Report submitted. Our team will review it.");
+      setShowReportDialog(false);
+      setReportTargetUser(null);
+      setReportReason("");
+      setReportDetails("");
+    } catch (e: any) { toast.error("Failed to submit report"); }
+    setSubmittingReport(false);
+  };
+
   const renderMessage = (msg: any) => {
     const profile = profiles[msg.user_id];
     const isMe = msg.user_id === user?.id;
     const isSignal = msg.message_type === "signal";
+    const isMedia = msg.message_type === "media" && msg.media_url;
+
     return (
       <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
         <Avatar className="w-8 h-8 shrink-0">
@@ -362,23 +421,65 @@ const ChatRoom = () => {
         </Avatar>
         <div className={`max-w-[80%] ${isMe ? 'items-end' : ''}`}>
           <p className="text-[10px] text-muted-foreground mb-0.5 px-1">{profile?.full_name || profile?.display_id || "Trader"}</p>
-          <div className={`rounded-2xl px-3 py-2 text-sm ${isSignal ? 'bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30' : isMe ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-            {isSignal && (
-              <div className="flex items-center gap-1 mb-1">
-                <Zap className="w-3 h-3 text-primary" />
-                <span className="text-[10px] font-bold text-primary">LIVE SIGNAL</span>
-                {msg.signal_data?.code && (
-                  <button onClick={() => { navigator.clipboard.writeText(msg.signal_data.code); toast.success("Code copied!"); }} className="ml-auto flex items-center gap-0.5 text-[10px] text-primary">
-                    <Copy className="w-3 h-3" /> {msg.signal_data.code}
-                  </button>
-                )}
+          <div className={`rounded-2xl overflow-hidden text-sm ${isSignal ? 'bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 px-3 py-2' : isMedia ? '' : isMe ? 'bg-primary text-primary-foreground px-3 py-2' : 'bg-muted px-3 py-2'}`}>
+            {/* WhatsApp-style media card */}
+            {isMedia && msg.media_type === "image" && (
+              <div className={`rounded-2xl overflow-hidden ${isMe ? 'bg-primary/10' : 'bg-muted'}`}>
+                <img
+                  src={msg.media_url}
+                  alt="Shared image"
+                  className="w-full max-w-[260px] rounded-t-2xl object-cover cursor-pointer"
+                  style={{ maxHeight: 300 }}
+                  onClick={() => window.open(msg.media_url, "_blank")}
+                />
+                {msg.content && <p className="px-3 py-1.5 text-xs">{msg.content}</p>}
               </div>
             )}
-            <p className="whitespace-pre-wrap text-xs leading-relaxed">{msg.content}</p>
-            {isSignal && msg.signal_data && msg.user_id !== user?.id && (
-              <Button size="sm" className="w-full mt-2 gap-1 text-xs" onClick={() => handleUseSignal(msg)}>
-                <Play className="w-3 h-3" /> Use Signal — Stake Now
-              </Button>
+            {isMedia && msg.media_type === "video" && (
+              <div className={`rounded-2xl overflow-hidden ${isMe ? 'bg-primary/10' : 'bg-muted'}`}>
+                <video
+                  src={msg.media_url}
+                  controls
+                  className="w-full max-w-[260px] rounded-t-2xl"
+                  style={{ maxHeight: 300 }}
+                  preload="metadata"
+                />
+                {msg.content && <p className="px-3 py-1.5 text-xs">{msg.content}</p>}
+              </div>
+            )}
+            {isMedia && msg.media_type === "file" && (
+              <a href={msg.media_url} target="_blank" rel="noopener noreferrer"
+                className={`flex items-center gap-3 px-3 py-3 rounded-2xl ${isMe ? 'bg-primary/10' : 'bg-muted'} hover:opacity-80 transition`}>
+                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{msg.content || "File"}</p>
+                  <p className="text-[10px] text-muted-foreground">Tap to download</p>
+                </div>
+              </a>
+            )}
+            {/* Normal text/signal messages */}
+            {!isMedia && (
+              <>
+                {isSignal && (
+                  <div className="flex items-center gap-1 mb-1">
+                    <Zap className="w-3 h-3 text-primary" />
+                    <span className="text-[10px] font-bold text-primary">LIVE SIGNAL</span>
+                    {msg.signal_data?.code && (
+                      <button onClick={() => { navigator.clipboard.writeText(msg.signal_data.code); toast.success("Code copied!"); }} className="ml-auto flex items-center gap-0.5 text-[10px] text-primary">
+                        <Copy className="w-3 h-3" /> {msg.signal_data.code}
+                      </button>
+                    )}
+                  </div>
+                )}
+                <p className="whitespace-pre-wrap text-xs leading-relaxed">{msg.content}</p>
+                {isSignal && msg.signal_data && msg.user_id !== user?.id && (
+                  <Button size="sm" className="w-full mt-2 gap-1 text-xs" onClick={() => handleUseSignal(msg)}>
+                    <Play className="w-3 h-3" /> Use Signal — Stake Now
+                  </Button>
+                )}
+              </>
             )}
           </div>
           <p className="text-[9px] text-muted-foreground mt-0.5 px-1">{formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}</p>
@@ -472,7 +573,21 @@ const ChatRoom = () => {
       </ScrollArea>
 
       {/* Input */}
-      <div className="shrink-0 border-t border-border p-3 flex gap-2">
+      <div className="shrink-0 border-t border-border p-3 flex gap-2 items-center">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip"
+          className="hidden"
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) handleMediaUpload(file);
+            e.target.value = "";
+          }}
+        />
+        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => fileInputRef.current?.click()} disabled={uploadingMedia}>
+          <Paperclip className="w-4 h-4" />
+        </Button>
         <Input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()} placeholder="Type a message..." className="flex-1" />
         <Button size="icon" onClick={sendMessage} disabled={sending || !text.trim()}><Send className="w-4 h-4" /></Button>
       </div>
@@ -669,16 +784,54 @@ const ChatRoom = () => {
                   <p className="text-sm font-medium truncate">{m.full_name || m.display_id || "Trader"}</p>
                   {m.user_id === room?.created_by && <Badge className="text-[9px] h-4 bg-primary/10 text-primary">Admin</Badge>}
                 </div>
-                {isCreator && m.user_id !== user?.id && (
-                  <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive" onClick={() => blockUser(m.user_id)}>
-                    <Ban className="w-3 h-3 mr-1" /> Block
-                  </Button>
+                {m.user_id !== user?.id && (
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => {
+                      setReportTargetUser(m);
+                      setShowReportDialog(true);
+                      setShowMembers(false);
+                    }}>
+                      <Flag className="w-3 h-3 text-muted-foreground" />
+                    </Button>
+                    {isCreator && (
+                      <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive" onClick={() => blockUser(m.user_id)}>
+                        <Ban className="w-3 h-3 mr-1" /> Block
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             ))}
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Report User Dialog */}
+      <Dialog open={showReportDialog} onOpenChange={(o) => { if (!o) { setShowReportDialog(false); setReportTargetUser(null); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>⚠️ Report User</DialogTitle></DialogHeader>
+          {reportTargetUser && (
+            <div className="space-y-3 mt-2">
+              <p className="text-xs text-muted-foreground">Report <span className="font-medium text-foreground">{reportTargetUser.full_name || reportTargetUser.display_id}</span></p>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Reason</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Spam", "Harassment", "Scam/Fraud", "Inappropriate Content", "Impersonation"].map(r => (
+                    <Button key={r} variant={reportReason === r ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => setReportReason(r)}>{r}</Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Additional Details (optional)</label>
+                <Input value={reportDetails} onChange={e => setReportDetails(e.target.value)} placeholder="Describe what happened..." />
+              </div>
+              <Button className="w-full" onClick={submitReport} disabled={!reportReason || submittingReport}>
+                {submittingReport ? "Submitting..." : "Submit Report"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Jackpot Wheel */}
       <JackpotWheel
