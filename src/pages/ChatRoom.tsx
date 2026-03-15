@@ -326,37 +326,85 @@ const ChatRoom = () => {
     if (!wallet || wallet.balance < game.stake_amount) return toast.error("Insufficient balance");
     setFlipping(true);
     try {
-      const { data: ok } = await supabase.rpc("deduct_user_wallet", { p_user_id: user.id, p_amount: game.stake_amount });
-      if (!ok) throw new Error("Deduction failed");
+      // Server-side resolution to prevent fraud
+      const { data, error } = await supabase.functions.invoke("resolve-coin-flip", {
+        body: { game_id: game.id },
+      });
 
-      // Provably fair: use crypto random
-      const randomBytes = new Uint8Array(1);
-      crypto.getRandomValues(randomBytes);
-      const result = randomBytes[0] % 2 === 0 ? "heads" : "tails";
-      const winnerId = result === game.creator_choice ? game.creator_id : user.id;
-      const totalPot = game.stake_amount * 2;
+      if (error || !data?.success) throw new Error(data?.error || "Game resolution failed");
 
-      // Update game
-      await supabase.from("coin_flip_games").update({
-        opponent_id: user.id, result, winner_id: winnerId, status: "resolved", resolved_at: new Date().toISOString(),
-      }).eq("id", game.id);
-
-      // Credit winner
-      await supabase.rpc("credit_user_wallet", { p_user_id: winnerId, p_amount: totalPot });
       refetchWallet();
-
-      const iWon = winnerId === user.id;
-      setFlipResult({ result, won: iWon, amount: totalPot });
+      const iWon = data.winner_id === user.id;
+      setFlipResult({ result: data.result, won: iWon, amount: data.total_pot });
 
       const creatorProfile = profiles[game.creator_id];
       await supabase.from("chat_messages").insert({
         room_id: roomId, user_id: user.id,
-        content: `🪙 COIN FLIP RESULT: ${result.toUpperCase()}!\n\n${iWon ? "🎉 I won" : `😤 ${creatorProfile?.full_name || "Opponent"} won`} ₦${totalPot.toLocaleString()}!`,
+        content: `🪙 COIN FLIP RESULT: ${data.result.toUpperCase()}!\n\n${iWon ? "🎉 I won" : `😤 ${creatorProfile?.full_name || "Opponent"} won`} ₦${data.total_pot.toLocaleString()}!`,
         message_type: "text",
       });
       loadGames();
     } catch (e: any) { toast.error(e.message); }
     setFlipping(false);
+  };
+
+  // MEDIA SHARING
+  const handleMediaUpload = async (file: File) => {
+    if (!user || !roomId) return;
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) return toast.error("File too large. Max 10MB.");
+
+    setUploadingMedia(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+      const path = `chat/${roomId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("uploads").upload(path, file, { upsert: true });
+      if (upErr) throw new Error("Upload failed");
+      const { data: urlData } = supabase.storage.from("uploads").getPublicUrl(path);
+
+      let mediaType = "file";
+      if (file.type.startsWith("image/")) mediaType = "image";
+      else if (file.type.startsWith("video/")) mediaType = "video";
+
+      await supabase.from("chat_messages").insert({
+        room_id: roomId, user_id: user.id,
+        content: mediaType === "file" ? `📎 ${file.name}` : "",
+        message_type: "media",
+        media_url: urlData.publicUrl,
+        media_type: mediaType,
+      });
+      toast.success("File sent!");
+    } catch (e: any) { toast.error(e.message); }
+    setUploadingMedia(false);
+  };
+
+  // USER REPORTING
+  const submitReport = async () => {
+    if (!user || !reportTargetUser || !reportReason) return;
+    setSubmittingReport(true);
+    try {
+      const { error } = await supabase.from("user_reports").insert({
+        reporter_id: user.id,
+        reported_user_id: reportTargetUser.user_id,
+        reason: reportReason,
+        details: reportDetails.trim() || null,
+      });
+      if (error) throw error;
+
+      // Notify admins
+      try {
+        await supabase.functions.invoke("notify-activity", {
+          body: { type: "user_reported", target_user_id: reportTargetUser.user_id },
+        });
+      } catch {}
+
+      toast.success("Report submitted. Our team will review it.");
+      setShowReportDialog(false);
+      setReportTargetUser(null);
+      setReportReason("");
+      setReportDetails("");
+    } catch (e: any) { toast.error("Failed to submit report"); }
+    setSubmittingReport(false);
   };
 
   const renderMessage = (msg: any) => {
