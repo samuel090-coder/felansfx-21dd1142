@@ -23,3 +23,12 @@ verify_jwt = false
 
 [functions.daily-notifications]
 verify_jwt = false
+
+[functions.resolve-coin-flip]
+verify_jwt = false
+
+[functions.resolve-jackpot]
+verify_jwt = false
+
+[functions.notify-activity]
+verify_jwt = false
