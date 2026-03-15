@@ -706,6 +706,11 @@ const Admin = () => {
             <UserManagement />
           </TabsContent>
 
+          {/* Reports Tab */}
+          <TabsContent value="reports">
+            <ReportsManager />
+          </TabsContent>
+
           {/* Messaging Center Tab */}
           <TabsContent value="messaging">
             <AdminMessagingCenter />
