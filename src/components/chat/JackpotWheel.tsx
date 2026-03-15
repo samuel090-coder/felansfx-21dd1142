@@ -37,8 +37,9 @@ const JackpotWheel = ({ roomId, profiles, open, onOpenChange, onGameMessage }: J
   }, [open]);
 
   const loadGames = async () => {
+    // Only show open games — resolved/spinning ones disappear after completion
     const { data } = await supabase.from("jackpot_games").select("*").eq("room_id", roomId)
-      .in("status", ["open", "spinning"]).order("created_at", { ascending: false }).limit(10);
+      .eq("status", "open").order("created_at", { ascending: false }).limit(10);
     setActiveGames(data || []);
     // Load entries for each game
     if (data) {
