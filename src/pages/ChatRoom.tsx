@@ -784,16 +784,54 @@ const ChatRoom = () => {
                   <p className="text-sm font-medium truncate">{m.full_name || m.display_id || "Trader"}</p>
                   {m.user_id === room?.created_by && <Badge className="text-[9px] h-4 bg-primary/10 text-primary">Admin</Badge>}
                 </div>
-                {isCreator && m.user_id !== user?.id && (
-                  <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive" onClick={() => blockUser(m.user_id)}>
-                    <Ban className="w-3 h-3 mr-1" /> Block
-                  </Button>
+                {m.user_id !== user?.id && (
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => {
+                      setReportTargetUser(m);
+                      setShowReportDialog(true);
+                      setShowMembers(false);
+                    }}>
+                      <Flag className="w-3 h-3 text-muted-foreground" />
+                    </Button>
+                    {isCreator && (
+                      <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive" onClick={() => blockUser(m.user_id)}>
+                        <Ban className="w-3 h-3 mr-1" /> Block
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             ))}
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Report User Dialog */}
+      <Dialog open={showReportDialog} onOpenChange={(o) => { if (!o) { setShowReportDialog(false); setReportTargetUser(null); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>⚠️ Report User</DialogTitle></DialogHeader>
+          {reportTargetUser && (
+            <div className="space-y-3 mt-2">
+              <p className="text-xs text-muted-foreground">Report <span className="font-medium text-foreground">{reportTargetUser.full_name || reportTargetUser.display_id}</span></p>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Reason</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Spam", "Harassment", "Scam/Fraud", "Inappropriate Content", "Impersonation"].map(r => (
+                    <Button key={r} variant={reportReason === r ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => setReportReason(r)}>{r}</Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Additional Details (optional)</label>
+                <Input value={reportDetails} onChange={e => setReportDetails(e.target.value)} placeholder="Describe what happened..." />
+              </div>
+              <Button className="w-full" onClick={submitReport} disabled={!reportReason || submittingReport}>
+                {submittingReport ? "Submitting..." : "Submit Report"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Jackpot Wheel */}
       <JackpotWheel
