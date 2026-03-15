@@ -118,45 +118,31 @@ const JackpotWheel = ({ roomId, profiles, open, onOpenChange, onGameMessage }: J
 
     setSpinning(game.id);
     try {
-      // Weighted random selection based on contribution
+      const gameEntries = entries[game.id] || [];
       const totalWeight = gameEntries.reduce((sum: number, e: any) => sum + e.amount, 0);
-      const randomBytes = new Uint8Array(4);
-      crypto.getRandomValues(randomBytes);
-      const randomValue = (randomBytes[0] * 16777216 + randomBytes[1] * 65536 + randomBytes[2] * 256 + randomBytes[3]) / 4294967296;
-      
-      let cumulative = 0;
-      let winnerId = gameEntries[0].user_id;
-      for (const entry of gameEntries) {
-        cumulative += entry.amount / totalWeight;
-        if (randomValue <= cumulative) {
-          winnerId = entry.user_id;
-          break;
-        }
-      }
 
-      // Animate wheel
+      // Resolve on server side to prevent fraud
+      const { data, error } = await supabase.functions.invoke("resolve-jackpot", {
+        body: { game_id: game.id },
+      });
+
+      if (error || !data?.success) throw new Error(data?.error || "Resolution failed");
+
+      const winnerId = data.winner_id;
+
+      // Animate wheel client-side (visual only - result already decided server-side)
       await animateWheel(gameEntries, winnerId, totalWeight);
-
-      // Update game status to resolved FIRST to prevent replay
-      await supabase.from("jackpot_games").update({
-        status: "resolved", winner_id: winnerId, resolved_at: new Date().toISOString(),
-      }).eq("id", game.id);
 
       // Immediately remove from active games list
       setActiveGames(prev => prev.filter(g => g.id !== game.id));
-
-      // Credit winner via edge function
-      await supabase.functions.invoke("process-transfer", {
-        body: { receiver_id: winnerId, amount: totalWeight }
-      });
 
       refetchWallet();
       const winnerProfile = profiles[winnerId];
       const winnerName = winnerProfile?.full_name || winnerProfile?.display_id || "Unknown";
       
-      setSpinResult({ winnerId, winnerName, amount: totalWeight, isMe: winnerId === user.id });
+      setSpinResult({ winnerId, winnerName, amount: data.total_pot, isMe: winnerId === user.id });
       
-      onGameMessage(`🎰 JACKPOT WHEEL RESULT!\n\n🏆 Winner: ${winnerName}\n💰 Won: ₦${totalWeight.toLocaleString()}\n\n${winnerId === user.id ? "🎉 Congratulations!" : "Better luck next time! 💪"}`);
+      onGameMessage(`🎰 JACKPOT WHEEL RESULT!\n\n🏆 Winner: ${winnerName}\n💰 Won: ₦${data.total_pot.toLocaleString()}\n\n${winnerId === user.id ? "🎉 Congratulations!" : "Better luck next time! 💪"}`);
     } catch (e: any) { toast.error(e.message); }
     setSpinning(null);
   };
