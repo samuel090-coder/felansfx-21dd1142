@@ -382,7 +382,7 @@ const Admin = () => {
 
       <div className="px-4 py-4">
         <Tabs defaultValue="analytics">
-          <TabsList className="grid w-full grid-cols-10 mb-6 h-auto">
+          <TabsList className="grid w-full grid-cols-11 mb-6 h-auto">
             <TabsTrigger value="analytics" className="text-xs px-1 py-2">
               <BarChart3 className="w-4 h-4" />
             </TabsTrigger>
@@ -397,6 +397,9 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="users" className="text-xs px-1 py-2">
               <Users className="w-4 h-4" />
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="text-xs px-1 py-2">
+              <Flag className="w-4 h-4" />
             </TabsTrigger>
             <TabsTrigger value="messaging" className="text-xs px-1 py-2">
               <Mail className="w-4 h-4" />
