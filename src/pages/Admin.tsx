@@ -18,6 +18,7 @@ import {
   Mail,
   ArrowDownToLine,
   ShieldCheck,
+  Flag,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/hooks/useAppSettings";
