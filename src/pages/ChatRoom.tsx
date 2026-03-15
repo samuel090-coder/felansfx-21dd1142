@@ -573,7 +573,21 @@ const ChatRoom = () => {
       </ScrollArea>
 
       {/* Input */}
-      <div className="shrink-0 border-t border-border p-3 flex gap-2">
+      <div className="shrink-0 border-t border-border p-3 flex gap-2 items-center">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip"
+          className="hidden"
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) handleMediaUpload(file);
+            e.target.value = "";
+          }}
+        />
+        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => fileInputRef.current?.click()} disabled={uploadingMedia}>
+          <Paperclip className="w-4 h-4" />
+        </Button>
         <Input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()} placeholder="Type a message..." className="flex-1" />
         <Button size="icon" onClick={sendMessage} disabled={sending || !text.trim()}><Send className="w-4 h-4" /></Button>
       </div>
