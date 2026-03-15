@@ -164,7 +164,8 @@ const ChatRoom = () => {
 
   const loadGames = async () => {
     if (!roomId) return;
-    const { data } = await supabase.from("coin_flip_games").select("*").eq("room_id", roomId).in("status", ["waiting", "resolved"]).order("created_at", { ascending: false }).limit(20);
+    // Only show waiting (open) coin flip games — resolved ones should disappear
+    const { data } = await supabase.from("coin_flip_games").select("*").eq("room_id", roomId).eq("status", "waiting").order("created_at", { ascending: false }).limit(20);
     setActiveGames(data || []);
   };
 
