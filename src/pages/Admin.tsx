@@ -51,6 +51,7 @@ import { ProContentManager } from "@/components/admin/ProContentManager";
 import { AdminMessagingCenter } from "@/components/admin/AdminMessagingCenter";
 import { WithdrawalManager } from "@/components/admin/WithdrawalManager";
 import { KYCManager } from "@/components/admin/KYCManager";
+import { ReportsManager } from "@/components/admin/ReportsManager";
 
 interface PendingDeposit {
   id: string;
