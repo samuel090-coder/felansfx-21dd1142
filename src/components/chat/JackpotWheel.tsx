@@ -137,10 +137,13 @@ const JackpotWheel = ({ roomId, profiles, open, onOpenChange, onGameMessage }: J
       // Animate wheel
       await animateWheel(gameEntries, winnerId, totalWeight);
 
-      // Update game
+      // Update game status to resolved FIRST to prevent replay
       await supabase.from("jackpot_games").update({
         status: "resolved", winner_id: winnerId, resolved_at: new Date().toISOString(),
       }).eq("id", game.id);
+
+      // Immediately remove from active games list
+      setActiveGames(prev => prev.filter(g => g.id !== game.id));
 
       // Credit winner via edge function
       await supabase.functions.invoke("process-transfer", {
@@ -154,7 +157,6 @@ const JackpotWheel = ({ roomId, profiles, open, onOpenChange, onGameMessage }: J
       setSpinResult({ winnerId, winnerName, amount: totalWeight, isMe: winnerId === user.id });
       
       onGameMessage(`🎰 JACKPOT WHEEL RESULT!\n\n🏆 Winner: ${winnerName}\n💰 Won: ₦${totalWeight.toLocaleString()}\n\n${winnerId === user.id ? "🎉 Congratulations!" : "Better luck next time! 💪"}`);
-      loadGames();
     } catch (e: any) { toast.error(e.message); }
     setSpinning(null);
   };
