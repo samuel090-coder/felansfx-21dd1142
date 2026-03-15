@@ -411,6 +411,8 @@ const ChatRoom = () => {
     const profile = profiles[msg.user_id];
     const isMe = msg.user_id === user?.id;
     const isSignal = msg.message_type === "signal";
+    const isMedia = msg.message_type === "media" && msg.media_url;
+
     return (
       <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
         <Avatar className="w-8 h-8 shrink-0">
@@ -419,23 +421,65 @@ const ChatRoom = () => {
         </Avatar>
         <div className={`max-w-[80%] ${isMe ? 'items-end' : ''}`}>
           <p className="text-[10px] text-muted-foreground mb-0.5 px-1">{profile?.full_name || profile?.display_id || "Trader"}</p>
-          <div className={`rounded-2xl px-3 py-2 text-sm ${isSignal ? 'bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30' : isMe ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-            {isSignal && (
-              <div className="flex items-center gap-1 mb-1">
-                <Zap className="w-3 h-3 text-primary" />
-                <span className="text-[10px] font-bold text-primary">LIVE SIGNAL</span>
-                {msg.signal_data?.code && (
-                  <button onClick={() => { navigator.clipboard.writeText(msg.signal_data.code); toast.success("Code copied!"); }} className="ml-auto flex items-center gap-0.5 text-[10px] text-primary">
-                    <Copy className="w-3 h-3" /> {msg.signal_data.code}
-                  </button>
-                )}
+          <div className={`rounded-2xl overflow-hidden text-sm ${isSignal ? 'bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 px-3 py-2' : isMedia ? '' : isMe ? 'bg-primary text-primary-foreground px-3 py-2' : 'bg-muted px-3 py-2'}`}>
+            {/* WhatsApp-style media card */}
+            {isMedia && msg.media_type === "image" && (
+              <div className={`rounded-2xl overflow-hidden ${isMe ? 'bg-primary/10' : 'bg-muted'}`}>
+                <img
+                  src={msg.media_url}
+                  alt="Shared image"
+                  className="w-full max-w-[260px] rounded-t-2xl object-cover cursor-pointer"
+                  style={{ maxHeight: 300 }}
+                  onClick={() => window.open(msg.media_url, "_blank")}
+                />
+                {msg.content && <p className="px-3 py-1.5 text-xs">{msg.content}</p>}
               </div>
             )}
-            <p className="whitespace-pre-wrap text-xs leading-relaxed">{msg.content}</p>
-            {isSignal && msg.signal_data && msg.user_id !== user?.id && (
-              <Button size="sm" className="w-full mt-2 gap-1 text-xs" onClick={() => handleUseSignal(msg)}>
-                <Play className="w-3 h-3" /> Use Signal — Stake Now
-              </Button>
+            {isMedia && msg.media_type === "video" && (
+              <div className={`rounded-2xl overflow-hidden ${isMe ? 'bg-primary/10' : 'bg-muted'}`}>
+                <video
+                  src={msg.media_url}
+                  controls
+                  className="w-full max-w-[260px] rounded-t-2xl"
+                  style={{ maxHeight: 300 }}
+                  preload="metadata"
+                />
+                {msg.content && <p className="px-3 py-1.5 text-xs">{msg.content}</p>}
+              </div>
+            )}
+            {isMedia && msg.media_type === "file" && (
+              <a href={msg.media_url} target="_blank" rel="noopener noreferrer"
+                className={`flex items-center gap-3 px-3 py-3 rounded-2xl ${isMe ? 'bg-primary/10' : 'bg-muted'} hover:opacity-80 transition`}>
+                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{msg.content || "File"}</p>
+                  <p className="text-[10px] text-muted-foreground">Tap to download</p>
+                </div>
+              </a>
+            )}
+            {/* Normal text/signal messages */}
+            {!isMedia && (
+              <>
+                {isSignal && (
+                  <div className="flex items-center gap-1 mb-1">
+                    <Zap className="w-3 h-3 text-primary" />
+                    <span className="text-[10px] font-bold text-primary">LIVE SIGNAL</span>
+                    {msg.signal_data?.code && (
+                      <button onClick={() => { navigator.clipboard.writeText(msg.signal_data.code); toast.success("Code copied!"); }} className="ml-auto flex items-center gap-0.5 text-[10px] text-primary">
+                        <Copy className="w-3 h-3" /> {msg.signal_data.code}
+                      </button>
+                    )}
+                  </div>
+                )}
+                <p className="whitespace-pre-wrap text-xs leading-relaxed">{msg.content}</p>
+                {isSignal && msg.signal_data && msg.user_id !== user?.id && (
+                  <Button size="sm" className="w-full mt-2 gap-1 text-xs" onClick={() => handleUseSignal(msg)}>
+                    <Play className="w-3 h-3" /> Use Signal — Stake Now
+                  </Button>
+                )}
+              </>
             )}
           </div>
           <p className="text-[9px] text-muted-foreground mt-0.5 px-1">{formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}</p>
