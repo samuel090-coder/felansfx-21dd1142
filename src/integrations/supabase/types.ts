@@ -187,6 +187,8 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          media_type: string | null
+          media_url: string | null
           message_type: string
           room_id: string
           signal_data: Json | null
@@ -196,6 +198,8 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           message_type?: string
           room_id: string
           signal_data?: Json | null
@@ -205,6 +209,8 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           message_type?: string
           room_id?: string
           signal_data?: Json | null
@@ -1532,6 +1538,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_reports: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          details: string | null
+          id: string
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: string
+          reported_user_id?: string
+          reporter_id?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1648,6 +1690,10 @@ export type Database = {
     }
     Functions: {
       credit_user_wallet: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: undefined
+      }
+      credit_user_wallet_service: {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
       }
