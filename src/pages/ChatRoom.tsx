@@ -65,7 +65,16 @@ const ChatRoom = () => {
   const [activeGames, setActiveGames] = useState<any[]>([]);
   const [flipping, setFlipping] = useState(false);
   const [flipResult, setFlipResult] = useState<any>(null);
+  // Media sharing
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  // User reporting
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportTargetUser, setReportTargetUser] = useState<any>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDetails, setReportDetails] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { currentPrice } = usePriceSimulation(signalSymbol, 3000);
   const isCreator = room?.created_by === user?.id;
