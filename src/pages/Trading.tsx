@@ -65,6 +65,7 @@ const Trading = () => {
     closePosition,
     refetch: refetchDemo,
   } = useDemoTrading();
+  const { alert: smartAlert, dismiss: dismissAlert, refresh: refreshAlerts } = useSmartAlerts(accountType);
 
   useEffect(() => {
     if (!authLoading && !user) {
