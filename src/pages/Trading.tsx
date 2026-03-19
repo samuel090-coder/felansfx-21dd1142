@@ -5,6 +5,7 @@ import { usePriceSimulation, useMultiSymbolPrices } from "@/hooks/usePriceSimula
 import { useDemoTrading } from "@/hooks/useDemoTrading";
 import { useWallet } from "@/hooks/useWallet";
 import { useTradeSound } from "@/hooks/useTradeSound";
+import { useSmartAlerts } from "@/hooks/useSmartAlerts";
 import { TradingHeader } from "@/components/trading/TradingHeader";
 import { FullscreenChart } from "@/components/trading/FullscreenChart";
 import { LiveTradersOverlay } from "@/components/trading/LiveTradersOverlay";
@@ -14,10 +15,14 @@ import { ActivePositions } from "@/components/trading/ActivePositions";
 import { TradeHistoryDrawer } from "@/components/trading/TradeHistoryDrawer";
 import { SignalCodeRedeemer } from "@/components/trading/SignalCodeRedeemer";
 import { CopyTradingDrawer } from "@/components/trading/CopyTradingDrawer";
+import { SmartAlertBanner } from "@/components/trading/SmartAlertBanner";
+import { AITradingAssistant } from "@/components/trading/AITradingAssistant";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { Bot } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const ALL_SYMBOLS = [
   "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD",
