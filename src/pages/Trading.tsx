@@ -329,6 +329,20 @@ const Trading = () => {
         onFinancesClick={handleFinancesClick}
       />
 
+      {/* Smart Alert Banner */}
+      {smartAlert && (
+        <SmartAlertBanner
+          type={smartAlert.type}
+          title={smartAlert.title}
+          message={smartAlert.message}
+          action={smartAlert.action}
+          actionRoute={smartAlert.actionRoute}
+          severity={smartAlert.severity}
+          onDismiss={dismissAlert}
+          onSwitchDemo={() => handleAccountChange("demo")}
+        />
+      )}
+
       {/* Symbol selector row */}
       <SymbolSelectorCompact
         selectedSymbol={selectedSymbol}
@@ -342,11 +356,19 @@ const Trading = () => {
         accountType={accountType}
       />
 
-      {/* Current price display */}
-      <div className="absolute left-2 top-32 z-10">
+      {/* Current price display + AI Bot button */}
+      <div className="absolute left-2 top-32 z-10 flex flex-col gap-2">
         <div className="bg-primary px-3 py-1 rounded text-sm font-bold text-primary-foreground tabular-nums">
           {getFormattedPrice(currentPrice)}
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs bg-background/80 backdrop-blur-sm border-primary/30"
+          onClick={() => setShowAIBot(true)}
+        >
+          <Bot className="w-3 h-3 mr-1" /> AI Bot
+        </Button>
       </div>
 
       {/* Active positions with countdown */}
@@ -388,6 +410,16 @@ const Trading = () => {
         onTrade={handleTrade}
         disabled={accountType === "demo" ? !demoWallet : !realWallet}
         accountType={accountType}
+      />
+
+      {/* AI Trading Assistant */}
+      <AITradingAssistant
+        open={showAIBot}
+        onOpenChange={setShowAIBot}
+        selectedSymbol={selectedSymbol}
+        currentPrice={currentPrice}
+        accountType={accountType}
+        onExecuteTrade={handleTrade}
       />
     </div>
   );
