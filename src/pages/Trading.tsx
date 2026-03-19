@@ -5,6 +5,7 @@ import { usePriceSimulation, useMultiSymbolPrices } from "@/hooks/usePriceSimula
 import { useDemoTrading } from "@/hooks/useDemoTrading";
 import { useWallet } from "@/hooks/useWallet";
 import { useTradeSound } from "@/hooks/useTradeSound";
+import { useSmartAlerts } from "@/hooks/useSmartAlerts";
 import { TradingHeader } from "@/components/trading/TradingHeader";
 import { FullscreenChart } from "@/components/trading/FullscreenChart";
 import { LiveTradersOverlay } from "@/components/trading/LiveTradersOverlay";
@@ -14,10 +15,14 @@ import { ActivePositions } from "@/components/trading/ActivePositions";
 import { TradeHistoryDrawer } from "@/components/trading/TradeHistoryDrawer";
 import { SignalCodeRedeemer } from "@/components/trading/SignalCodeRedeemer";
 import { CopyTradingDrawer } from "@/components/trading/CopyTradingDrawer";
+import { SmartAlertBanner } from "@/components/trading/SmartAlertBanner";
+import { AITradingAssistant } from "@/components/trading/AITradingAssistant";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { Bot } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const ALL_SYMBOLS = [
   "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD",
@@ -44,6 +49,7 @@ const Trading = () => {
   const [accountType, setAccountType] = useState<"demo" | "real">("demo");
   const [activePositions, setActivePositions] = useState<ActivePosition[]>([]);
   const [currentDuration, setCurrentDuration] = useState(30);
+  const [showAIBot, setShowAIBot] = useState(false);
   const settlementQueue = useRef<Promise<void>>(Promise.resolve());
   const settledIds = useRef<Set<string>>(new Set());
 
@@ -59,6 +65,7 @@ const Trading = () => {
     closePosition,
     refetch: refetchDemo,
   } = useDemoTrading();
+  const { alert: smartAlert, dismiss: dismissAlert, refresh: refreshAlerts } = useSmartAlerts(accountType);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -201,6 +208,14 @@ const Trading = () => {
         });
       }
     }
+
+    // Run fraud detection in background after each trade
+    supabase.functions.invoke("fraud-detection", {
+      body: { type: "trade_check", user_id: user.id },
+    }).catch(() => {});
+
+    // Refresh smart alerts after trade
+    refreshAlerts();
   };
 
 
@@ -314,6 +329,20 @@ const Trading = () => {
         onFinancesClick={handleFinancesClick}
       />
 
+      {/* Smart Alert Banner */}
+      {smartAlert && (
+        <SmartAlertBanner
+          type={smartAlert.type}
+          title={smartAlert.title}
+          message={smartAlert.message}
+          action={smartAlert.action}
+          actionRoute={smartAlert.actionRoute}
+          severity={smartAlert.severity}
+          onDismiss={dismissAlert}
+          onSwitchDemo={() => handleAccountChange("demo")}
+        />
+      )}
+
       {/* Symbol selector row */}
       <SymbolSelectorCompact
         selectedSymbol={selectedSymbol}
@@ -327,11 +356,19 @@ const Trading = () => {
         accountType={accountType}
       />
 
-      {/* Current price display */}
-      <div className="absolute left-2 top-32 z-10">
+      {/* Current price display + AI Bot button */}
+      <div className="absolute left-2 top-32 z-10 flex flex-col gap-2">
         <div className="bg-primary px-3 py-1 rounded text-sm font-bold text-primary-foreground tabular-nums">
           {getFormattedPrice(currentPrice)}
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs bg-background/80 backdrop-blur-sm border-primary/30"
+          onClick={() => setShowAIBot(true)}
+        >
+          <Bot className="w-3 h-3 mr-1" /> AI Bot
+        </Button>
       </div>
 
       {/* Active positions with countdown */}
@@ -373,6 +410,16 @@ const Trading = () => {
         onTrade={handleTrade}
         disabled={accountType === "demo" ? !demoWallet : !realWallet}
         accountType={accountType}
+      />
+
+      {/* AI Trading Assistant */}
+      <AITradingAssistant
+        open={showAIBot}
+        onOpenChange={setShowAIBot}
+        selectedSymbol={selectedSymbol}
+        currentPrice={currentPrice}
+        accountType={accountType}
+        onExecuteTrade={handleTrade}
       />
     </div>
   );

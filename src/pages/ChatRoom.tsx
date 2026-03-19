@@ -356,9 +356,19 @@ const ChatRoom = () => {
 
     setUploadingMedia(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+      // Compress images client-side for faster uploads
+      let processedFile = file;
+      if (file.type.startsWith("image/")) {
+        const { compressImage } = await import("@/hooks/useImageCompressor");
+        processedFile = await compressImage(file, 1200, 0.7);
+      }
+
+      const ext = processedFile.name.split(".").pop()?.toLowerCase() || "bin";
       const path = `chat/${roomId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("uploads").upload(path, file, { upsert: true });
+      const { error: upErr } = await supabase.storage.from("uploads").upload(path, processedFile, {
+        upsert: true,
+        cacheControl: "3600",
+      });
       if (upErr) throw new Error("Upload failed");
       const { data: urlData } = supabase.storage.from("uploads").getPublicUrl(path);
 
@@ -373,6 +383,12 @@ const ChatRoom = () => {
         media_url: urlData.publicUrl,
         media_type: mediaType,
       });
+
+      // Run fraud detection in background
+      supabase.functions.invoke("fraud-detection", {
+        body: { type: "transfer_check", user_id: user.id },
+      }).catch(() => {});
+
       toast.success("File sent!");
     } catch (e: any) { toast.error(e.message); }
     setUploadingMedia(false);
