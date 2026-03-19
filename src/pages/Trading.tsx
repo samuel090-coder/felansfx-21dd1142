@@ -49,6 +49,7 @@ const Trading = () => {
   const [accountType, setAccountType] = useState<"demo" | "real">("demo");
   const [activePositions, setActivePositions] = useState<ActivePosition[]>([]);
   const [currentDuration, setCurrentDuration] = useState(30);
+  const [showAIBot, setShowAIBot] = useState(false);
   const settlementQueue = useRef<Promise<void>>(Promise.resolve());
   const settledIds = useRef<Set<string>>(new Set());
 
