@@ -208,6 +208,14 @@ const Trading = () => {
         });
       }
     }
+
+    // Run fraud detection in background after each trade
+    supabase.functions.invoke("fraud-detection", {
+      body: { type: "trade_check", user_id: user.id },
+    }).catch(() => {});
+
+    // Refresh smart alerts after trade
+    refreshAlerts();
   };
 
 
