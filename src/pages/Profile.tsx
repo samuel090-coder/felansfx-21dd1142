@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Settings,
@@ -16,12 +16,15 @@ import {
   Monitor,
   ShieldCheck,
   Globe,
+  ImageIcon,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useTheme } from "@/hooks/useTheme";
 import { useCurrencyPreference } from "@/hooks/useCurrencyPreference";
+import { useBackgroundImage } from "@/hooks/useBackgroundImage";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
