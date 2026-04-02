@@ -5,7 +5,7 @@ import { useWallet } from "@/hooks/useWallet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Bot, TrendingUp, TrendingDown, Zap, Lock, Loader2, RefreshCw } from "lucide-react";
+import { Bot, TrendingUp, TrendingDown, Zap, Lock, Loader2, RefreshCw, Crown, Calendar, Infinity } from "lucide-react";
 import { toast } from "sonner";
 
 interface AISignal {
@@ -28,7 +28,23 @@ interface AITradingAssistantProps {
   onExecuteTrade?: (type: "buy" | "sell", amount: number, duration: number) => void;
 }
 
-const BOT_PRICE = 2000; // ₦2,000 per day
+type PlanKey = "daily" | "6month" | "lifetime";
+
+interface PricingPlan {
+  key: PlanKey;
+  label: string;
+  duration: string;
+  icon: React.ReactNode;
+  expiryMs: number | null; // null = lifetime
+  settingKey: string;
+  defaultPrice: number;
+}
+
+const PLANS: PricingPlan[] = [
+  { key: "daily", label: "Daily", duration: "24 hours", icon: <Calendar className="w-4 h-4" />, expiryMs: 24 * 60 * 60 * 1000, settingKey: "ai_bot_daily_price", defaultPrice: 5000 },
+  { key: "6month", label: "6 Months", duration: "180 days", icon: <Crown className="w-4 h-4" />, expiryMs: 180 * 24 * 60 * 60 * 1000, settingKey: "ai_bot_6month_price", defaultPrice: 50000 },
+  { key: "lifetime", label: "Lifetime", duration: "Forever", icon: <Infinity className="w-4 h-4" />, expiryMs: null, settingKey: "ai_bot_lifetime_price", defaultPrice: 500000 },
+];
 
 export const AITradingAssistant = ({
   open, onOpenChange, selectedSymbol, currentPrice, accountType, onExecuteTrade,
@@ -36,54 +52,104 @@ export const AITradingAssistant = ({
   const { user } = useAuth();
   const { wallet, refetch: refetchWallet } = useWallet();
   const [isActive, setIsActive] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [signals, setSignals] = useState<AISignal[]>([]);
   const [generating, setGenerating] = useState(false);
-  const [purchaseLoading, setPurchaseLoading] = useState(false);
+  const [purchaseLoading, setPurchaseLoading] = useState<PlanKey | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey>("daily");
+  const [prices, setPrices] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user && open) checkSubscription();
+    if (user && open) {
+      checkSubscription();
+      loadPrices();
+    }
   }, [user, open]);
+
+  const loadPrices = async () => {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["ai_bot_daily_price", "ai_bot_6month_price", "ai_bot_lifetime_price"]);
+    if (data) {
+      const map: Record<string, number> = {};
+      data.forEach(d => { map[d.key] = parseFloat(d.value) || 0; });
+      setPrices(map);
+    }
+  };
+
+  const getPrice = (plan: PricingPlan) => prices[plan.settingKey] || plan.defaultPrice;
 
   const checkSubscription = async () => {
     if (!user) return;
+    // Check for lifetime first (no expiry needed), then time-bound
     const { data } = await supabase
       .from("user_unlocks")
       .select("*")
       .eq("user_id", user.id)
       .eq("unlock_type", "ai_trading_bot")
-      .gte("expires_at", new Date().toISOString())
+      .order("expires_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
-    setIsActive(!!data);
-    if (data) loadSignals();
+
+    if (data) {
+      // Lifetime: expires_at is null or very far in the future (year 9999)
+      const isLifetime = !data.expires_at || new Date(data.expires_at).getFullYear() >= 9000;
+      const isValid = isLifetime || new Date(data.expires_at) > new Date();
+      setIsActive(isValid);
+      setExpiresAt(isLifetime ? "Lifetime" : data.expires_at);
+      if (isValid) loadSignals();
+    } else {
+      setIsActive(false);
+      setExpiresAt(null);
+    }
   };
 
-  const purchaseBot = async () => {
+  const purchaseBot = async (plan: PricingPlan) => {
     if (!user || !wallet) return;
-    if (wallet.balance < BOT_PRICE) {
-      toast.error("Insufficient balance", { description: `You need ₦${BOT_PRICE.toLocaleString()} to activate AI Bot` });
+    const price = getPrice(plan);
+    if (wallet.balance < price) {
+      toast.error("Insufficient balance", { description: `You need ₦${price.toLocaleString()} to activate AI Bot (${plan.label})` });
       return;
     }
-    setPurchaseLoading(true);
+    setPurchaseLoading(plan.key);
     try {
-      const { data: ok } = await supabase.rpc("deduct_user_wallet", { p_user_id: user.id, p_amount: BOT_PRICE });
-      if (!ok) throw new Error("Payment failed");
+      const { data: ok, error: deductErr } = await supabase.rpc("deduct_user_wallet", { p_user_id: user.id, p_amount: price });
+      if (deductErr) throw new Error(deductErr.message);
+      if (!ok) throw new Error("Payment failed — insufficient balance");
 
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      await supabase.from("user_unlocks").insert({
-        user_id: user.id, unlock_type: "ai_trading_bot", expires_at: expiresAt,
+      const expiresAt = plan.expiryMs
+        ? new Date(Date.now() + plan.expiryMs).toISOString()
+        : "9999-12-31T23:59:59.999Z"; // lifetime
+
+      const { error: insertErr } = await supabase.from("user_unlocks").insert({
+        user_id: user.id,
+        unlock_type: "ai_trading_bot",
+        expires_at: expiresAt,
       });
 
-      refetchWallet();
+      if (insertErr) {
+        // Refund if insert fails
+        console.error("Insert failed, refunding:", insertErr);
+        await supabase.functions.invoke("process-transfer", {
+          body: { type: "refund", user_id: user.id, amount: price },
+        }).catch(() => {});
+        throw new Error("Purchase failed. Your balance has been refunded.");
+      }
+
+      await refetchWallet();
       setIsActive(true);
-      toast.success("🤖 AI Trading Bot activated for 24 hours!");
+      setExpiresAt(plan.expiryMs ? expiresAt : "Lifetime");
+      toast.success(`🤖 AI Trading Bot activated — ${plan.label}!`);
       loadSignals();
-    } catch (e: any) { toast.error(e.message); }
-    setPurchaseLoading(false);
+    } catch (e: any) {
+      toast.error(e.message || "Purchase failed");
+    }
+    setPurchaseLoading(null);
   };
 
   const loadSignals = async () => {
-    // Load any cached signals
     if (!user) return;
     setLoading(true);
     try {
@@ -120,9 +186,11 @@ export const AITradingAssistant = ({
       if (data?.signal) {
         setSignals(prev => [data.signal, ...prev.slice(0, 4)]);
         toast.success("New AI signal generated!");
+      } else if (data?.error) {
+        throw new Error(data.error);
       }
     } catch (e: any) {
-      toast.error("Failed to generate signal");
+      toast.error(e.message || "Failed to generate signal");
     }
     setGenerating(false);
   };
@@ -132,6 +200,18 @@ export const AITradingAssistant = ({
     const amount = accountType === "demo" ? 50 : 100;
     onExecuteTrade(signal.direction.toLowerCase() as "buy" | "sell", amount, 60);
     toast.success(`Executing ${signal.direction} ${signal.symbol}`);
+  };
+
+  const formatExpiry = () => {
+    if (!expiresAt || expiresAt === "Lifetime") return "Lifetime access";
+    const d = new Date(expiresAt);
+    if (d.getFullYear() >= 9000) return "Lifetime access";
+    const diff = d.getTime() - Date.now();
+    if (diff <= 0) return "Expired";
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (days > 0) return `${days}d ${hours}h remaining`;
+    return `${hours}h remaining`;
   };
 
   return (
@@ -145,48 +225,87 @@ export const AITradingAssistant = ({
 
         <div className="space-y-4 mt-4">
           {!isActive ? (
-            /* Purchase screen */
-            <div className="text-center space-y-4 py-6">
-              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                <Bot className="w-10 h-10 text-primary" />
-              </div>
-              <div>
+            <div className="space-y-4 py-2">
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                  <Bot className="w-8 h-8 text-primary" />
+                </div>
                 <h3 className="text-lg font-bold">AI Trading Bot</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Get AI-powered trade signals, market analysis, and auto-execute suggestions in real-time.
+                <p className="text-xs text-muted-foreground">
+                  AI-powered trade signals, smart entry/exit points & one-tap execution.
                 </p>
               </div>
-              <div className="bg-muted/50 rounded-xl p-4 space-y-2 text-left">
-                <div className="flex items-center gap-2 text-sm">
-                  <Zap className="w-4 h-4 text-amber-500" /> Real-time AI signals
+
+              {/* Features */}
+              <div className="bg-muted/50 rounded-xl p-3 space-y-1.5 text-left">
+                <div className="flex items-center gap-2 text-xs">
+                  <Zap className="w-3.5 h-3.5 text-amber-500" /> Real-time AI signals
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <TrendingUp className="w-4 h-4 text-emerald-500" /> Smart entry/exit points
+                <div className="flex items-center gap-2 text-xs">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> Smart entry/exit points
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Bot className="w-4 h-4 text-primary" /> One-tap trade execution
+                <div className="flex items-center gap-2 text-xs">
+                  <Bot className="w-3.5 h-3.5 text-primary" /> One-tap trade execution
                 </div>
               </div>
-              <div className="border-t pt-4">
-                <p className="text-2xl font-bold">₦{BOT_PRICE.toLocaleString()}<span className="text-sm font-normal text-muted-foreground"> / 24 hours</span></p>
-                <p className="text-xs text-muted-foreground mt-1">Balance: ₦{wallet?.balance?.toLocaleString() || 0}</p>
+
+              {/* Pricing tiers */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground text-center">Choose a plan</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {PLANS.map(plan => {
+                    const price = getPrice(plan);
+                    const isSelected = selectedPlan === plan.key;
+                    return (
+                      <button
+                        key={plan.key}
+                        onClick={() => setSelectedPlan(plan.key)}
+                        className={`rounded-xl p-3 border-2 transition-all text-center ${
+                          isSelected
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-muted/30 hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex justify-center mb-1 text-primary">{plan.icon}</div>
+                        <p className="text-xs font-bold">{plan.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{plan.duration}</p>
+                        <p className="text-sm font-bold mt-1">₦{price.toLocaleString()}</p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Balance: ₦{wallet?.balance?.toLocaleString() || 0}</p>
+              </div>
+
               <Button
                 className="w-full gradient-primary font-bold h-12"
-                onClick={purchaseBot}
-                disabled={purchaseLoading}
+                onClick={() => {
+                  const plan = PLANS.find(p => p.key === selectedPlan)!;
+                  purchaseBot(plan);
+                }}
+                disabled={purchaseLoading !== null}
               >
-                {purchaseLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
-                Activate AI Bot — ₦{BOT_PRICE.toLocaleString()}
+                {purchaseLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Lock className="w-4 h-4 mr-2" />
+                )}
+                Activate — ₦{getPrice(PLANS.find(p => p.key === selectedPlan)!).toLocaleString()}
               </Button>
             </div>
           ) : (
             /* Active bot */
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30">
-                  <Zap className="w-3 h-3 mr-1" /> Bot Active
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30">
+                    <Zap className="w-3 h-3 mr-1" /> Bot Active
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground">{formatExpiry()}</span>
+                </div>
                 <Button
                   size="sm"
                   variant="outline"
