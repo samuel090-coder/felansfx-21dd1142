@@ -47,6 +47,8 @@ const Profile = () => {
   const [displayId, setDisplayId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const { bgUrl, uploading: bgUploading, uploadBackground, removeBackground } = useBackgroundImage();
+  const bgInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
