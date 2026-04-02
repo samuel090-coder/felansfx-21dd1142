@@ -850,6 +850,40 @@ const Admin = () => {
                   <p className="text-xs text-muted-foreground">Deposits at or below this amount with valid receipts are auto-approved. Set to 0 to disable.</p>
                 </div>
 
+                {/* AI Bot Pricing */}
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-sm font-semibold mb-3">🤖 AI Trading Bot Pricing</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Daily (₦)</Label>
+                      <Input
+                        type="number"
+                        value={settingsForm.ai_bot_daily_price}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, ai_bot_daily_price: e.target.value })}
+                        placeholder="5000"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">6 Months (₦)</Label>
+                      <Input
+                        type="number"
+                        value={settingsForm.ai_bot_6month_price}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, ai_bot_6month_price: e.target.value })}
+                        placeholder="50000"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Lifetime (₦)</Label>
+                      <Input
+                        type="number"
+                        value={settingsForm.ai_bot_lifetime_price}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, ai_bot_lifetime_price: e.target.value })}
+                        placeholder="500000"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <Button className="w-full gradient-primary" onClick={handleSaveSettings}>
                   Save Settings
                 </Button>
