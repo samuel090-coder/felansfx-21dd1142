@@ -90,6 +90,9 @@ const Admin = () => {
     max_deposit: "",
     daily_analysis_limit: "",
     auto_approve_threshold: "",
+    ai_bot_daily_price: "",
+    ai_bot_6month_price: "",
+    ai_bot_lifetime_price: "",
   });
   const [rejectReason, setRejectReason] = useState("");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -329,7 +332,7 @@ const Admin = () => {
 
   const handleSaveSettings = async () => {
     try {
-      const updates = Object.entries(settingsForm).map(([key, value]) => ({
+      const updates = Object.entries(settingsForm).filter(([_, v]) => v !== "").map(([key, value]) => ({
         key,
         value: String(value),
       }));
@@ -337,8 +340,7 @@ const Admin = () => {
       for (const update of updates) {
         const { error } = await supabase
           .from("app_settings")
-          .update({ value: update.value })
-          .eq("key", update.key);
+          .upsert({ key: update.key, value: update.value }, { onConflict: "key" });
 
         if (error) throw error;
       }
@@ -349,6 +351,22 @@ const Admin = () => {
       toast.error(error.message || "Failed to save settings");
     }
   };
+
+  // Load settings into form
+  useEffect(() => {
+    const loadSettingsForm = async () => {
+      const { data } = await supabase.from("app_settings").select("key, value");
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach(d => { map[d.key] = d.value; });
+        setSettingsForm(prev => ({
+          ...prev,
+          ...Object.fromEntries(Object.keys(prev).map(k => [k, map[k] || prev[k]])),
+        }));
+      }
+    };
+    if (isAuthenticated) loadSettingsForm();
+  }, [isAuthenticated]);
 
   if (authLoading || isCheckingAdmin) {
     return <LoadingScreen />;
@@ -830,6 +848,40 @@ const Admin = () => {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">Deposits at or below this amount with valid receipts are auto-approved. Set to 0 to disable.</p>
+                </div>
+
+                {/* AI Bot Pricing */}
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-sm font-semibold mb-3">🤖 AI Trading Bot Pricing</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Daily (₦)</Label>
+                      <Input
+                        type="number"
+                        value={settingsForm.ai_bot_daily_price}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, ai_bot_daily_price: e.target.value })}
+                        placeholder="5000"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">6 Months (₦)</Label>
+                      <Input
+                        type="number"
+                        value={settingsForm.ai_bot_6month_price}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, ai_bot_6month_price: e.target.value })}
+                        placeholder="50000"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Lifetime (₦)</Label>
+                      <Input
+                        type="number"
+                        value={settingsForm.ai_bot_lifetime_price}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, ai_bot_lifetime_price: e.target.value })}
+                        placeholder="500000"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <Button className="w-full gradient-primary" onClick={handleSaveSettings}>
