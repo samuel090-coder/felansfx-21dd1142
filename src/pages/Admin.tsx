@@ -332,7 +332,7 @@ const Admin = () => {
 
   const handleSaveSettings = async () => {
     try {
-      const updates = Object.entries(settingsForm).map(([key, value]) => ({
+      const updates = Object.entries(settingsForm).filter(([_, v]) => v !== "").map(([key, value]) => ({
         key,
         value: String(value),
       }));
@@ -340,8 +340,7 @@ const Admin = () => {
       for (const update of updates) {
         const { error } = await supabase
           .from("app_settings")
-          .update({ value: update.value })
-          .eq("key", update.key);
+          .upsert({ key: update.key, value: update.value }, { onConflict: "key" });
 
         if (error) throw error;
       }
@@ -352,6 +351,22 @@ const Admin = () => {
       toast.error(error.message || "Failed to save settings");
     }
   };
+
+  // Load settings into form
+  useEffect(() => {
+    const loadSettingsForm = async () => {
+      const { data } = await supabase.from("app_settings").select("key, value");
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach(d => { map[d.key] = d.value; });
+        setSettingsForm(prev => ({
+          ...prev,
+          ...Object.fromEntries(Object.keys(prev).map(k => [k, map[k] || prev[k]])),
+        }));
+      }
+    };
+    if (isAuthenticated) loadSettingsForm();
+  }, [isAuthenticated]);
 
   if (authLoading || isCheckingAdmin) {
     return <LoadingScreen />;
