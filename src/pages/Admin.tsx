@@ -90,6 +90,9 @@ const Admin = () => {
     max_deposit: "",
     daily_analysis_limit: "",
     auto_approve_threshold: "",
+    ai_bot_daily_price: "",
+    ai_bot_6month_price: "",
+    ai_bot_lifetime_price: "",
   });
   const [rejectReason, setRejectReason] = useState("");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
