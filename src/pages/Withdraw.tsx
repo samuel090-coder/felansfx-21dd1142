@@ -240,7 +240,6 @@ const Withdraw = () => {
         return;
       }
 
-    try {
       // First, save the bank account if not exists
       const { data: existingAccount } = await supabase
         .from('bank_accounts')
