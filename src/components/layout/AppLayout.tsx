@@ -11,16 +11,20 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children, hideNav = false, className }: AppLayoutProps) => {
   const { bgUrl } = useBackgroundImage();
+  const isGradient = bgUrl?.startsWith("linear-gradient");
 
   return (
     <div
       className="min-h-screen bg-background"
-      style={bgUrl ? {
+      style={bgUrl ? (isGradient ? {
+        background: bgUrl,
+        backgroundAttachment: "fixed",
+      } : {
         backgroundImage: `url(${bgUrl})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed",
-      } : undefined}
+      }) : undefined}
     >
       {bgUrl && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm pointer-events-none z-0" />
