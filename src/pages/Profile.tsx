@@ -241,56 +241,13 @@ const Profile = () => {
             </div>
 
             {/* Background Image */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 mb-4">
-              <div className="flex items-center gap-3">
-                <ImageIcon className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">Background</p>
-                  <p className="text-[10px] text-muted-foreground">{bgUrl ? "Custom image set" : "Default"}</p>
-                </div>
-              </div>
-              <div className="flex gap-1">
-                <input
-                  ref={bgInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    try {
-                      await uploadBackground(file);
-                      toast.success("Background updated!");
-                    } catch {
-                      toast.error("Upload failed");
-                    }
-                    e.target.value = "";
-                  }}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 px-2 text-xs"
-                  onClick={() => bgInputRef.current?.click()}
-                  disabled={bgUploading}
-                >
-                  {bgUploading ? "..." : "Upload"}
-                </Button>
-                {bgUrl && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs text-destructive"
-                    onClick={async () => {
-                      await removeBackground();
-                      toast.success("Background removed");
-                    }}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                )}
-              </div>
-            </div>
+            <BackgroundSelector
+              currentBg={bgUrl}
+              uploading={bgUploading}
+              onUpload={uploadBackground}
+              onRemove={removeBackground}
+              onSelectPreset={selectPreset}
+            />
 
             <Button className="w-full gradient-primary shadow-primary" onClick={() => navigate("/invite")}>
               <Share2 className="w-4 h-4 mr-2" />
