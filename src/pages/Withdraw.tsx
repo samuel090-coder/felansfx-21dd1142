@@ -494,8 +494,29 @@ const Withdraw = () => {
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* Transaction PIN */}
             {verifiedAccount && amount && (
+              <div className="space-y-2 pt-4 border-t">
+                <Label>Transaction PIN</Label>
+                <Input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="Enter 4-digit PIN"
+                  value={transactionPin}
+                  onChange={(e) => {
+                    setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 4));
+                    setPinError(null);
+                  }}
+                />
+                {pinError && (
+                  <p className="text-xs text-destructive">{pinError}</p>
+                )}
+              </div>
+            )}
+
+            {/* Submit Button */}
+            {verifiedAccount && amount && transactionPin.length === 4 && (
               <Button 
                 onClick={handleSubmitWithdrawal}
                 disabled={submitting || !amount}
