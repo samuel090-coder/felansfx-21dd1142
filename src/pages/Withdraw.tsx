@@ -59,6 +59,8 @@ const Withdraw = () => {
   const [submitting, setSubmitting] = useState(false);
   const [withdrawalHistory, setWithdrawalHistory] = useState<any[]>([]);
   const [kycVerified, setKycVerified] = useState<boolean | null>(null);
+  const [transactionPin, setTransactionPin] = useState("");
+  const [pinError, setPinError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
