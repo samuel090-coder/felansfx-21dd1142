@@ -59,6 +59,8 @@ const Withdraw = () => {
   const [submitting, setSubmitting] = useState(false);
   const [withdrawalHistory, setWithdrawalHistory] = useState<any[]>([]);
   const [kycVerified, setKycVerified] = useState<boolean | null>(null);
+  const [transactionPin, setTransactionPin] = useState("");
+  const [pinError, setPinError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -199,24 +201,45 @@ const Withdraw = () => {
       return;
     }
 
+    // Verify transaction PIN
+    if (!transactionPin || transactionPin.length !== 4) {
+      setPinError("Enter your 4-digit transaction PIN");
+      return;
+    }
+
     const withdrawAmount = parseFloat(amount);
     const minimumWithdrawal = calculateMinimumWithdrawal(wallet.balance);
 
-    // Check if amount meets minimum (hidden logic)
     if (withdrawAmount < minimumWithdrawal) {
       toast.error(`Minimum withdrawal amount is ${formatCurrency(minimumWithdrawal, "NGN", { decimals: 0 })}. Keep trading to unlock withdrawals!`);
       return;
     }
 
-    // Check if user has enough balance
     if (withdrawAmount > wallet.balance) {
       toast.error('Insufficient balance');
       return;
     }
 
     setSubmitting(true);
+    setPinError(null);
 
     try {
+      // Verify PIN server-side
+      const { data: pinValid, error: pinErr } = await supabase.rpc("verify_transaction_pin", { p_pin: transactionPin });
+      if (pinErr) {
+        if (pinErr.message.includes("No transaction PIN set")) {
+          setPinError("No PIN set. Please set one in your Profile first.");
+          setSubmitting(false);
+          return;
+        }
+        throw pinErr;
+      }
+      if (!pinValid) {
+        setPinError("Incorrect PIN. Please try again.");
+        setSubmitting(false);
+        return;
+      }
+
       // First, save the bank account if not exists
       const { data: existingAccount } = await supabase
         .from('bank_accounts')
@@ -471,8 +494,29 @@ const Withdraw = () => {
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* Transaction PIN */}
             {verifiedAccount && amount && (
+              <div className="space-y-2 pt-4 border-t">
+                <Label>Transaction PIN</Label>
+                <Input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="Enter 4-digit PIN"
+                  value={transactionPin}
+                  onChange={(e) => {
+                    setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 4));
+                    setPinError(null);
+                  }}
+                />
+                {pinError && (
+                  <p className="text-xs text-destructive">{pinError}</p>
+                )}
+              </div>
+            )}
+
+            {/* Submit Button */}
+            {verifiedAccount && amount && transactionPin.length === 4 && (
               <Button 
                 onClick={handleSubmitWithdrawal}
                 disabled={submitting || !amount}

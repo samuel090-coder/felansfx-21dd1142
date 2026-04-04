@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProfilePictureUpload } from "@/components/profile/ProfilePictureUpload";
 import { BackgroundSelector } from "@/components/profile/BackgroundSelector";
+import { SecuritySettings } from "@/components/profile/SecuritySettings";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -249,7 +250,10 @@ const Profile = () => {
               onSelectPreset={selectPreset}
             />
 
-            <Button className="w-full gradient-primary shadow-primary" onClick={() => navigate("/invite")}>
+            {/* Security: Phone & PIN */}
+            <SecuritySettings />
+
+            <Button className="w-full gradient-primary shadow-primary mt-4" onClick={() => navigate("/invite")}>
               <Share2 className="w-4 h-4 mr-2" />
               Invite friends
             </Button>

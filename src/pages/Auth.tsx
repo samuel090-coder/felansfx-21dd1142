@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +23,30 @@ const signInSchema = z.object({
 const signUpSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
+  phone: z.string().optional(),
+  transactionPin: z.string().optional(),
+  confirmPin: z.string().optional(),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
+}).refine((data) => {
+  if (data.transactionPin && data.transactionPin.length > 0) {
+    return /^\d{4}$/.test(data.transactionPin);
+  }
+  return true;
+}, {
+  message: "PIN must be exactly 4 digits",
+  path: ["transactionPin"],
+}).refine((data) => {
+  if (data.transactionPin && data.transactionPin.length > 0) {
+    return data.transactionPin === data.confirmPin;
+  }
+  return true;
+}, {
+  message: "PINs don't match",
+  path: ["confirmPin"],
 });
 
 type SignInValues = z.infer<typeof signInSchema>;
@@ -45,7 +65,7 @@ const Auth = () => {
 
   const signUpForm = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { fullName: "", email: "", password: "", confirmPassword: "" },
+    defaultValues: { fullName: "", email: "", phone: "", transactionPin: "", confirmPin: "", password: "", confirmPassword: "" },
   });
 
   useEffect(() => {
@@ -79,6 +99,20 @@ const Auth = () => {
         toast.error(error.message || "Failed to create account");
       }
     } else {
+      // Save optional phone & PIN after signup
+      try {
+        const { data: { user: newUser } } = await supabase.auth.getUser();
+        if (newUser) {
+          if (values.phone) {
+            await supabase.from("profiles").update({ phone_number: values.phone } as any).eq("user_id", newUser.id);
+          }
+          if (values.transactionPin && values.transactionPin.length === 4) {
+            await supabase.rpc("set_transaction_pin", { p_pin: values.transactionPin });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to save optional fields:", e);
+      }
       toast.success("Account created successfully!");
       navigate("/");
     }
@@ -174,6 +208,48 @@ const Auth = () => {
                   {signUpForm.formState.errors.email && (
                     <p className="text-xs text-destructive">{signUpForm.formState.errors.email.message}</p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-phone">Phone Number <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                  <Input
+                    id="signup-phone"
+                    type="tel"
+                    placeholder="+234 800 000 0000"
+                    {...signUpForm.register("phone")}
+                  />
+                </div>
+
+                <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+                  <p className="text-xs font-medium text-muted-foreground">4-Digit Transaction PIN <span className="text-muted-foreground">(optional — set later in Profile)</span></p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Input
+                        id="signup-pin"
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="PIN"
+                        {...signUpForm.register("transactionPin")}
+                      />
+                      {signUpForm.formState.errors.transactionPin && (
+                        <p className="text-xs text-destructive">{signUpForm.formState.errors.transactionPin.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Input
+                        id="signup-confirm-pin"
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="Confirm"
+                        {...signUpForm.register("confirmPin")}
+                      />
+                      {signUpForm.formState.errors.confirmPin && (
+                        <p className="text-xs text-destructive">{signUpForm.formState.errors.confirmPin.message}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
