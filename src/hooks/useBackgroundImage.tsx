@@ -63,5 +63,15 @@ export const useBackgroundImage = () => {
     localStorage.removeItem(BG_STORAGE_KEY);
   }, [user]);
 
-  return { bgUrl, uploading, uploadBackground, removeBackground };
+  const selectPreset = useCallback(async (css: string) => {
+    if (!user) return;
+    await supabase
+      .from("profiles")
+      .update({ bg_image_url: css } as any)
+      .eq("user_id", user.id);
+    setBgUrl(css);
+    localStorage.setItem(BG_STORAGE_KEY, css);
+  }, [user]);
+
+  return { bgUrl, uploading, uploadBackground, removeBackground, selectPreset };
 };
