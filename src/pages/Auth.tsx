@@ -211,6 +211,46 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="signup-phone">Phone Number <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                  <Input
+                    id="signup-phone"
+                    type="tel"
+                    placeholder="+234 800 000 0000"
+                    {...signUpForm.register("phone")}
+                  />
+                </div>
+
+                <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+                  <p className="text-xs font-medium text-muted-foreground">4-Digit Transaction PIN <span className="text-muted-foreground">(optional — set later in Profile)</span></p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Input
+                        id="signup-pin"
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="PIN"
+                        {...signUpForm.register("transactionPin")}
+                      />
+                      {signUpForm.formState.errors.transactionPin && (
+                        <p className="text-xs text-destructive">{signUpForm.formState.errors.transactionPin.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Input
+                        id="signup-confirm-pin"
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="Confirm"
+                        {...signUpForm.register("confirmPin")}
+                      />
+                      {signUpForm.formState.errors.confirmPin && (
+                        <p className="text-xs text-destructive">{signUpForm.formState.errors.confirmPin.message}</p>
+                      )}
+                    </div>
+                  </div>
+                <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
                   <Input
                     id="signup-password"
