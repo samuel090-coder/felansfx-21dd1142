@@ -22,11 +22,30 @@ const signInSchema = z.object({
 const signUpSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
+  phone: z.string().optional(),
+  transactionPin: z.string().optional(),
+  confirmPin: z.string().optional(),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
+}).refine((data) => {
+  if (data.transactionPin && data.transactionPin.length > 0) {
+    return /^\d{4}$/.test(data.transactionPin);
+  }
+  return true;
+}, {
+  message: "PIN must be exactly 4 digits",
+  path: ["transactionPin"],
+}).refine((data) => {
+  if (data.transactionPin && data.transactionPin.length > 0) {
+    return data.transactionPin === data.confirmPin;
+  }
+  return true;
+}, {
+  message: "PINs don't match",
+  path: ["confirmPin"],
 });
 
 type SignInValues = z.infer<typeof signInSchema>;
