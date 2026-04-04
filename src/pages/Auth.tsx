@@ -98,6 +98,20 @@ const Auth = () => {
         toast.error(error.message || "Failed to create account");
       }
     } else {
+      // Save optional phone & PIN after signup
+      try {
+        const { data: { user: newUser } } = await supabase.auth.getUser();
+        if (newUser) {
+          if (values.phone) {
+            await supabase.from("profiles").update({ phone_number: values.phone } as any).eq("user_id", newUser.id);
+          }
+          if (values.transactionPin && values.transactionPin.length === 4) {
+            await supabase.rpc("set_transaction_pin", { p_pin: values.transactionPin });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to save optional fields:", e);
+      }
       toast.success("Account created successfully!");
       navigate("/");
     }
