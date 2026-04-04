@@ -250,6 +250,8 @@ const Auth = () => {
                       )}
                     </div>
                   </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
                   <Input
