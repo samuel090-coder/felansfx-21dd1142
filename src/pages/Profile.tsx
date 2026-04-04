@@ -250,7 +250,10 @@ const Profile = () => {
               onSelectPreset={selectPreset}
             />
 
-            <Button className="w-full gradient-primary shadow-primary" onClick={() => navigate("/invite")}>
+            {/* Security: Phone & PIN */}
+            <SecuritySettings />
+
+            <Button className="w-full gradient-primary shadow-primary mt-4" onClick={() => navigate("/invite")}>
               <Share2 className="w-4 h-4 mr-2" />
               Invite friends
             </Button>

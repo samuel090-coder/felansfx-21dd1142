@@ -201,22 +201,44 @@ const Withdraw = () => {
       return;
     }
 
+    // Verify transaction PIN
+    if (!transactionPin || transactionPin.length !== 4) {
+      setPinError("Enter your 4-digit transaction PIN");
+      return;
+    }
+
     const withdrawAmount = parseFloat(amount);
     const minimumWithdrawal = calculateMinimumWithdrawal(wallet.balance);
 
-    // Check if amount meets minimum (hidden logic)
     if (withdrawAmount < minimumWithdrawal) {
       toast.error(`Minimum withdrawal amount is ${formatCurrency(minimumWithdrawal, "NGN", { decimals: 0 })}. Keep trading to unlock withdrawals!`);
       return;
     }
 
-    // Check if user has enough balance
     if (withdrawAmount > wallet.balance) {
       toast.error('Insufficient balance');
       return;
     }
 
     setSubmitting(true);
+    setPinError(null);
+
+    try {
+      // Verify PIN server-side
+      const { data: pinValid, error: pinErr } = await supabase.rpc("verify_transaction_pin", { p_pin: transactionPin });
+      if (pinErr) {
+        if (pinErr.message.includes("No transaction PIN set")) {
+          setPinError("No PIN set. Please set one in your Profile first.");
+          setSubmitting(false);
+          return;
+        }
+        throw pinErr;
+      }
+      if (!pinValid) {
+        setPinError("Incorrect PIN. Please try again.");
+        setSubmitting(false);
+        return;
+      }
 
     try {
       // First, save the bank account if not exists
