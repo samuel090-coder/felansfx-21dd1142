@@ -1242,6 +1242,8 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          phone_number: string | null
+          transaction_pin_hash: string | null
           updated_at: string
           user_id: string
         }
@@ -1253,6 +1255,8 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          phone_number?: string | null
+          transaction_pin_hash?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1264,6 +1268,8 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          phone_number?: string | null
+          transaction_pin_hash?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1712,6 +1718,7 @@ export type Database = {
         Returns: boolean
       }
       refresh_copy_leaders: { Args: never; Returns: undefined }
+      set_transaction_pin: { Args: { p_pin: string }; Returns: boolean }
       settle_binary_position: {
         Args: {
           p_close_reason?: string
@@ -1720,6 +1727,7 @@ export type Database = {
         }
         Returns: Json
       }
+      verify_transaction_pin: { Args: { p_pin: string }; Returns: boolean }
     }
     Enums: {
       analysis_trend: "bullish" | "bearish" | "neutral"
