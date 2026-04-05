@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, Wallet, Bot, BarChart3 } from "lucide-react";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -21,12 +22,22 @@ const Index = () => {
   const { wallet, loading: walletLoading } = useWallet();
   const { settings } = useAppSettings();
   const { requestPermission, permission, isSubscribed, subscribe, isLoading: pushLoading } = usePushNotifications();
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth", { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      const key = `onboarding_done_${user.id}`;
+      if (!localStorage.getItem(key)) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user && permission === "default") {
@@ -36,6 +47,13 @@ const Index = () => {
       return () => clearTimeout(timer);
     }
   }, [user, permission, requestPermission]);
+
+  const handleOnboardingComplete = () => {
+    if (user) {
+      localStorage.setItem(`onboarding_done_${user.id}`, "true");
+    }
+    setShowOnboarding(false);
+  };
 
   if (authLoading || walletLoading) {
     return <LoadingScreen />;
@@ -49,6 +67,7 @@ const Index = () => {
 
   return (
     <AppLayout>
+      {showOnboarding && <OnboardingTour onComplete={handleOnboardingComplete} />}
       <div className="px-4 pt-6 pb-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
