@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, Wallet, Bot, BarChart3 } from "lucide-react";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { useAppSettings } from "@/hooks/useAppSettings";
