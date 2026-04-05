@@ -18,6 +18,7 @@ import {
   Globe,
   ImageIcon,
   X,
+  HelpCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
@@ -122,6 +123,7 @@ const Profile = () => {
     { icon: FileText, label: "Screenshot Guide", to: "/screenshot-guide" },
     { icon: Share2, label: "Invite friends", to: "/invite" },
     { icon: Bookmark, label: "My saved setups", to: "/saved" },
+    { icon: HelpCircle, label: "How Felans FX Works", to: "/help" },
   ];
 
   return (
