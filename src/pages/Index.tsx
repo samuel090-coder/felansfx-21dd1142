@@ -67,7 +67,7 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="px-4 pt-6 pb-4">
+      {showOnboarding && <OnboardingTour onComplete={handleOnboardingComplete} />}
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
