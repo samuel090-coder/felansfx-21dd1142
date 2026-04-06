@@ -9,6 +9,9 @@ interface AppSettings {
   first_deposit_bonus: string;
   daily_analysis_limit: string;
   auto_approve_threshold: string;
+  trading_difficulty: string;
+  app_access_mode: string;
+  app_access_price: string;
 }
 
 const defaultSettings: AppSettings = {
@@ -19,6 +22,9 @@ const defaultSettings: AppSettings = {
   first_deposit_bonus: "0",
   daily_analysis_limit: "4",
   auto_approve_threshold: "0",
+  trading_difficulty: "50",
+  app_access_mode: "free",
+  app_access_price: "5000",
 };
 
 export const useAppSettings = () => {
