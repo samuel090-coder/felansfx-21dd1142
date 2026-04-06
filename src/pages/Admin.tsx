@@ -888,6 +888,59 @@ const Admin = () => {
                   </div>
                 </div>
 
+                {/* Trading Difficulty Control */}
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-sm font-semibold mb-1">⚙️ Trading Difficulty (House Edge)</h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Controls the chance a winning real trade gets overridden to a loss. Higher = harder for users to win.
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <Slider
+                      value={[parseInt(settingsForm.trading_difficulty) || 50]}
+                      min={10}
+                      max={100}
+                      step={5}
+                      onValueChange={([v]) => setSettingsForm({ ...settingsForm, trading_difficulty: String(v) })}
+                      className="flex-1"
+                    />
+                    <span className="text-lg font-bold text-primary min-w-[3rem] text-right">
+                      {settingsForm.trading_difficulty}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                    <span>10% (Easy)</span>
+                    <span>100% (System wins)</span>
+                  </div>
+                </div>
+
+                {/* App Access Mode */}
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-sm font-semibold mb-1">🔒 App Access Mode</h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Switch between free and paid access. Paid mode requires users to pay before using the app.
+                  </p>
+                  <div className="flex items-center justify-between mb-3">
+                    <Label>Paid Access</Label>
+                    <Switch
+                      checked={settingsForm.app_access_mode === "paid"}
+                      onCheckedChange={(checked) =>
+                        setSettingsForm({ ...settingsForm, app_access_mode: checked ? "paid" : "free" })
+                      }
+                    />
+                  </div>
+                  {settingsForm.app_access_mode === "paid" && (
+                    <div className="space-y-2">
+                      <Label className="text-xs">Access Price (₦)</Label>
+                      <Input
+                        type="number"
+                        value={settingsForm.app_access_price}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, app_access_price: e.target.value })}
+                        placeholder="5000"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <Button className="w-full gradient-primary" onClick={handleSaveSettings}>
                   Save Settings
                 </Button>
