@@ -68,32 +68,32 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/profile" element={<Profile />} />
               <Route path="/deposit" element={<Deposit />} />
-              <Route path="/analyze" element={<Analyze />} />
-              <Route path="/analysis/:id" element={<AnalysisResult />} />
-              <Route path="/history" element={<AnalysisHistory />} />
-              <Route path="/analysis/compare" element={<AnalysisCompare />} />
-              <Route path="/saved" element={<Saved />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/patterns" element={<Patterns />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/daily-streak" element={<DailyStreak />} />
-              <Route path="/screenshot-guide" element={<ScreenshotGuide />} />
-              <Route path="/trading" element={<Trading />} />
-              <Route path="/withdraw" element={<Withdraw />} />
-              <Route path="/invite" element={<Invite />} />
-              <Route path="/help" element={<Help />} />
-              <Route path="/school" element={<SchoolHub />} />
-              <Route path="/kyc" element={<KYC />} />
-              <Route path="/notification-settings" element={<NotificationSettings />} />
-              <Route path="/feed" element={<Feed />} />
-              <Route path="/trade/:id" element={<TradeDetail />} />
-              <Route path="/chat-rooms" element={<ChatRooms />} />
-              <Route path="/chat/:id" element={<ChatRoom />} />
-              <Route path="/send-funds" element={<SendFunds />} />
+              <Route path="/" element={<PaywallGate><Index /></PaywallGate>} />
+              <Route path="/profile" element={<PaywallGate><Profile /></PaywallGate>} />
+              <Route path="/analyze" element={<PaywallGate><Analyze /></PaywallGate>} />
+              <Route path="/analysis/:id" element={<PaywallGate><AnalysisResult /></PaywallGate>} />
+              <Route path="/history" element={<PaywallGate><AnalysisHistory /></PaywallGate>} />
+              <Route path="/analysis/compare" element={<PaywallGate><AnalysisCompare /></PaywallGate>} />
+              <Route path="/saved" element={<PaywallGate><Saved /></PaywallGate>} />
+              <Route path="/admin" element={<PaywallGate><Admin /></PaywallGate>} />
+              <Route path="/patterns" element={<PaywallGate><Patterns /></PaywallGate>} />
+              <Route path="/notifications" element={<PaywallGate><Notifications /></PaywallGate>} />
+              <Route path="/daily-streak" element={<PaywallGate><DailyStreak /></PaywallGate>} />
+              <Route path="/screenshot-guide" element={<PaywallGate><ScreenshotGuide /></PaywallGate>} />
+              <Route path="/trading" element={<PaywallGate><Trading /></PaywallGate>} />
+              <Route path="/withdraw" element={<PaywallGate><Withdraw /></PaywallGate>} />
+              <Route path="/invite" element={<PaywallGate><Invite /></PaywallGate>} />
+              <Route path="/help" element={<PaywallGate><Help /></PaywallGate>} />
+              <Route path="/school" element={<PaywallGate><SchoolHub /></PaywallGate>} />
+              <Route path="/kyc" element={<PaywallGate><KYC /></PaywallGate>} />
+              <Route path="/notification-settings" element={<PaywallGate><NotificationSettings /></PaywallGate>} />
+              <Route path="/feed" element={<PaywallGate><Feed /></PaywallGate>} />
+              <Route path="/trade/:id" element={<PaywallGate><TradeDetail /></PaywallGate>} />
+              <Route path="/chat-rooms" element={<PaywallGate><ChatRooms /></PaywallGate>} />
+              <Route path="/chat/:id" element={<PaywallGate><ChatRoom /></PaywallGate>} />
+              <Route path="/send-funds" element={<PaywallGate><SendFunds /></PaywallGate>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
