@@ -93,6 +93,9 @@ const Admin = () => {
     ai_bot_daily_price: "",
     ai_bot_6month_price: "",
     ai_bot_lifetime_price: "",
+    trading_difficulty: "50",
+    app_access_mode: "free",
+    app_access_price: "5000",
   });
   const [rejectReason, setRejectReason] = useState("");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
