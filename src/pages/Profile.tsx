@@ -158,6 +158,7 @@ const Profile = () => {
                 currentUrl={avatarUrl}
                 initials={initials}
                 onUpload={setAvatarUrl}
+                locked={kycStatus === "approved"}
               />
               <div>
                 <h2 className="text-xl font-display font-semibold">{userName}</h2>

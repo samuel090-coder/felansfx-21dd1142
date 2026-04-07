@@ -18,12 +18,14 @@ interface ProfilePictureUploadProps {
   currentUrl?: string | null;
   initials: string;
   onUpload: (url: string) => void;
+  locked?: boolean;
 }
 
 export const ProfilePictureUpload = ({
   currentUrl,
   initials,
   onUpload,
+  locked = false,
 }: ProfilePictureUploadProps) => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -137,12 +139,18 @@ export const ProfilePictureUpload = ({
             {initials}
           </AvatarFallback>
         </Avatar>
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:opacity-90 transition-opacity"
-        >
-          <Camera className="w-4 h-4" />
-        </button>
+        {locked ? (
+          <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shadow-lg" title="Locked — KYC verified">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+        ) : (
+          <button
+            onClick={() => inputRef.current?.click()}
+            className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:opacity-90 transition-opacity"
+          >
+            <Camera className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
