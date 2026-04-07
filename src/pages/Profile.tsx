@@ -51,6 +51,7 @@ const Profile = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const { bgUrl, uploading: bgUploading, uploadBackground, removeBackground, selectPreset } = useBackgroundImage();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
