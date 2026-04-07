@@ -108,8 +108,20 @@ export const PaywallGate = ({ children }: PaywallGateProps) => {
     }
   };
 
-  // Still loading
-  if (settingsLoading || hasAccess === null) return null;
+  // Not logged in → redirect to auth
+  if (!user) {
+    window.location.href = "/auth";
+    return null;
+  }
+
+  // Still loading settings or checking access
+  if (settingsLoading || hasAccess === null) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   // Has access
   if (hasAccess) return <>{children}</>;
