@@ -88,12 +88,13 @@ const Profile = () => {
 
       const { data: kyc } = await supabase
         .from("kyc_verifications")
-        .select("status, full_name, date_of_birth, id_number")
+        .select("status, full_name, date_of_birth, id_number, selfie_url")
         .eq("user_id", user.id)
         .maybeSingle();
       setKycStatus(kyc?.status || null);
       if (kyc?.status === "approved") {
         setKycData({ full_name: kyc.full_name, date_of_birth: kyc.date_of_birth, id_number: kyc.id_number });
+        if (kyc.selfie_url) setAvatarUrl(kyc.selfie_url);
       }
     };
     fetchUserData();
