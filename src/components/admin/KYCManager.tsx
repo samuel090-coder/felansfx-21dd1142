@@ -29,6 +29,12 @@ export const KYCManager = () => {
   const handleAction = async (id: string, userId: string, status: "approved" | "rejected") => {
     setActionLoading(id);
     try {
+      const { data: kycRecord } = await supabase
+        .from("kyc_verifications")
+        .select("full_name, selfie_url")
+        .eq("id", id)
+        .maybeSingle();
+
       await supabase
         .from("kyc_verifications")
         .update({
@@ -38,13 +44,26 @@ export const KYCManager = () => {
         })
         .eq("id", id);
 
+      // If approved, sync KYC name & selfie to profile
+      if (status === "approved" && kycRecord) {
+        const updates: Record<string, string> = {};
+        if (kycRecord.full_name) updates.full_name = kycRecord.full_name;
+        if (kycRecord.selfie_url) updates.avatar_url = kycRecord.selfie_url;
+        if (Object.keys(updates).length > 0) {
+          await supabase
+            .from("profiles")
+            .update(updates)
+            .eq("user_id", userId);
+        }
+      }
+
       // Notify user
       await supabase.from("notifications").insert({
         user_id: userId,
         title: status === "approved" ? "KYC Verified ✅" : "KYC Rejected ❌",
         message:
           status === "approved"
-            ? "Your identity has been verified! You can now withdraw funds."
+            ? "Your identity has been verified! Your profile has been updated with your verified name and photo."
             : `Your KYC was rejected. ${notes[id] || "Please resubmit with correct documents."}`,
         type: "kyc",
       });
