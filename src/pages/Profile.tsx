@@ -60,6 +60,13 @@ const Profile = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
+    if (!user) return;
+    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }).then(({ data }) => {
+      setIsAdmin(data === true);
+    });
+  }, [user]);
+
+  useEffect(() => {
     const fetchUserData = async () => {
       if (!user) return;
       
