@@ -168,7 +168,7 @@ const Profile = () => {
                   <p className="text-xs text-muted-foreground mt-0.5">DOB: {kycData.date_of_birth}</p>
                 )}
                 {kycStatus === "approved" && (
-                  <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium mt-1">
+                  <span className="inline-flex items-center gap-1 text-xs text-primary font-medium mt-1">
                     <ShieldCheck className="w-3 h-3" /> KYC Verified
                   </span>
                 )}
