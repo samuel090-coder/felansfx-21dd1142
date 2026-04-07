@@ -50,6 +50,7 @@ const Profile = () => {
   const [displayId, setDisplayId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [kycData, setKycData] = useState<{ full_name?: string | null; date_of_birth?: string | null; id_number?: string | null } | null>(null);
   const { bgUrl, uploading: bgUploading, uploadBackground, removeBackground, selectPreset } = useBackgroundImage();
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -87,10 +88,13 @@ const Profile = () => {
 
       const { data: kyc } = await supabase
         .from("kyc_verifications")
-        .select("status")
+        .select("status, full_name, date_of_birth, id_number")
         .eq("user_id", user.id)
         .maybeSingle();
       setKycStatus(kyc?.status || null);
+      if (kyc?.status === "approved") {
+        setKycData({ full_name: kyc.full_name, date_of_birth: kyc.date_of_birth, id_number: kyc.id_number });
+      }
     };
     fetchUserData();
   }, [user]);
@@ -121,7 +125,7 @@ const Profile = () => {
     return null;
   }
 
-  const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Trader";
+  const userName = kycData?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Trader";
   const initials = userName.slice(0, 2).toUpperCase();
 
   const menuItems = [
@@ -159,6 +163,14 @@ const Profile = () => {
                 <p className="text-sm text-muted-foreground">{user.email}</p>
                 {displayId && (
                   <p className="text-xs text-primary font-medium mt-1">ID: {displayId}</p>
+                )}
+                {kycData?.date_of_birth && (
+                  <p className="text-xs text-muted-foreground mt-0.5">DOB: {kycData.date_of_birth}</p>
+                )}
+                {kycStatus === "approved" && (
+                  <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium mt-1">
+                    <ShieldCheck className="w-3 h-3" /> KYC Verified
+                  </span>
                 )}
               </div>
             </div>
