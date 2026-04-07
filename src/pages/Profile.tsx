@@ -51,12 +51,20 @@ const Profile = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const { bgUrl, uploading: bgUploading, uploadBackground, removeBackground, selectPreset } = useBackgroundImage();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth", { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }).then(({ data }) => {
+      setIsAdmin(data === true);
+    });
+  }, [user]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -117,6 +125,7 @@ const Profile = () => {
   const initials = userName.slice(0, 2).toUpperCase();
 
   const menuItems = [
+    ...(isAdmin ? [{ icon: Settings, label: "⚡ Admin Panel", to: "/admin" }] : []),
     { icon: CreditCard, label: "Manage deposits", to: "/deposit" },
     { icon: ShieldCheck, label: kycStatus === "approved" ? "KYC Verified ✅" : "Verify Identity (KYC)", to: "/kyc" },
     { icon: Bell, label: "Notification Settings", to: "/notification-settings" },
