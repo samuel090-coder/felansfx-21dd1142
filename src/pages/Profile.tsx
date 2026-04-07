@@ -116,7 +116,19 @@ const Profile = () => {
   const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Trader";
   const initials = userName.slice(0, 2).toUpperCase();
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user) return;
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      setIsAdmin(data === true);
+    };
+    checkAdmin();
+  }, [user]);
+
   const menuItems = [
+    ...(isAdmin ? [{ icon: Settings, label: "⚡ Admin Panel", to: "/admin" }] : []),
     { icon: CreditCard, label: "Manage deposits", to: "/deposit" },
     { icon: ShieldCheck, label: kycStatus === "approved" ? "KYC Verified ✅" : "Verify Identity (KYC)", to: "/kyc" },
     { icon: Bell, label: "Notification Settings", to: "/notification-settings" },
