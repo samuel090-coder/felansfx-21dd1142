@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Camera, Upload, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -140,9 +141,18 @@ export const ProfilePictureUpload = ({
           </AvatarFallback>
         </Avatar>
         {locked ? (
-          <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shadow-lg" title="Locked — KYC verified">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shadow-lg cursor-help">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[200px] text-center">
+                <p className="text-xs">Your profile picture is locked because your identity has been verified through KYC.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ) : (
           <button
             onClick={() => inputRef.current?.click()}
