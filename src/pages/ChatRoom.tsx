@@ -137,6 +137,15 @@ const ChatRoom = () => {
           profs.forEach(p => { pm[p.user_id] = p; });
           setProfiles(prev => ({ ...prev, ...pm }));
         }
+        // Fetch KYC verification status
+        const { data: kycData } = await supabase.from("kyc_verifications").select("user_id").in("user_id", uids).eq("status", "approved");
+        if (kycData) {
+          setVerifiedUsers(prev => {
+            const next = new Set(prev);
+            kycData.forEach(k => next.add(k.user_id));
+            return next;
+          });
+        }
       }
     }
   };
