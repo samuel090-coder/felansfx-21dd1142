@@ -19,6 +19,7 @@ import {
   ImageIcon,
   X,
   HelpCircle,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
