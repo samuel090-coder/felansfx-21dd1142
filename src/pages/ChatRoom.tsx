@@ -448,7 +448,10 @@ const ChatRoom = () => {
           <AvatarFallback className="text-xs bg-primary/10 text-primary">{(profile?.full_name || "U")[0]}</AvatarFallback>
         </Avatar>
         <div className={`max-w-[80%] ${isMe ? 'items-end' : ''}`}>
-          <p className="text-[10px] text-muted-foreground mb-0.5 px-1">{profile?.full_name || profile?.display_id || "Trader"}</p>
+          <div className="flex items-center gap-1 mb-0.5 px-1">
+            <p className="text-[10px] text-muted-foreground">{profile?.full_name || profile?.display_id || "Trader"}</p>
+            {verifiedUsers.has(msg.user_id) && <ShieldCheck className="w-3 h-3 text-primary" />}
+          </div>
           <div className={`rounded-2xl overflow-hidden text-sm ${isSignal ? 'bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 px-3 py-2' : isMedia ? '' : isMe ? 'bg-primary text-primary-foreground px-3 py-2' : 'bg-muted px-3 py-2'}`}>
             {/* WhatsApp-style media card */}
             {isMedia && msg.media_type === "image" && (
