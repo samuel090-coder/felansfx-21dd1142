@@ -19,6 +19,7 @@ import {
   ImageIcon,
   X,
   HelpCircle,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
@@ -38,6 +39,7 @@ import { BackgroundSelector } from "@/components/profile/BackgroundSelector";
 import { SecuritySettings } from "@/components/profile/SecuritySettings";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -161,7 +163,21 @@ const Profile = () => {
                 locked={kycStatus === "approved"}
               />
               <div>
-                <h2 className="text-xl font-display font-semibold">{userName}</h2>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-xl font-display font-semibold">{userName}</h2>
+                  {kycStatus === "approved" && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Lock className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[200px] text-center">
+                          <p className="text-xs">Your display name is locked because your identity has been verified through KYC.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">{user.email}</p>
                 {displayId && (
                   <p className="text-xs text-primary font-medium mt-1">ID: {displayId}</p>
