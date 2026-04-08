@@ -28,6 +28,7 @@ const ChatRoom = () => {
   const [isMember, setIsMember] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<Record<string, any>>({});
+  const [verifiedUsers, setVerifiedUsers] = useState<Set<string>>(new Set());
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [showSignalGen, setShowSignalGen] = useState(false);
