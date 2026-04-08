@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Heart, MessageCircle, Share2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, ShieldCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -29,6 +29,7 @@ interface Props {
 export const PostCard = ({ post, onRefresh }: Props) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
+  const [isVerified, setIsVerified] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count);
   const [showComments, setShowComments] = useState(false);
@@ -38,6 +39,7 @@ export const PostCard = ({ post, onRefresh }: Props) => {
 
   useEffect(() => {
     supabase.from("profiles").select("full_name, display_id, avatar_url").eq("user_id", post.user_id).maybeSingle().then(({ data }) => setProfile(data));
+    supabase.from("kyc_verifications").select("status").eq("user_id", post.user_id).eq("status", "approved").maybeSingle().then(({ data }) => setIsVerified(!!data));
     if (user) {
       supabase.from("post_likes").select("id").eq("post_id", post.id).eq("user_id", user.id).maybeSingle().then(({ data }) => setLiked(!!data));
     }
@@ -62,8 +64,10 @@ export const PostCard = ({ post, onRefresh }: Props) => {
     if (data) {
       const userIds = [...new Set(data.map(c => c.user_id))];
       const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, display_id, avatar_url").in("user_id", userIds);
+      const { data: kycData } = await supabase.from("kyc_verifications").select("user_id, status").in("user_id", userIds).eq("status", "approved");
+      const verifiedSet = new Set((kycData || []).map(k => k.user_id));
       const profileMap = Object.fromEntries((profiles || []).map(p => [p.user_id, p]));
-      setComments(data.map(c => ({ ...c, profile: profileMap[c.user_id] })));
+      setComments(data.map(c => ({ ...c, profile: profileMap[c.user_id], isVerified: verifiedSet.has(c.user_id) })));
     }
   };
 
@@ -94,7 +98,10 @@ export const PostCard = ({ post, onRefresh }: Props) => {
           <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">{(profile?.full_name || "U")[0]}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <p className="font-semibold text-sm">{profile?.full_name || profile?.display_id || "Trader"}</p>
+          <div className="flex items-center gap-1">
+            <p className="font-semibold text-sm">{profile?.full_name || profile?.display_id || "Trader"}</p>
+            {isVerified && <ShieldCheck className="w-3.5 h-3.5 text-primary" />}
+          </div>
           <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</p>
         </div>
       </div>
@@ -146,10 +153,14 @@ export const PostCard = ({ post, onRefresh }: Props) => {
           {comments.map(c => (
             <div key={c.id} className="flex gap-2">
               <Avatar className="w-7 h-7">
+                <AvatarImage src={c.profile?.avatar_url} />
                 <AvatarFallback className="text-[10px] bg-muted">{(c.profile?.full_name || "U")[0]}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <p className="text-xs font-medium">{c.profile?.full_name || c.profile?.display_id || "Trader"}</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs font-medium">{c.profile?.full_name || c.profile?.display_id || "Trader"}</p>
+                  {c.isVerified && <ShieldCheck className="w-3 h-3 text-primary" />}
+                </div>
                 <p className="text-xs text-muted-foreground">{c.content}</p>
               </div>
             </div>

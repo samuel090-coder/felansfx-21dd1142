@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Send, Zap, Copy, Settings, Ban, Users, Camera, Image, TrendingUp, TrendingDown, Play, Coins, Share2, DollarSign, Target, Paperclip, FileText, Film, AlertTriangle, Flag } from "lucide-react";
+import { ArrowLeft, Send, Zap, Copy, Settings, Ban, Users, Camera, Image, TrendingUp, TrendingDown, Play, Coins, Share2, DollarSign, Target, Paperclip, FileText, Film, AlertTriangle, Flag, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ const ChatRoom = () => {
   const [isMember, setIsMember] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<Record<string, any>>({});
+  const [verifiedUsers, setVerifiedUsers] = useState<Set<string>>(new Set());
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [showSignalGen, setShowSignalGen] = useState(false);
@@ -136,6 +137,15 @@ const ChatRoom = () => {
           profs.forEach(p => { pm[p.user_id] = p; });
           setProfiles(prev => ({ ...prev, ...pm }));
         }
+        // Fetch KYC verification status
+        const { data: kycData } = await supabase.from("kyc_verifications").select("user_id").in("user_id", uids).eq("status", "approved");
+        if (kycData) {
+          setVerifiedUsers(prev => {
+            const next = new Set(prev);
+            kycData.forEach(k => next.add(k.user_id));
+            return next;
+          });
+        }
       }
     }
   };
@@ -143,6 +153,8 @@ const ChatRoom = () => {
   const loadProfileById = async (userId: string) => {
     const { data } = await supabase.from("profiles").select("user_id, full_name, display_id, avatar_url").eq("user_id", userId).maybeSingle();
     if (data) setProfiles(prev => ({ ...prev, [userId]: data }));
+    const { data: kyc } = await supabase.from("kyc_verifications").select("user_id").eq("user_id", userId).eq("status", "approved").maybeSingle();
+    if (kyc) setVerifiedUsers(prev => new Set(prev).add(userId));
   };
 
   const loadMembers = async () => {
@@ -436,7 +448,10 @@ const ChatRoom = () => {
           <AvatarFallback className="text-xs bg-primary/10 text-primary">{(profile?.full_name || "U")[0]}</AvatarFallback>
         </Avatar>
         <div className={`max-w-[80%] ${isMe ? 'items-end' : ''}`}>
-          <p className="text-[10px] text-muted-foreground mb-0.5 px-1">{profile?.full_name || profile?.display_id || "Trader"}</p>
+          <div className="flex items-center gap-1 mb-0.5 px-1">
+            <p className="text-[10px] text-muted-foreground">{profile?.full_name || profile?.display_id || "Trader"}</p>
+            {verifiedUsers.has(msg.user_id) && <ShieldCheck className="w-3 h-3 text-primary" />}
+          </div>
           <div className={`rounded-2xl overflow-hidden text-sm ${isSignal ? 'bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 px-3 py-2' : isMedia ? '' : isMe ? 'bg-primary text-primary-foreground px-3 py-2' : 'bg-muted px-3 py-2'}`}>
             {/* WhatsApp-style media card */}
             {isMedia && msg.media_type === "image" && (
