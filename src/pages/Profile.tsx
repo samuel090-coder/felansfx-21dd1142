@@ -39,6 +39,7 @@ import { BackgroundSelector } from "@/components/profile/BackgroundSelector";
 import { SecuritySettings } from "@/components/profile/SecuritySettings";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Profile = () => {
   const navigate = useNavigate();
