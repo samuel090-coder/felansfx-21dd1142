@@ -153,6 +153,8 @@ const ChatRoom = () => {
   const loadProfileById = async (userId: string) => {
     const { data } = await supabase.from("profiles").select("user_id, full_name, display_id, avatar_url").eq("user_id", userId).maybeSingle();
     if (data) setProfiles(prev => ({ ...prev, [userId]: data }));
+    const { data: kyc } = await supabase.from("kyc_verifications").select("user_id").eq("user_id", userId).eq("status", "approved").maybeSingle();
+    if (kyc) setVerifiedUsers(prev => new Set(prev).add(userId));
   };
 
   const loadMembers = async () => {
