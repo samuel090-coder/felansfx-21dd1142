@@ -64,6 +64,7 @@ export const PostCard = ({ post, onRefresh }: Props) => {
     } else {
       await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id });
       setLiked(true); setLikesCount(c => c + 1);
+      notifyPostAuthor("post_liked", post.user_id, user.id, post.id);
     }
   };
 
