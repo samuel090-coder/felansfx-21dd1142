@@ -758,6 +758,45 @@ export type Database = {
           },
         ]
       }
+      email_send_log: {
+        Row: {
+          created_at: string
+          email_type: string
+          error_message: string | null
+          id: string
+          payload: Json | null
+          provider_message_id: string | null
+          recipient_email: string
+          status: string
+          subject: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_type: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          provider_message_id?: string | null
+          recipient_email: string
+          status?: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          provider_message_id?: string | null
+          recipient_email?: string
+          status?: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       fund_transfers: {
         Row: {
           amount: number
