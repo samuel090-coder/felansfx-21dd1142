@@ -84,7 +84,9 @@ export const PostCard = ({ post, onRefresh }: Props) => {
 
   const submitComment = async () => {
     if (!user || !commentText.trim()) return;
-    await supabase.from("post_comments").insert({ post_id: post.id, user_id: user.id, content: commentText.trim() });
+    const text = commentText.trim();
+    await supabase.from("post_comments").insert({ post_id: post.id, user_id: user.id, content: text });
+    notifyPostAuthor("post_commented", post.user_id, user.id, post.id, { comment: text });
     setCommentText(""); loadComments();
   };
 
