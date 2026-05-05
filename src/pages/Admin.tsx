@@ -22,6 +22,7 @@ import {
   Flag,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { sendEmail } from "@/lib/sendEmail";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Header } from "@/components/layout/Header";
