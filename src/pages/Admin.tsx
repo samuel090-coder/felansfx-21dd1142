@@ -22,6 +22,7 @@ import {
   Flag,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { sendEmail } from "@/lib/sendEmail";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Header } from "@/components/layout/Header";
@@ -237,6 +238,16 @@ const Admin = () => {
 
       if (notifError) {
         console.error("Notification error:", notifError);
+      }
+
+      // Send branded EmailJS notification (fire-and-forget)
+      if (deposit.profiles?.email) {
+        sendEmail({
+          type: action === "approved" ? "deposit_approved" : "deposit_declined",
+          userEmail: deposit.profiles.email,
+          userId: deposit.user_id,
+          data: { amount: deposit.amount, reason },
+        });
       }
 
       toast.success(`Deposit ${action}`);

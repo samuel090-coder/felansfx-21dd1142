@@ -7,6 +7,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { TradePreviewCard } from "./TradePreviewCard";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { sendEmail } from "@/lib/sendEmail";
+
+async function notifyPostAuthor(type: "post_liked" | "post_commented", postUserId: string, fromUserId: string, postId: string, extra: Record<string, any> = {}) {
+  if (postUserId === fromUserId) return;
+  const { data: ownerProfile } = await supabase.from("profiles").select("email").eq("user_id", postUserId).maybeSingle();
+  if (!ownerProfile?.email) return;
+  sendEmail({ type, userEmail: ownerProfile.email, userId: fromUserId, shortId: postId, data: extra });
+}
 
 interface PostData {
   id: string;
@@ -56,6 +64,7 @@ export const PostCard = ({ post, onRefresh }: Props) => {
     } else {
       await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id });
       setLiked(true); setLikesCount(c => c + 1);
+      notifyPostAuthor("post_liked", post.user_id, user.id, post.id);
     }
   };
 
@@ -75,7 +84,9 @@ export const PostCard = ({ post, onRefresh }: Props) => {
 
   const submitComment = async () => {
     if (!user || !commentText.trim()) return;
-    await supabase.from("post_comments").insert({ post_id: post.id, user_id: user.id, content: commentText.trim() });
+    const text = commentText.trim();
+    await supabase.from("post_comments").insert({ post_id: post.id, user_id: user.id, content: text });
+    notifyPostAuthor("post_commented", post.user_id, user.id, post.id, { comment: text });
     setCommentText(""); loadComments();
   };
 
