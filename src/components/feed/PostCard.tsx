@@ -7,6 +7,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { TradePreviewCard } from "./TradePreviewCard";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { sendEmail } from "@/lib/sendEmail";
+
+async function notifyPostAuthor(type: "post_liked" | "post_commented", postUserId: string, fromUserId: string, postId: string, extra: Record<string, any> = {}) {
+  if (postUserId === fromUserId) return;
+  const { data: ownerProfile } = await supabase.from("profiles").select("email").eq("user_id", postUserId).maybeSingle();
+  if (!ownerProfile?.email) return;
+  sendEmail({ type, userEmail: ownerProfile.email, userId: fromUserId, shortId: postId, data: extra });
+}
 
 interface PostData {
   id: string;
