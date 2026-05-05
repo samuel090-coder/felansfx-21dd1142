@@ -192,37 +192,56 @@ const Profile = () => {
 
             {/* Avatar + Info */}
             <div className="flex items-center gap-4">
-              <div className={`relative ${isVerified ? 'ring-2 ring-primary-foreground/40 ring-offset-2 ring-offset-primary rounded-full' : ''}`}>
-                <ProfilePictureUpload
-                  currentUrl={avatarUrl}
-                  initials={initials}
-                  onUpload={setAvatarUrl}
-                  locked={isVerified}
-                />
+              <div className="relative shrink-0">
+                {isVerified && (
+                  <>
+                    {/* Soft glow halo */}
+                    <div className="absolute -inset-1.5 rounded-full bg-primary-foreground/20 blur-md" />
+                    {/* Rotating conic gradient ring */}
+                    <div className="absolute -inset-[3px] rounded-full bg-[conic-gradient(from_0deg,hsl(var(--primary-foreground))_0%,transparent_30%,hsl(var(--accent))_60%,transparent_90%,hsl(var(--primary-foreground))_100%)] opacity-80" />
+                    <div className="absolute inset-0 rounded-full bg-primary" />
+                  </>
+                )}
+                <div className="relative">
+                  <ProfilePictureUpload
+                    currentUrl={avatarUrl}
+                    initials={initials}
+                    onUpload={setAvatarUrl}
+                    locked={isVerified}
+                  />
+                </div>
+                {isVerified && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-gradient-to-br from-primary-foreground to-primary-foreground/90 border-2 border-primary flex items-center justify-center shadow-lg cursor-help">
+                          <BadgeCheck className="w-4 h-4 text-primary fill-primary-foreground" strokeWidth={2.5} />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[200px] text-center">
+                        <p className="text-xs">Identity verified through KYC</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h2 className="text-xl font-bold text-primary-foreground truncate">{userName}</h2>
-                  {isVerified && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <BadgeCheck className="w-5 h-5 text-primary-foreground shrink-0" />
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-[200px] text-center">
-                          <p className="text-xs">Identity verified through KYC — name and photo are locked.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
                 </div>
                 <p className="text-sm text-primary-foreground/70 truncate">{user.email}</p>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  {isVerified && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-primary bg-primary-foreground px-2 py-0.5 rounded-full shadow-sm">
+                      <ShieldCheck className="w-3 h-3" strokeWidth={2.5} />
+                      Verified
+                    </span>
+                  )}
                   {displayId && (
-                    <span className="text-xs font-mono text-primary-foreground/60 bg-primary-foreground/10 px-2 py-0.5 rounded-full">{displayId}</span>
+                    <span className="text-xs font-mono text-primary-foreground/70 bg-primary-foreground/10 px-2 py-0.5 rounded-full">{displayId}</span>
                   )}
                   {memberSince && (
-                    <span className="text-xs text-primary-foreground/50">Member since {memberSince}</span>
+                    <span className="text-xs text-primary-foreground/60">Since {memberSince}</span>
                   )}
                 </div>
               </div>
@@ -233,15 +252,26 @@ const Profile = () => {
         {/* Verified Celebration Banner */}
         {isVerified && (
           <div className="mx-4 -mt-6 relative z-20 mb-4">
-            <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/20 rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-primary-foreground" />
+            <div className="relative overflow-hidden bg-card border border-primary/20 rounded-2xl p-4 shadow-md">
+              {/* Decorative gradient stripe */}
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-accent" />
+              {/* Subtle background flourish */}
+              <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-primary/5 blur-2xl" />
+              <div className="relative flex items-center gap-3">
+                <div className="relative shrink-0">
+                  <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-md" />
+                  <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-primary">
+                    <BadgeCheck className="w-6 h-6 text-primary-foreground" strokeWidth={2.5} />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-foreground">Identity Verified</p>
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">Trusted member with full platform access</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Verified Account</p>
-                <p className="text-xs text-muted-foreground">Your identity is verified. Enjoy full platform features.</p>
-              </div>
-              <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
             </div>
           </div>
         )}
