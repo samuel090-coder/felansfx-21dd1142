@@ -239,6 +239,16 @@ const Admin = () => {
         console.error("Notification error:", notifError);
       }
 
+      // Send branded EmailJS notification (fire-and-forget)
+      if (deposit.profiles?.email) {
+        sendEmail({
+          type: action === "approved" ? "deposit_approved" : "deposit_declined",
+          userEmail: deposit.profiles.email,
+          userId: deposit.user_id,
+          data: { amount: deposit.amount, reason },
+        });
+      }
+
       toast.success(`Deposit ${action}`);
 
       // Open native email app with mailto: link (works on mobile!)
