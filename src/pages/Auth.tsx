@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { sendEmail } from "@/lib/sendEmail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,6 +84,16 @@ const Auth = () => {
       toast.error(error.message || "Failed to sign in");
     } else {
       toast.success("Welcome back!");
+      // Fire login alert email (non-blocking)
+      sendEmail({
+        type: "login_alert",
+        userEmail: values.email,
+        data: {
+          time: new Date().toLocaleString(),
+          device: navigator.userAgent.slice(0, 80),
+          location: "Unknown",
+        },
+      });
       navigate("/");
     }
   };
@@ -113,6 +124,12 @@ const Auth = () => {
       } catch (e) {
         console.error("Failed to save optional fields:", e);
       }
+      // Fire welcome email
+      sendEmail({
+        type: "account_created",
+        userEmail: values.email,
+        data: { name: values.fullName },
+      });
       toast.success("Account created successfully!");
       navigate("/");
     }
