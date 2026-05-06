@@ -767,7 +767,8 @@ const Admin = () => {
           </TabsContent>
 
           {/* Templates Tab */}
-          <TabsContent value="templates">
+          <TabsContent value="templates" className="space-y-6">
+            <EmailTester />
             <NotificationTemplates />
           </TabsContent>
 
