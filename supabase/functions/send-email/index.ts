@@ -336,6 +336,222 @@ const REGISTRY: Record<string, (c: Ctx) => { subject: string; title: string; bod
     body: `<p>Your VIP access expires on <strong>${escapeHtml(c.data.expires_at || "soon")}</strong>. Renew now to keep your perks.</p>`,
     cta: { label: "Renew VIP", url: `${APP_URL}/wallet` },
   }),
+
+  // ---- Account & Security ----
+  account_created: (c) => ({
+    subject: `Welcome to ${BRAND_NAME} 🎉`,
+    title: `Welcome aboard, ${escapeHtml(c.data.name || "trader")}!`,
+    body: `<p>Your ${BRAND_NAME} account is ready. Start exploring AI-powered chart analysis, demo trading, live signals, and a community of traders.</p>
+      <ul style="font-size:14px;color:#334155;padding-left:18px;">
+        <li>📈 Get AI analysis on any chart</li>
+        <li>💼 Practice with a free demo wallet</li>
+        <li>👥 Join trading rooms & copy top traders</li>
+      </ul>
+      <p style="color:#64748b;font-size:13px;">⚠️ Trading involves risk. Never invest more than you can afford to lose.</p>`,
+    cta: { label: "Open App", url: APP_URL },
+  }),
+  login_alert: (c) => ({
+    subject: "New sign-in to your account",
+    title: "New device signed in 🔐",
+    body: `<p>We noticed a new sign-in to your ${BRAND_NAME} account.</p>
+      <table style="width:100%;margin:12px 0;font-size:14px;color:#334155;">
+        <tr><td style="padding:4px 0;color:#64748b;">Device</td><td><strong>${escapeHtml(c.data.device || "Unknown")}</strong></td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;">Location</td><td><strong>${escapeHtml(c.data.location || "Unknown")}</strong></td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;">Time</td><td><strong>${escapeHtml(c.data.time || new Date().toLocaleString())}</strong></td></tr>
+      </table>
+      <p style="color:#dc2626;font-size:13px;">If this wasn't you, change your password immediately.</p>`,
+    cta: { label: "Secure Account", url: `${APP_URL}/profile` },
+  }),
+  password_changed: () => ({
+    subject: "Your password was changed",
+    title: "Password updated ✅",
+    body: `<p>Your account password was just changed. If you did not make this change, please contact support immediately.</p>`,
+    cta: { label: "Contact Support", url: `${APP_URL}/help` },
+  }),
+  pin_changed: () => ({
+    subject: "Your transaction PIN was changed",
+    title: "Transaction PIN updated 🔑",
+    body: `<p>Your withdrawal PIN was just updated. If this wasn't you, secure your account immediately.</p>`,
+    cta: { label: "Review Security", url: `${APP_URL}/profile` },
+  }),
+
+  // ---- KYC ----
+  kyc_submitted: () => ({
+    subject: "KYC submitted — under review",
+    title: "Verification received 📋",
+    body: `<p>Thanks for submitting your KYC documents. Our team is reviewing them and you'll hear back within 24–48 hours.</p>`,
+    cta: { label: "View Status", url: `${APP_URL}/kyc` },
+  }),
+  kyc_approved: (c) => ({
+    subject: "✅ KYC verified — you're approved!",
+    title: "You're verified! ✅",
+    body: `<p>Congratulations ${escapeHtml(c.data.name || "")}! Your identity has been verified. You now have a verified badge and full access to withdrawals and premium features.</p>`,
+    cta: { label: "View Profile", url: `${APP_URL}/profile` },
+  }),
+  kyc_rejected: (c) => ({
+    subject: "KYC verification needs attention",
+    title: "Verification couldn't be approved",
+    body: `<p>We couldn't verify your identity with the documents provided.</p>${c.data.reason ? `<p style="color:#dc2626;">Reason: ${escapeHtml(c.data.reason)}</p>` : ""}<p>Please re-submit with clearer documents.</p>`,
+    cta: { label: "Re-submit KYC", url: `${APP_URL}/kyc` },
+  }),
+
+  // ---- Trading ----
+  trade_won: (c) => ({
+    subject: `🎯 Trade won — +${fmtMoney(c.data.payout)}`,
+    title: "Winning trade! 🎯",
+    body: `<p>Your <strong>${escapeHtml(c.data.direction || "")}</strong> position on <strong>${escapeHtml(c.data.symbol || "")}</strong> closed in profit.</p>
+      <table style="width:100%;margin:12px 0;font-size:14px;">
+        <tr><td style="color:#64748b;padding:4px 0;">Stake</td><td><strong>${fmtMoney(c.data.stake)}</strong></td></tr>
+        <tr><td style="color:#64748b;padding:4px 0;">Payout</td><td style="color:#16a34a;"><strong>+${fmtMoney(c.data.payout)}</strong></td></tr>
+      </table>`,
+    cta: { label: "Trade Again", url: `${APP_URL}/trading` },
+  }),
+  trade_lost: (c) => ({
+    subject: `Trade closed — ${escapeHtml(c.data.symbol || "")}`,
+    title: "Trade didn't go your way",
+    body: `<p>Your <strong>${escapeHtml(c.data.direction || "")}</strong> position on <strong>${escapeHtml(c.data.symbol || "")}</strong> closed at a loss of <strong>${fmtMoney(c.data.stake)}</strong>.</p>
+      <p style="color:#64748b;font-size:13px;">Review your strategy and try again. Remember: never risk more than you can afford to lose.</p>`,
+    cta: { label: "View Trade History", url: `${APP_URL}/trading` },
+  }),
+  losing_streak_alert: (c) => ({
+    subject: "Take a breath — losing streak detected",
+    title: "Heads up — losing streak 💭",
+    body: `<p>You've had <strong>${c.data.count || 3}</strong> losing trades in a row. Consider taking a short break, reviewing your strategy, or switching to demo mode.</p>
+      <p style="color:#64748b;font-size:13px;">Discipline beats emotion. We're here to help you trade smart.</p>`,
+    cta: { label: "Open Demo Mode", url: `${APP_URL}/trading` },
+  }),
+
+  // ---- Signals & Copy Trading ----
+  signal_published: (c) => ({
+    subject: `📡 New signal: ${escapeHtml(c.data.symbol || "")} ${escapeHtml(c.data.direction || "")}`,
+    title: "New trading signal 📡",
+    body: `<p>A fresh signal just dropped:</p>
+      <table style="width:100%;margin:12px 0;font-size:14px;">
+        <tr><td style="color:#64748b;padding:4px 0;">Pair</td><td><strong>${escapeHtml(c.data.symbol || "")}</strong></td></tr>
+        <tr><td style="color:#64748b;padding:4px 0;">Direction</td><td><strong>${escapeHtml(c.data.direction || "")}</strong></td></tr>
+        <tr><td style="color:#64748b;padding:4px 0;">Entry</td><td><strong>${escapeHtml(c.data.entry || "")}</strong></td></tr>
+        <tr><td style="color:#64748b;padding:4px 0;">SL / TP</td><td><strong>${escapeHtml(c.data.sl || "—")} / ${escapeHtml(c.data.tp || "—")}</strong></td></tr>
+      </table>`,
+    cta: { label: "View Signal", url: `${APP_URL}/daily-streak` },
+  }),
+  signal_redeemed: (c) => ({
+    subject: "Signal code redeemed",
+    title: "Signal unlocked 🔓",
+    body: `<p>Your signal code <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;">${escapeHtml(c.data.code || "")}</code> has been redeemed successfully.</p>`,
+    cta: { label: "View Signal", url: `${APP_URL}/daily-streak` },
+  }),
+  copy_started: (c) => ({
+    subject: `You're now copying ${c.profile?.full_name || "a trader"}`,
+    title: "Copy trading active 🤝",
+    body: `${profileCard(c.profile)}<p>You're now automatically copying their trades with a fixed stake of <strong>${fmtMoney(c.data.amount)}</strong> per trade.</p>`,
+    cta: { label: "Manage Copies", url: `${APP_URL}/trading` },
+  }),
+  copy_stopped: (c) => ({
+    subject: `Stopped copying ${c.profile?.full_name || "trader"}`,
+    title: "Copy trading paused",
+    body: `${profileCard(c.profile)}<p>You've stopped copying this trader's signals.</p>`,
+    cta: { label: "Find New Traders", url: `${APP_URL}/trading` },
+  }),
+  copy_trade_executed: (c) => ({
+    subject: `Copied trade: ${escapeHtml(c.data.symbol || "")}`,
+    title: "Trade copied automatically 🔁",
+    body: `${profileCard(c.profile)}<p>A new <strong>${escapeHtml(c.data.direction || "")}</strong> trade on <strong>${escapeHtml(c.data.symbol || "")}</strong> was placed for <strong>${fmtMoney(c.data.stake)}</strong>.</p>`,
+    cta: { label: "View Position", url: `${APP_URL}/trading` },
+  }),
+
+  // ---- Subscription / Paywall ----
+  subscription_activated: (c) => ({
+    subject: "🎉 Subscription activated",
+    title: "Welcome to Premium 🎉",
+    body: `<p>Your <strong>${escapeHtml(c.data.plan || "Premium")}</strong> subscription is now active until <strong>${escapeHtml(c.data.expires_at || "soon")}</strong>.</p>
+      <p>Enjoy unlimited AI analysis, premium signals, advanced tools, and ad-free access.</p>`,
+    cta: { label: "Explore Premium", url: APP_URL },
+  }),
+  subscription_expired: (c) => ({
+    subject: "Your subscription has expired",
+    title: "Subscription ended ⌛",
+    body: `<p>Your <strong>${escapeHtml(c.data.plan || "Premium")}</strong> subscription has expired. Renew to keep premium features.</p>`,
+    cta: { label: "Renew Now", url: `${APP_URL}/wallet` },
+  }),
+
+  // ---- P2P Money Requests ----
+  money_request_received: (c) => ({
+    subject: `${c.profile?.full_name || "Someone"} requested ${fmtMoney(c.data.amount)}`,
+    title: "New money request 💰",
+    body: `${profileCard(c.profile)}<p>They are requesting <strong>${fmtMoney(c.data.amount)}</strong> from you${c.data.note ? ` — <em>"${escapeHtml(c.data.note)}"</em>` : ""}.</p>`,
+    cta: { label: "Review Request", url: `${APP_URL}/send-funds` },
+  }),
+  money_request_accepted: (c) => ({
+    subject: `${c.profile?.full_name || "User"} accepted your request`,
+    title: "Request accepted ✅",
+    body: `${profileCard(c.profile)}<p>You received <strong>${fmtMoney(c.data.amount)}</strong>.</p>`,
+    cta: { label: "View Wallet", url: `${APP_URL}/wallet` },
+  }),
+  money_request_declined: (c) => ({
+    subject: `${c.profile?.full_name || "User"} declined your request`,
+    title: "Request declined",
+    body: `${profileCard(c.profile)}<p>Your money request of <strong>${fmtMoney(c.data.amount)}</strong> was declined.</p>`,
+    cta: { label: "Open Wallet", url: `${APP_URL}/wallet` },
+  }),
+
+  // ---- Chat Rooms ----
+  room_join_request: (c) => ({
+    subject: `Join request for ${escapeHtml(c.data.room_name || "your room")}`,
+    title: "Someone wants to join 👋",
+    body: `${profileCard(c.profile)}<p>They are requesting to join <strong>${escapeHtml(c.data.room_name || "your room")}</strong>.</p>`,
+    cta: { label: "Review Request", url: `${APP_URL}/chat-rooms` },
+  }),
+  room_join_approved: (c) => ({
+    subject: `Welcome to ${escapeHtml(c.data.room_name || "the room")}!`,
+    title: "You're in 🎉",
+    body: `<p>Your request to join <strong>${escapeHtml(c.data.room_name || "the room")}</strong> was approved. Jump in and start chatting!</p>`,
+    cta: { label: "Open Room", url: `${APP_URL}/chat/${c.data.room_id || ""}` },
+  }),
+  room_join_declined: (c) => ({
+    subject: `Join request declined`,
+    title: "Request declined",
+    body: `<p>Your request to join <strong>${escapeHtml(c.data.room_name || "the room")}</strong> was declined.</p>`,
+    cta: { label: "Browse Rooms", url: `${APP_URL}/chat-rooms` },
+  }),
+
+  // ---- AI Analysis ----
+  analysis_ready: (c) => ({
+    subject: `AI analysis ready: ${escapeHtml(c.data.symbol || "your chart")}`,
+    title: "Your AI analysis is ready 🤖",
+    body: `<p>Your AI analysis on <strong>${escapeHtml(c.data.symbol || "your chart")}</strong> is complete. ${c.data.summary ? `<br><br><em>"${escapeHtml(c.data.summary.slice(0, 200))}…"</em>` : ""}</p>
+      <p style="color:#64748b;font-size:13px;">⚠️ AI analysis is not financial advice. Always do your own research.</p>`,
+    cta: { label: "View Analysis", url: `${APP_URL}/analysis-history` },
+  }),
+
+  // ---- Admin / Support ----
+  admin_broadcast: (c) => ({
+    subject: escapeHtml(c.data.subject || `Update from ${BRAND_NAME}`),
+    title: escapeHtml(c.data.title || `News from ${BRAND_NAME} 📣`),
+    body: `<div>${escapeHtml(c.data.message || "")}</div>`,
+    cta: c.data.cta_url ? { label: c.data.cta_label || "Open App", url: c.data.cta_url } : { label: "Open App", url: APP_URL },
+  }),
+  report_received: () => ({
+    subject: "Your report has been received",
+    title: "Report received 🛡️",
+    body: `<p>Thanks for keeping our community safe. Our team will review your report within 24 hours.</p>`,
+    cta: { label: "Open App", url: APP_URL },
+  }),
+  fraud_alert: (c) => ({
+    subject: "⚠️ Suspicious activity detected",
+    title: "Security alert 🚨",
+    body: `<p>We detected suspicious activity on your account: <strong>${escapeHtml(c.data.reason || "Unusual activity")}</strong>.</p><p>Please review your recent transactions and secure your account.</p>`,
+    cta: { label: "Review Account", url: `${APP_URL}/profile` },
+  }),
+
+  // ---- Test ----
+  test_email: (c) => ({
+    subject: `Test email from ${BRAND_NAME}`,
+    title: "Test email ✅",
+    body: `<p>This is a test email sent from the ${BRAND_NAME} admin panel at <strong>${escapeHtml(new Date().toLocaleString())}</strong>.</p>
+      <p>If you received this, your EmailJS integration is working correctly! 🎉</p>
+      ${c.data.note ? `<blockquote style="margin:12px 0;padding:12px 16px;background:#f8fafc;border-left:3px solid ${BRAND_PRIMARY};border-radius:6px;">${escapeHtml(c.data.note)}</blockquote>` : ""}`,
+    cta: { label: "Open Dashboard", url: APP_URL },
+  }),
 };
 
 async function buildEmail(type: string, recipientEmail: string, data: any, supabase: any, userId?: string, shortId?: string) {

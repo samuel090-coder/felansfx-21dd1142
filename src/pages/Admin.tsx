@@ -42,6 +42,7 @@ import { formatCurrency } from "@/lib/currency";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminAnalytics } from "@/components/admin/AdminAnalytics";
 import { NotificationTemplates } from "@/components/admin/NotificationTemplates";
+import { EmailTester } from "@/components/admin/EmailTester";
 import { PushNotificationManager } from "@/components/admin/PushNotificationManager";
 import { RecommendedToolsManager } from "@/components/admin/RecommendedToolsManager";
 import { DailyStreakManager } from "@/components/admin/DailyStreakManager";
@@ -767,7 +768,8 @@ const Admin = () => {
           </TabsContent>
 
           {/* Templates Tab */}
-          <TabsContent value="templates">
+          <TabsContent value="templates" className="space-y-6">
+            <EmailTester />
             <NotificationTemplates />
           </TabsContent>
 
