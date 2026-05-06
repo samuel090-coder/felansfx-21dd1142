@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { sendEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
 
 export const SecuritySettings = () => {
@@ -59,6 +60,14 @@ export const SecuritySettings = () => {
       toast.error(error.message);
     } else {
       toast.success(hasPin ? "PIN updated" : "PIN set successfully");
+      if (user?.email) {
+        sendEmail({
+          type: "pin_changed",
+          userEmail: user.email,
+          userId: user.id,
+          data: { time: new Date().toLocaleString() },
+        });
+      }
       setHasPin(true);
       setNewPin("");
       setConfirmPin("");

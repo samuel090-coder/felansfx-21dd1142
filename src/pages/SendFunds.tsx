@@ -12,6 +12,7 @@ import { ArrowLeft, Send, Search, ArrowUpRight, ArrowDownLeft, Clock } from "luc
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { sendEmail } from "@/lib/sendEmail";
 import { formatDistanceToNow } from "date-fns";
 
 const SendFunds = () => {
@@ -124,6 +125,19 @@ const SendFunds = () => {
 
       refetchWallet();
       toast.success(`₦${amt.toLocaleString()} sent to ${selectedUser.full_name || selectedUser.display_id}!`);
+
+      // Email both parties
+      try {
+        const { data: senderProfile } = await supabase.from("profiles").select("email, full_name").eq("user_id", user.id).maybeSingle();
+        const { data: receiverProfile } = await supabase.from("profiles").select("email, full_name").eq("user_id", selectedUser.user_id).maybeSingle();
+        if (senderProfile?.email) {
+          sendEmail({ type: "p2p_sent", userEmail: senderProfile.email, userId: user.id, data: { amount: amt, name: receiverProfile?.full_name || selectedUser.full_name, note } });
+        }
+        if (receiverProfile?.email) {
+          sendEmail({ type: "p2p_received", userEmail: receiverProfile.email, userId: selectedUser.user_id, data: { amount: amt, name: senderProfile?.full_name || "A user", note } });
+        }
+      } catch {}
+
       setSelectedUser(null);
       setAmount("");
       setNote("");
@@ -147,6 +161,20 @@ const SendFunds = () => {
         await supabase.functions.invoke("notify-activity", {
           body: { type: "money_request", target_user_id: requestTarget.user_id, amount: amt, note: requestNote.trim() || null },
         });
+      } catch {}
+
+      // Email target
+      try {
+        const { data: targetProfile } = await supabase.from("profiles").select("email").eq("user_id", requestTarget.user_id).maybeSingle();
+        const { data: meProfile } = await supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle();
+        if (targetProfile?.email) {
+          sendEmail({
+            type: "money_request_received",
+            userEmail: targetProfile.email,
+            userId: requestTarget.user_id,
+            data: { amount: amt, name: meProfile?.full_name || "A user", note: requestNote },
+          });
+        }
       } catch {}
 
       toast.success("Money request sent!");
@@ -193,6 +221,21 @@ const SendFunds = () => {
     } catch {}
 
     toast.success(accept ? "Payment sent!" : "Request declined");
+
+    // Email requester
+    try {
+      const { data: reqProfile } = await supabase.from("profiles").select("email").eq("user_id", req.requester_id).maybeSingle();
+      const { data: meProfile } = await supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle();
+      if (reqProfile?.email) {
+        sendEmail({
+          type: accept ? "money_request_accepted" : "money_request_declined",
+          userEmail: reqProfile.email,
+          userId: req.requester_id,
+          data: { amount: req.amount, name: meProfile?.full_name || "A user" },
+        });
+      }
+    } catch {}
+
     loadRequests();
     loadHistory();
   };

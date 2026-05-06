@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase, uploadFile } from "@/lib/supabase";
+import { sendEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 
@@ -97,6 +98,14 @@ const KYC = () => {
       }
 
       toast.success("KYC submitted for review!");
+      if (user.email) {
+        sendEmail({
+          type: "kyc_submitted",
+          userEmail: user.email,
+          userId: user.id,
+          data: { name: fullName },
+        });
+      }
       const { data } = await supabase
         .from("kyc_verifications")
         .select("*")

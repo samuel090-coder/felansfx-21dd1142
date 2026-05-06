@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { sendEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Eye, Loader2 } from "lucide-react";
 
@@ -33,6 +34,12 @@ export const KYCManager = () => {
         .from("kyc_verifications")
         .select("full_name, selfie_url")
         .eq("id", id)
+        .maybeSingle();
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email, full_name")
+        .eq("user_id", userId)
         .maybeSingle();
 
       await supabase
@@ -67,6 +74,19 @@ export const KYCManager = () => {
             : `Your KYC was rejected. ${notes[id] || "Please resubmit with correct documents."}`,
         type: "kyc",
       });
+
+      // Email user
+      if (profile?.email) {
+        sendEmail({
+          type: status === "approved" ? "kyc_approved" : "kyc_rejected",
+          userEmail: profile.email,
+          userId,
+          data: {
+            name: profile.full_name || kycRecord?.full_name,
+            reason: notes[id] || "Please resubmit with correct documents.",
+          },
+        });
+      }
 
       toast.success(`KYC ${status}`);
       fetchRequests();
