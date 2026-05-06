@@ -8,10 +8,19 @@ export type EmailType =
   | "new_follower" | "profile_viewed" | "post_liked" | "post_commented"
   | "post_shared" | "comment_reply" | "comment_liked" | "mentioned_in_comment"
   | "milestone_followers"
-  | "room_invite" | "room_tagged"
+  | "room_invite" | "room_tagged" | "room_join_request" | "room_join_approved" | "room_join_declined"
   | "level_up" | "challenge_completed" | "streak_milestone"
   | "wallet_credit" | "wallet_debit" | "p2p_received" | "p2p_sent"
-  | "weekly_summary" | "referral_bonus" | "referral_milestone" | "vip_expiring";
+  | "money_request_received" | "money_request_accepted" | "money_request_declined"
+  | "weekly_summary" | "referral_bonus" | "referral_milestone" | "vip_expiring"
+  | "account_created" | "login_alert" | "password_changed" | "pin_changed"
+  | "kyc_submitted" | "kyc_approved" | "kyc_rejected"
+  | "trade_won" | "trade_lost" | "losing_streak_alert"
+  | "signal_published" | "signal_redeemed"
+  | "copy_started" | "copy_stopped" | "copy_trade_executed"
+  | "subscription_activated" | "subscription_expired"
+  | "analysis_ready" | "admin_broadcast" | "report_received" | "fraud_alert"
+  | "test_email";
 
 export interface SendEmailArgs {
   type: EmailType;
