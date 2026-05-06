@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
+import { sendEmail } from "@/lib/sendEmail";
 import { Loader2, Search, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
 
 interface Withdrawal {
@@ -137,6 +138,20 @@ export const WithdrawalManager = () => {
         .eq('id', selectedWithdrawal.id);
 
       if (error) throw error;
+
+      // Email user about result
+      if (selectedWithdrawal.profiles?.email && (newStatus === 'completed' || newStatus === 'rejected')) {
+        sendEmail({
+          type: newStatus === 'completed' ? "withdrawal_approved" : "withdrawal_declined",
+          userEmail: selectedWithdrawal.profiles.email,
+          userId: selectedWithdrawal.user_id,
+          data: {
+            amount: selectedWithdrawal.amount,
+            reason: adminNotes,
+            reference: selectedWithdrawal.id.slice(0, 8).toUpperCase(),
+          },
+        });
+      }
 
       toast.success(`Withdrawal ${newStatus}`);
       setDialogOpen(false);
