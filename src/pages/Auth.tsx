@@ -314,6 +314,7 @@ const Auth = () => {
         By continuing, you agree to our Terms of Service and Privacy Policy
       </p>
     </div>
+    </>
   );
 };
 
