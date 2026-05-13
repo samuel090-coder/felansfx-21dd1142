@@ -144,6 +144,12 @@ const Auth = () => {
   }
 
   return (
+    <>
+      <Seo
+        title="Sign in or Create Account — Felans FX"
+        description="Sign in or create your Felans FX account to access AI trade analysis, live trading and daily signals."
+        path="/auth"
+      />
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-secondary to-background">
       {/* Logo */}
       <div className="flex items-center gap-2 mb-8">

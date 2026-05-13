@@ -77,6 +77,11 @@ const Patterns = () => {
 
   return (
     <AppLayout>
+      <Seo
+        title="Chart Patterns Learning Hub — Felans FX"
+        description="Learn classic chart, candlestick and price-action patterns used by professional forex and crypto traders."
+        path="/patterns"
+      />
       <Header title="Patterns" showBack />
 
       <div className="px-4 py-4">
