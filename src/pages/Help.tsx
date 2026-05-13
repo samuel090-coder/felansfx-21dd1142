@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, TrendingUp, BarChart3, Users, MessageSquare, Wallet, Shield, Bell, Brain, Gamepad2, Share2, Globe, Palette, Lock, Send, FileText, Crown, Zap, Target, BookOpen } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -299,6 +300,23 @@ const Help = () => {
 
   return (
     <AppLayout>
+      <Seo
+        title="Help & FAQ — Felans FX"
+        description="Learn how Felans FX works: AI chart analysis, live trading, signals, wallet, KYC, referrals and more."
+        path="/help"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: sections.map((s) => ({
+            "@type": "Question",
+            name: `What is ${s.title}?`,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: s.content.filter((l) => l).join(" ").replace(/\*\*/g, ""),
+            },
+          })),
+        }}
+      />
       <div className="px-4 pt-4 pb-8">
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
