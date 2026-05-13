@@ -21,6 +21,7 @@ import { AITradingAssistant } from "@/components/trading/AITradingAssistant";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { supabase } from "@/lib/supabase";
+import { sendEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
 import { Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -278,6 +279,24 @@ const Trading = () => {
         setActivePositions(prev => prev.filter(p => p.id !== positionId));
         refetchDemo();
         refetchWallet();
+
+        // Real-account trade outcome email
+        if (accountType === "real" && user?.email) {
+          sendEmail({
+            type: isWin ? "trade_won" : "trade_lost",
+            userEmail: user.email,
+            userId: user.id,
+            data: {
+              symbol: position.symbol,
+              direction: position.trade_type,
+              amount: position.amount,
+              pnl: Math.abs(pnl),
+              credited,
+              entry_price: position.entry_price,
+              exit_price: exitPrice,
+            },
+          });
+        }
       } catch (err) {
         console.error("Settlement exception:", err);
         setActivePositions(prev => prev.filter(p => p.id !== positionId));

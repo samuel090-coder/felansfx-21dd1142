@@ -124,6 +124,38 @@ Deno.serve(async (req) => {
         action_url: "/trading",
       });
 
+      // Email follower that a copy trade was executed
+      try {
+        const { data: followerProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("email, full_name")
+          .eq("user_id", followerId)
+          .maybeSingle();
+        const { data: leaderProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("full_name, display_id")
+          .eq("user_id", leader_id)
+          .maybeSingle();
+        if (followerProfile?.email) {
+          await supabaseAdmin.functions.invoke("send-email", {
+            body: {
+              type: "copy_trade_executed",
+              userEmail: followerProfile.email,
+              userId: followerId,
+              data: {
+                leader_name: leaderProfile?.full_name || leaderProfile?.display_id || "Trader",
+                symbol,
+                direction: trade_type,
+                entry_price,
+                amount: fixedAmount,
+              },
+            },
+          });
+        }
+      } catch (emailErr) {
+        console.warn("copy trade email failed:", emailErr);
+      }
+
       results.push({
         follower_id: followerId,
         status: "success",

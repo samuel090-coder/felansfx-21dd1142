@@ -102,6 +102,20 @@ const ChatRooms = () => {
       await supabase.from("room_join_requests").upsert({ room_id: room.id, user_id: user.id, status: "pending" }, { onConflict: "room_id,user_id" });
       setMyRequests(prev => ({ ...prev, [room.id]: "pending" }));
       toast.success("Join request sent! Wait for approval.");
+      // Notify the room creator that a join request came in
+      try {
+        const { data: creator } = await supabase.from("profiles").select("email, full_name").eq("user_id", room.created_by).maybeSingle();
+        const { data: requester } = await supabase.from("profiles").select("full_name, display_id").eq("user_id", user.id).maybeSingle();
+        if (creator?.email) {
+          const { sendEmail } = await import("@/lib/sendEmail");
+          sendEmail({
+            type: "room_join_request",
+            userEmail: creator.email,
+            userId: room.created_by,
+            data: { room_name: room.name, requester_name: requester?.full_name || requester?.display_id || "A trader" },
+          });
+        }
+      } catch {}
       setJoiningRoom(null);
       return;
     }

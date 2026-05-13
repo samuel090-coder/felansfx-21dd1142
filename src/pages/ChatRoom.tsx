@@ -249,6 +249,19 @@ const ChatRoom = () => {
     } else {
       toast.success("Request declined");
     }
+    // Email the requester
+    try {
+      const { data: requester } = await supabase.from("profiles").select("email, full_name").eq("user_id", userId).maybeSingle();
+      if (requester?.email) {
+        const { sendEmail } = await import("@/lib/sendEmail");
+        sendEmail({
+          type: approve ? "room_join_approved" : "room_join_declined",
+          userEmail: requester.email,
+          userId,
+          data: { room_name: room?.name, room_id: roomId },
+        });
+      }
+    } catch {}
     loadMembers();
   };
 
