@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Crown, TrendingUp, TrendingDown, Zap, Bot, Rocket, Target, AlertTriangle, DollarSign, Newspaper, Calendar, Lightbulb, Play } from "lucide-react";
