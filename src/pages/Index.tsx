@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, Wallet, Bot, BarChart3 } from "lucide-react";
@@ -67,6 +68,11 @@ const Index = () => {
 
   return (
     <AppLayout>
+      <Seo
+        title="Felans FX — AI Forex & Crypto Trade Analysis"
+        description="Your dashboard for AI chart analysis, live binary options trading, daily signals, and a community feed for forex and crypto traders."
+        path="/"
+      />
       {showOnboarding && <OnboardingTour onComplete={handleOnboardingComplete} />}
       <div className="px-4 pt-6 pb-4">
         {/* Header */}

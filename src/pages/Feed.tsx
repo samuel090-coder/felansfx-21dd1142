@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,6 +39,11 @@ const Feed = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      <Seo
+        title="Community Feed — Felans FX"
+        description="See trade ideas, results and discussion from the Felans FX trading community."
+        path="/feed"
+      />
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border p-4 flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="w-5 h-5" /></Button>

@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -144,6 +145,12 @@ const Auth = () => {
   }
 
   return (
+    <>
+      <Seo
+        title="Sign in or Create Account — Felans FX"
+        description="Sign in or create your Felans FX account to access AI trade analysis, live trading and daily signals."
+        path="/auth"
+      />
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-secondary to-background">
       {/* Logo */}
       <div className="flex items-center gap-2 mb-8">
@@ -308,6 +315,7 @@ const Auth = () => {
         By continuing, you agree to our Terms of Service and Privacy Policy
       </p>
     </div>
+    </>
   );
 };
 

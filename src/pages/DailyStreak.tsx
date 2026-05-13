@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Crown, TrendingUp, TrendingDown, Zap, Bot, Rocket, Target, AlertTriangle, DollarSign, Newspaper, Calendar, Lightbulb, Play } from "lucide-react";
@@ -265,6 +266,11 @@ const DailyStreak = () => {
   if (hasUnlocked) {
     return (
       <AppLayout>
+        <Seo
+          title="Daily Signals & Market News — Felans FX"
+          description="Daily forex and crypto signals, market news, and trading guides curated for active traders."
+          path="/daily-streak"
+        />
         <div className="px-4 pt-6 pb-24">
           <div className="flex items-center gap-2 mb-6">
             <Crown className="w-6 h-6 text-primary" />

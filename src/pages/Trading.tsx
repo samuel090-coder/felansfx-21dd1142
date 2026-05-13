@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -320,6 +321,11 @@ const Trading = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Seo
+        title="Live Trading Room — Felans FX"
+        description="Trade binary options on forex, crypto, and metals using real or demo wallets with live charts, signals and AI-assisted setups."
+        path="/trading"
+      />
       {/* Header with account switcher */}
       <TradingHeader
         demoBalance={demoWallet?.balance || 10000}

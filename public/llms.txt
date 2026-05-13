@@ -1,0 +1,25 @@
+# Felans FX
+
+> AI-powered forex and crypto trade analysis platform with chart analysis, live binary options trading, signals, and a community feed.
+
+Felans FX helps traders submit chart screenshots for AI analysis (entry, stop loss, take profit), practice on a live demo trading room, follow daily signals, and share trades with a community. Built for scalping and swing trading on forex and crypto pairs.
+
+## Pages
+
+- [Home](/): Dashboard with wallet balance, quick actions, and AI/live trading entry points.
+- [AI Analysis](/analyze): Upload a chart and get AI-generated trade analysis.
+- [Live Trading](/trading): Binary options trading room with real and demo wallets.
+- [Daily Streak](/daily-streak): Daily signals, market news, and trader guides.
+- [Patterns Learning Hub](/patterns): Educational chart pattern library.
+- [Community Feed](/feed): Public posts and trade sharing from other traders.
+- [Help](/help): Frequently asked questions and support guidance.
+- [Sign in](/auth): Account login and signup.
+
+## Optional
+
+- [Saved](/saved): User's bookmarked analyses.
+- [History](/history): Past AI analyses.
+- [Profile](/profile): User settings and KYC.
+- [Deposit](/deposit): Add funds to the wallet.
+- [Withdraw](/withdraw): Withdraw funds.
+- [Invite](/invite): Referral program.

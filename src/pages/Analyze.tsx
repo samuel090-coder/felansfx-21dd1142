@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, AlertTriangle, Check } from "lucide-react";
@@ -183,6 +184,11 @@ const Analyze = () => {
 
   return (
     <AppLayout hideNav>
+      <Seo
+        title="AI Chart Analysis — Felans FX"
+        description="Upload a forex or crypto chart screenshot and receive AI-generated entry, stop loss, take profit and risk-reward in seconds."
+        path="/analyze"
+      />
       <Header title="Trade Setup" showBack />
 
       <div className="px-4 py-4">
