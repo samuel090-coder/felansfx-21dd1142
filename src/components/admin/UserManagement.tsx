@@ -536,6 +536,67 @@ The FelansFX Team
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Credit Balance Dialog */}
+      <Dialog open={creditDialogOpen} onOpenChange={setCreditDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary" />
+              Credit User Balance
+            </DialogTitle>
+            <DialogDescription>
+              Top up {creditTarget?.full_name || "this user"}'s wallet
+            </DialogDescription>
+          </DialogHeader>
+
+          {creditTarget && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="text-sm font-medium">{creditTarget.full_name || "Unknown"}</p>
+                <p className="text-xs text-muted-foreground">{creditTarget.email}</p>
+                {creditTarget.display_id && (
+                  <p className="text-xs text-primary">{creditTarget.display_id}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 block">Amount (NGN)</label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="any"
+                  placeholder="e.g. 5000"
+                  value={creditAmount}
+                  onChange={(e) => setCreditAmount(e.target.value)}
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This will be added to the user's real wallet balance immediately.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setCreditDialogOpen(false)}
+                  disabled={crediting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 gradient-primary"
+                  onClick={handleCreditBalance}
+                  disabled={crediting || !creditAmount}
+                >
+                  {crediting ? "Crediting..." : "Credit Balance"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
