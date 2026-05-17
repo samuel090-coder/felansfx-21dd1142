@@ -26,6 +26,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
+import { sendEmail } from "@/lib/sendEmail";
 
 interface UserProfile {
   id: string;
