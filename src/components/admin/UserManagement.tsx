@@ -99,6 +99,10 @@ export const UserManagement = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [welcomeDialogOpen, setWelcomeDialogOpen] = useState(false);
   const [welcomeTarget, setWelcomeTarget] = useState<UserProfile | null>(null);
+  const [creditDialogOpen, setCreditDialogOpen] = useState(false);
+  const [creditTarget, setCreditTarget] = useState<UserProfile | null>(null);
+  const [creditAmount, setCreditAmount] = useState("");
+  const [crediting, setCrediting] = useState(false);
 
   const fetchUsers = async () => {
     try {
