@@ -9,6 +9,7 @@ import {
   Eye,
   BarChart3,
   MessageSquare,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,6 +99,10 @@ export const UserManagement = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [welcomeDialogOpen, setWelcomeDialogOpen] = useState(false);
   const [welcomeTarget, setWelcomeTarget] = useState<UserProfile | null>(null);
+  const [creditDialogOpen, setCreditDialogOpen] = useState(false);
+  const [creditTarget, setCreditTarget] = useState<UserProfile | null>(null);
+  const [creditAmount, setCreditAmount] = useState("");
+  const [crediting, setCrediting] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -224,6 +229,40 @@ export const UserManagement = () => {
     toast.success("Email client opened with welcome message");
   };
 
+  const handleOpenCredit = (user: UserProfile) => {
+    setCreditTarget(user);
+    setCreditAmount("");
+    setCreditDialogOpen(true);
+  };
+
+  const handleCreditBalance = async () => {
+    if (!creditTarget) return;
+    const amt = parseFloat(creditAmount);
+    if (!amt || amt <= 0) {
+      toast.error("Enter a valid amount");
+      return;
+    }
+    setCrediting(true);
+    try {
+      const { error } = await supabase.rpc("credit_user_wallet", {
+        p_user_id: creditTarget.user_id,
+        p_amount: amt,
+      });
+      if (error) throw error;
+      toast.success(`Credited ₦${amt.toLocaleString()} to ${creditTarget.full_name || "user"}`);
+      setCreditDialogOpen(false);
+      setCreditTarget(null);
+      setCreditAmount("");
+      if (selectedUser?.profile.user_id === creditTarget.user_id) {
+        handleViewUser(creditTarget);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to credit wallet");
+    } finally {
+      setCrediting(false);
+    }
+  };
+
   const filteredUsers = users.filter(
     (user) =>
       user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -300,6 +339,14 @@ export const UserManagement = () => {
                     title="Send Email"
                   >
                     <Mail className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleOpenCredit(user)}
+                    title="Credit Balance"
+                  >
+                    <Plus className="w-4 h-4 text-green-600" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -483,6 +530,67 @@ The FelansFX Team
                 >
                   <Mail className="w-4 h-4 mr-2" />
                   Open in Email
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Credit Balance Dialog */}
+      <Dialog open={creditDialogOpen} onOpenChange={setCreditDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary" />
+              Credit User Balance
+            </DialogTitle>
+            <DialogDescription>
+              Top up {creditTarget?.full_name || "this user"}'s wallet
+            </DialogDescription>
+          </DialogHeader>
+
+          {creditTarget && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="text-sm font-medium">{creditTarget.full_name || "Unknown"}</p>
+                <p className="text-xs text-muted-foreground">{creditTarget.email}</p>
+                {creditTarget.display_id && (
+                  <p className="text-xs text-primary">{creditTarget.display_id}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 block">Amount (NGN)</label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="any"
+                  placeholder="e.g. 5000"
+                  value={creditAmount}
+                  onChange={(e) => setCreditAmount(e.target.value)}
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This will be added to the user's real wallet balance immediately.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setCreditDialogOpen(false)}
+                  disabled={crediting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 gradient-primary"
+                  onClick={handleCreditBalance}
+                  disabled={crediting || !creditAmount}
+                >
+                  {crediting ? "Crediting..." : "Credit Balance"}
                 </Button>
               </div>
             </div>
