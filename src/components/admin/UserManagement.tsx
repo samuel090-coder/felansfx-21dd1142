@@ -26,6 +26,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
+import { sendEmail } from "@/lib/sendEmail";
 
 interface UserProfile {
   id: string;
@@ -250,6 +251,20 @@ export const UserManagement = () => {
       });
       if (error) throw error;
       toast.success(`Credited ₦${amt.toLocaleString()} to ${creditTarget.full_name || "user"}`);
+
+      // Notify user via email
+      if (creditTarget.email) {
+        sendEmail({
+          type: "wallet_credit",
+          userEmail: creditTarget.email,
+          userId: creditTarget.user_id,
+          data: {
+            amount: amt,
+            name: creditTarget.full_name || "Trader",
+            reason: "Admin credit",
+          },
+        });
+      }
       setCreditDialogOpen(false);
       setCreditTarget(null);
       setCreditAmount("");
