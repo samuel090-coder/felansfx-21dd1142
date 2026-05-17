@@ -343,6 +343,14 @@ export const UserManagement = () => {
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={() => handleOpenCredit(user)}
+                    title="Credit Balance"
+                  >
+                    <Plus className="w-4 h-4 text-green-600" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleViewUser(user)}
                     title="View Details"
                   >
