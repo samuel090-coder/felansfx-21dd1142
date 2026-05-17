@@ -229,6 +229,40 @@ export const UserManagement = () => {
     toast.success("Email client opened with welcome message");
   };
 
+  const handleOpenCredit = (user: UserProfile) => {
+    setCreditTarget(user);
+    setCreditAmount("");
+    setCreditDialogOpen(true);
+  };
+
+  const handleCreditBalance = async () => {
+    if (!creditTarget) return;
+    const amt = parseFloat(creditAmount);
+    if (!amt || amt <= 0) {
+      toast.error("Enter a valid amount");
+      return;
+    }
+    setCrediting(true);
+    try {
+      const { error } = await supabase.rpc("credit_user_wallet", {
+        p_user_id: creditTarget.user_id,
+        p_amount: amt,
+      });
+      if (error) throw error;
+      toast.success(`Credited ₦${amt.toLocaleString()} to ${creditTarget.full_name || "user"}`);
+      setCreditDialogOpen(false);
+      setCreditTarget(null);
+      setCreditAmount("");
+      if (selectedUser?.profile.user_id === creditTarget.user_id) {
+        handleViewUser(creditTarget);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to credit wallet");
+    } finally {
+      setCrediting(false);
+    }
+  };
+
   const filteredUsers = users.filter(
     (user) =>
       user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
