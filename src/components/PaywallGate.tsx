@@ -29,46 +29,84 @@ export const PaywallGate = ({ children }: PaywallGateProps) => {
   const [purchasing, setPurchasing] = useState(false);
   const [invocation, setInvocation] = useState<Invocation | null>(null);
 
-  useEffect(() => {
-    if (!user || settingsLoading) return;
+  const checkAccess = useCallback(async () => {
+    if (!user) return;
 
-    // Free mode = everyone has access
+    // Always check admin first
+    const adminRes = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" as const });
+    if (adminRes.data === true) {
+      setIsAdmin(true);
+      setHasAccess(true);
+      return;
+    }
+
+    // Always check for per-user invocation (overrides global free mode)
+    const { data: invs } = await supabase
+      .from("access_invocations")
+      .select("id, amount, reason, status")
+      .eq("user_id", user.id)
+      .in("status", ["pending", "paid"])
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const inv = invs?.[0] as Invocation | undefined;
+    if (inv) {
+      setInvocation(inv);
+      setHasAccess(false);
+      return;
+    }
+    setInvocation(null);
+
+    // Free mode = everyone has access (when no invocation pending)
     if (settings.app_access_mode !== "paid") {
       setHasAccess(true);
       return;
     }
 
-    // Check admin + unlock status
-    const checkAccess = async () => {
-      const [adminRes, unlockRes] = await Promise.all([
-        supabase.rpc("has_role", { _user_id: user.id, _role: "admin" as const }),
-        supabase
-          .from("user_unlocks")
-          .select("id, expires_at")
-          .eq("user_id", user.id)
-          .eq("unlock_type", "app_access")
-          .maybeSingle(),
-      ]);
+    // Paid mode: check unlock
+    const { data: unlock } = await supabase
+      .from("user_unlocks")
+      .select("id, expires_at")
+      .eq("user_id", user.id)
+      .eq("unlock_type", "app_access")
+      .maybeSingle();
 
-      if (adminRes.data === true) {
-        setIsAdmin(true);
-        setHasAccess(true);
-        return;
-      }
+    if (unlock && (!unlock.expires_at || new Date(unlock.expires_at) > new Date())) {
+      setHasAccess(true);
+      return;
+    }
 
-      if (unlockRes.data) {
-        // Check expiry
-        if (!unlockRes.data.expires_at || new Date(unlockRes.data.expires_at) > new Date()) {
-          setHasAccess(true);
-          return;
-        }
-      }
+    setHasAccess(false);
+  }, [user, settings.app_access_mode]);
 
-      setHasAccess(false);
-    };
-
+  useEffect(() => {
+    if (!user || settingsLoading) return;
     checkAccess();
-  }, [user, settings.app_access_mode, settingsLoading]);
+  }, [user, settingsLoading, checkAccess]);
+
+  const handlePayInvocation = async () => {
+    if (!user || !invocation) return;
+    if (!wallet || wallet.balance < invocation.amount) {
+      toast.error("Insufficient balance", {
+        description: `You need ${formatCurrency(invocation.amount, "NGN")}`,
+      });
+      return;
+    }
+    setPurchasing(true);
+    try {
+      const { error } = await supabase.rpc("pay_access_invocation", {
+        p_invocation_id: invocation.id,
+      });
+      if (error) throw error;
+      toast.success("Payment received — awaiting admin approval");
+      await refetchWallet();
+      await checkAccess();
+    } catch (e: any) {
+      toast.error(e.message || "Payment failed");
+    } finally {
+      setPurchasing(false);
+    }
+  };
 
   const handlePurchase = async () => {
     if (!user || !wallet) return;
