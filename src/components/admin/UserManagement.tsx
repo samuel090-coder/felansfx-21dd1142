@@ -10,6 +10,7 @@ import {
   BarChart3,
   MessageSquare,
   Plus,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
 import { sendEmail } from "@/lib/sendEmail";
+import { AccessInvocations } from "./AccessInvocations";
 
 interface UserProfile {
   id: string;
