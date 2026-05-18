@@ -1,16 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useWallet } from "@/hooks/useWallet";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, Lock, Loader2 } from "lucide-react";
+import { Shield, Lock, Loader2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/currency";
 
 interface PaywallGateProps {
   children: React.ReactNode;
+}
+
+interface Invocation {
+  id: string;
+  amount: number;
+  reason: string;
+  status: string;
 }
 
 export const PaywallGate = ({ children }: PaywallGateProps) => {
@@ -20,6 +27,7 @@ export const PaywallGate = ({ children }: PaywallGateProps) => {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
+  const [invocation, setInvocation] = useState<Invocation | null>(null);
 
   useEffect(() => {
     if (!user || settingsLoading) return;
