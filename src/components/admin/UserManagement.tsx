@@ -628,5 +628,6 @@ The FelansFX Team
         </DialogContent>
       </Dialog>
     </Card>
+    </div>
   );
 };
