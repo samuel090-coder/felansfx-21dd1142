@@ -10,6 +10,7 @@ import {
   BarChart3,
   MessageSquare,
   Plus,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
 import { sendEmail } from "@/lib/sendEmail";
+import { AccessInvocations } from "./AccessInvocations";
 
 interface UserProfile {
   id: string;
@@ -104,6 +106,13 @@ export const UserManagement = () => {
   const [creditTarget, setCreditTarget] = useState<UserProfile | null>(null);
   const [creditAmount, setCreditAmount] = useState("");
   const [crediting, setCrediting] = useState(false);
+  const [invokeOpen, setInvokeOpen] = useState(false);
+  const [invokeTarget, setInvokeTarget] = useState<UserProfile | null>(null);
+
+  const handleOpenInvoke = (user: UserProfile) => {
+    setInvokeTarget(user);
+    setInvokeOpen(true);
+  };
 
   const fetchUsers = async () => {
     try {
@@ -286,6 +295,12 @@ export const UserManagement = () => {
   );
 
   return (
+    <div className="space-y-4">
+      <AccessInvocations
+        invokeOpen={invokeOpen}
+        setInvokeOpen={setInvokeOpen}
+        invokeTarget={invokeTarget ? { user_id: invokeTarget.user_id, email: invokeTarget.email, full_name: invokeTarget.full_name } : null}
+      />
     <Card className="border-0 shadow-md">
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -362,6 +377,14 @@ export const UserManagement = () => {
                     title="Credit Balance"
                   >
                     <Plus className="w-4 h-4 text-green-600" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleOpenInvoke(user)}
+                    title="Invoke Paid Access"
+                  >
+                    <Lock className="w-4 h-4 text-amber-600" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -613,5 +636,6 @@ The FelansFX Team
         </DialogContent>
       </Dialog>
     </Card>
+    </div>
   );
 };

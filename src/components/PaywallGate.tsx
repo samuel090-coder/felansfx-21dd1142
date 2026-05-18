@@ -1,16 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useWallet } from "@/hooks/useWallet";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, Lock, Loader2 } from "lucide-react";
+import { Shield, Lock, Loader2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/currency";
 
 interface PaywallGateProps {
   children: React.ReactNode;
+}
+
+interface Invocation {
+  id: string;
+  amount: number;
+  reason: string;
+  status: string;
 }
 
 export const PaywallGate = ({ children }: PaywallGateProps) => {
@@ -20,47 +27,86 @@ export const PaywallGate = ({ children }: PaywallGateProps) => {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
+  const [invocation, setInvocation] = useState<Invocation | null>(null);
 
-  useEffect(() => {
-    if (!user || settingsLoading) return;
+  const checkAccess = useCallback(async () => {
+    if (!user) return;
 
-    // Free mode = everyone has access
+    // Always check admin first
+    const adminRes = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" as const });
+    if (adminRes.data === true) {
+      setIsAdmin(true);
+      setHasAccess(true);
+      return;
+    }
+
+    // Always check for per-user invocation (overrides global free mode)
+    const { data: invs } = await supabase
+      .from("access_invocations")
+      .select("id, amount, reason, status")
+      .eq("user_id", user.id)
+      .in("status", ["pending", "paid"])
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const inv = invs?.[0] as Invocation | undefined;
+    if (inv) {
+      setInvocation(inv);
+      setHasAccess(false);
+      return;
+    }
+    setInvocation(null);
+
+    // Free mode = everyone has access (when no invocation pending)
     if (settings.app_access_mode !== "paid") {
       setHasAccess(true);
       return;
     }
 
-    // Check admin + unlock status
-    const checkAccess = async () => {
-      const [adminRes, unlockRes] = await Promise.all([
-        supabase.rpc("has_role", { _user_id: user.id, _role: "admin" as const }),
-        supabase
-          .from("user_unlocks")
-          .select("id, expires_at")
-          .eq("user_id", user.id)
-          .eq("unlock_type", "app_access")
-          .maybeSingle(),
-      ]);
+    // Paid mode: check unlock
+    const { data: unlock } = await supabase
+      .from("user_unlocks")
+      .select("id, expires_at")
+      .eq("user_id", user.id)
+      .eq("unlock_type", "app_access")
+      .maybeSingle();
 
-      if (adminRes.data === true) {
-        setIsAdmin(true);
-        setHasAccess(true);
-        return;
-      }
+    if (unlock && (!unlock.expires_at || new Date(unlock.expires_at) > new Date())) {
+      setHasAccess(true);
+      return;
+    }
 
-      if (unlockRes.data) {
-        // Check expiry
-        if (!unlockRes.data.expires_at || new Date(unlockRes.data.expires_at) > new Date()) {
-          setHasAccess(true);
-          return;
-        }
-      }
+    setHasAccess(false);
+  }, [user, settings.app_access_mode]);
 
-      setHasAccess(false);
-    };
-
+  useEffect(() => {
+    if (!user || settingsLoading) return;
     checkAccess();
-  }, [user, settings.app_access_mode, settingsLoading]);
+  }, [user, settingsLoading, checkAccess]);
+
+  const handlePayInvocation = async () => {
+    if (!user || !invocation) return;
+    if (!wallet || wallet.balance < invocation.amount) {
+      toast.error("Insufficient balance", {
+        description: `You need ${formatCurrency(invocation.amount, "NGN")}`,
+      });
+      return;
+    }
+    setPurchasing(true);
+    try {
+      const { error } = await supabase.rpc("pay_access_invocation", {
+        p_invocation_id: invocation.id,
+      });
+      if (error) throw error;
+      toast.success("Payment received — awaiting admin approval");
+      await refetchWallet();
+      await checkAccess();
+    } catch (e: any) {
+      toast.error(e.message || "Payment failed");
+    } finally {
+      setPurchasing(false);
+    }
+  };
 
   const handlePurchase = async () => {
     if (!user || !wallet) return;
@@ -126,7 +172,70 @@ export const PaywallGate = ({ children }: PaywallGateProps) => {
   // Has access
   if (hasAccess) return <>{children}</>;
 
-  // Paywall screen
+  // Per-user invocation: pending (must pay) or paid (awaiting admin approval)
+  if (invocation) {
+    if (invocation.status === "paid") {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <Card className="w-full max-w-sm border-0 shadow-xl">
+            <CardContent className="p-6 text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                <Clock className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-xl font-bold">Payment Received</h2>
+              <p className="text-sm text-muted-foreground">
+                We've received your payment of {formatCurrency(invocation.amount, "NGN")}. An admin will review and grant access shortly.
+              </p>
+              <Button variant="outline" className="w-full" onClick={checkAccess}>
+                Refresh Status
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+    // pending
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-sm border-0 shadow-xl">
+          <CardContent className="p-6 text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+              <Lock className="w-8 h-8 text-destructive" />
+            </div>
+            <h2 className="text-xl font-bold">Access Fee Required</h2>
+            <p className="text-sm text-muted-foreground text-left bg-muted/40 p-3 rounded-lg">
+              {invocation.reason}
+            </p>
+            <div className="bg-secondary rounded-xl p-4">
+              <p className="text-2xl font-bold text-primary">{formatCurrency(invocation.amount, "NGN")}</p>
+              <p className="text-xs text-muted-foreground">Pending admin approval after payment</p>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Your balance: {formatCurrency(wallet?.balance || 0, "NGN")}
+            </div>
+            <Button
+              className="w-full gradient-primary font-semibold"
+              onClick={handlePayInvocation}
+              disabled={purchasing}
+            >
+              {purchasing ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+              ) : (
+                <><Shield className="w-4 h-4 mr-2" /> Pay {formatCurrency(invocation.amount, "NGN")}</>
+              )}
+            </Button>
+            {(wallet?.balance || 0) < invocation.amount && (
+              <Button variant="outline" className="w-full" onClick={() => (window.location.href = "/deposit")}>
+                Fund Your Wallet First
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Global paid mode paywall screen
   const price = parseFloat(settings.app_access_price) || 5000;
 
   return (

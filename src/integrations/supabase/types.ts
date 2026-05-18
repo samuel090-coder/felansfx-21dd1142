@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_invocations: {
+        Row: {
+          admin_id: string
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          paid_at: string | null
+          reason: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_id: string
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          reason: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          reason?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_signals: {
         Row: {
           analysis: string | null
@@ -1737,6 +1782,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_access_invocation: {
+        Args: { p_invocation_id: string; p_notes?: string }
+        Returns: Json
+      }
       credit_user_wallet: {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
@@ -1744,6 +1793,10 @@ export type Database = {
       credit_user_wallet_service: {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
+      }
+      decline_access_invocation: {
+        Args: { p_invocation_id: string; p_notes?: string }
+        Returns: Json
       }
       deduct_user_wallet: {
         Args: { p_amount: number; p_user_id: string }
@@ -1755,6 +1808,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      pay_access_invocation: {
+        Args: { p_invocation_id: string }
+        Returns: Json
       }
       refresh_copy_leaders: { Args: never; Returns: undefined }
       set_transaction_pin: { Args: { p_pin: string }; Returns: boolean }
