@@ -106,8 +106,14 @@ export const UserManagement = () => {
   const [creditTarget, setCreditTarget] = useState<UserProfile | null>(null);
   const [creditAmount, setCreditAmount] = useState("");
   const [crediting, setCrediting] = useState(false);
+  const [invokeOpen, setInvokeOpen] = useState(false);
+  const [invokeTarget, setInvokeTarget] = useState<UserProfile | null>(null);
 
-  const fetchUsers = async () => {
+  const handleOpenInvoke = (user: UserProfile) => {
+    setInvokeTarget(user);
+    setInvokeOpen(true);
+  };
+
     try {
       const { data, error } = await supabase
         .from("profiles")
