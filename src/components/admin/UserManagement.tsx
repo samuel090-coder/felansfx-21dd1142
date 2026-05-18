@@ -381,6 +381,14 @@ export const UserManagement = () => {
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={() => handleOpenInvoke(user)}
+                    title="Invoke Paid Access"
+                  >
+                    <Lock className="w-4 h-4 text-amber-600" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleViewUser(user)}
                     title="View Details"
                   >
