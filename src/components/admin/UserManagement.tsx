@@ -295,6 +295,12 @@ export const UserManagement = () => {
   );
 
   return (
+    <div className="space-y-4">
+      <AccessInvocations
+        invokeOpen={invokeOpen}
+        setInvokeOpen={setInvokeOpen}
+        invokeTarget={invokeTarget ? { user_id: invokeTarget.user_id, email: invokeTarget.email, full_name: invokeTarget.full_name } : null}
+      />
     <Card className="border-0 shadow-md">
       <CardHeader>
         <div className="flex items-center justify-between">
