@@ -114,6 +114,7 @@ export const UserManagement = () => {
     setInvokeOpen(true);
   };
 
+  const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
