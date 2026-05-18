@@ -172,7 +172,70 @@ export const PaywallGate = ({ children }: PaywallGateProps) => {
   // Has access
   if (hasAccess) return <>{children}</>;
 
-  // Paywall screen
+  // Per-user invocation: pending (must pay) or paid (awaiting admin approval)
+  if (invocation) {
+    if (invocation.status === "paid") {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <Card className="w-full max-w-sm border-0 shadow-xl">
+            <CardContent className="p-6 text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                <Clock className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-xl font-bold">Payment Received</h2>
+              <p className="text-sm text-muted-foreground">
+                We've received your payment of {formatCurrency(invocation.amount, "NGN")}. An admin will review and grant access shortly.
+              </p>
+              <Button variant="outline" className="w-full" onClick={checkAccess}>
+                Refresh Status
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+    // pending
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-sm border-0 shadow-xl">
+          <CardContent className="p-6 text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+              <Lock className="w-8 h-8 text-destructive" />
+            </div>
+            <h2 className="text-xl font-bold">Access Fee Required</h2>
+            <p className="text-sm text-muted-foreground text-left bg-muted/40 p-3 rounded-lg">
+              {invocation.reason}
+            </p>
+            <div className="bg-secondary rounded-xl p-4">
+              <p className="text-2xl font-bold text-primary">{formatCurrency(invocation.amount, "NGN")}</p>
+              <p className="text-xs text-muted-foreground">Pending admin approval after payment</p>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Your balance: {formatCurrency(wallet?.balance || 0, "NGN")}
+            </div>
+            <Button
+              className="w-full gradient-primary font-semibold"
+              onClick={handlePayInvocation}
+              disabled={purchasing}
+            >
+              {purchasing ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+              ) : (
+                <><Shield className="w-4 h-4 mr-2" /> Pay {formatCurrency(invocation.amount, "NGN")}</>
+              )}
+            </Button>
+            {(wallet?.balance || 0) < invocation.amount && (
+              <Button variant="outline" className="w-full" onClick={() => (window.location.href = "/deposit")}>
+                Fund Your Wallet First
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Global paid mode paywall screen
   const price = parseFloat(settings.app_access_price) || 5000;
 
   return (
