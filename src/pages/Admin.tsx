@@ -737,7 +737,8 @@ const Admin = () => {
           </TabsContent>
 
           {/* Users Tab */}
-          <TabsContent value="users">
+          <TabsContent value="users" className="space-y-4">
+            <AccessPayments />
             <UserManagement />
           </TabsContent>
 
