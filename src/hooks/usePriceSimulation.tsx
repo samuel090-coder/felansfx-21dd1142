@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { getBiasDirection } from "@/lib/tradingBias";
+
 
 export interface CandleData {
   time: number;
