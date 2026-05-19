@@ -135,7 +135,7 @@ export const AITradingAssistant = ({
       if (insertErr) {
         // Refund if upsert fails
         console.error("Upsert failed, refunding:", insertErr);
-        await supabase.rpc("credit_user_wallet_service", { p_user_id: user.id, p_amount: price }).catch(() => {});
+        try { await supabase.rpc("credit_user_wallet_service", { p_user_id: user.id, p_amount: price }); } catch {}
         throw new Error("Purchase failed. Your balance has been refunded.");
       }
 
