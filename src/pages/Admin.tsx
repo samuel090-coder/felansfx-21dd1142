@@ -55,6 +55,7 @@ import { AdminMessagingCenter } from "@/components/admin/AdminMessagingCenter";
 import { WithdrawalManager } from "@/components/admin/WithdrawalManager";
 import { KYCManager } from "@/components/admin/KYCManager";
 import { ReportsManager } from "@/components/admin/ReportsManager";
+import { AccessPayments } from "@/components/admin/AccessPayments";
 
 interface PendingDeposit {
   id: string;
