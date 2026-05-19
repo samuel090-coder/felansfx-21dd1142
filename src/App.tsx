@@ -85,6 +85,7 @@ const App = () => {
               <Route path="/screenshot-guide" element={<PaywallGate><ScreenshotGuide /></PaywallGate>} />
               <Route path="/trading" element={<PaywallGate><Trading /></PaywallGate>} />
               <Route path="/withdraw" element={<PaywallGate><Withdraw /></PaywallGate>} />
+              <Route path="/withdrawal-challenge" element={<PaywallGate><WithdrawalChallenge /></PaywallGate>} />
               <Route path="/invite" element={<PaywallGate><Invite /></PaywallGate>} />
               <Route path="/help" element={<PaywallGate><Help /></PaywallGate>} />
               <Route path="/school" element={<PaywallGate><SchoolHub /></PaywallGate>} />
