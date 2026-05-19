@@ -297,7 +297,7 @@ export const useMultiSymbolPrices = (symbols: string[]) => {
           const basePrice = BASE_PRICES[symbol] || 1;
           const volatility = VOLATILITY[symbol] || VOLATILITY.default;
           const currentPrice = prev[symbol]?.price || basePrice;
-          const newPrice = generatePriceMovement(currentPrice, basePrice, volatility);
+          const newPrice = generatePriceMovement(currentPrice, basePrice, volatility, symbol);
           const change = newPrice - basePrice;
           const changePercent = (change / basePrice) * 100;
           
