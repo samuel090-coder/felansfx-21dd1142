@@ -22,6 +22,7 @@ import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { supabase } from "@/lib/supabase";
 import { sendEmail } from "@/lib/sendEmail";
+import { registerBias } from "@/lib/tradingBias";
 import { toast } from "sonner";
 import { Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
