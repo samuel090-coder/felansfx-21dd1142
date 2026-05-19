@@ -59,6 +59,56 @@ export type Database = {
         }
         Relationships: []
       }
+      access_payments: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          invocation_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          screenshot_url: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          invocation_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screenshot_url: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          invocation_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screenshot_url?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_payments_invocation_id_fkey"
+            columns: ["invocation_id"]
+            isOneToOne: false
+            referencedRelation: "access_invocations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_signals: {
         Row: {
           analysis: string | null
@@ -1733,6 +1783,57 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawal_challenges: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          deadline: string
+          duration_minutes: number
+          id: string
+          losses_count: number
+          no_loss_required: boolean
+          required_volume: number
+          started_at: string
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string
+          volume_traded: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          deadline: string
+          duration_minutes: number
+          id?: string
+          losses_count?: number
+          no_loss_required?: boolean
+          required_volume: number
+          started_at?: string
+          status?: string
+          tier: string
+          updated_at?: string
+          user_id: string
+          volume_traded?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          deadline?: string
+          duration_minutes?: number
+          id?: string
+          losses_count?: number
+          no_loss_required?: boolean
+          required_volume?: number
+          started_at?: string
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+          volume_traded?: number
+        }
+        Relationships: []
+      }
       withdrawals: {
         Row: {
           admin_notes: string | null
@@ -1786,6 +1887,10 @@ export type Database = {
         Args: { p_invocation_id: string; p_notes?: string }
         Returns: Json
       }
+      approve_access_payment: {
+        Args: { p_notes?: string; p_payment_id: string }
+        Returns: Json
+      }
       credit_user_wallet: {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
@@ -1796,6 +1901,10 @@ export type Database = {
       }
       decline_access_invocation: {
         Args: { p_invocation_id: string; p_notes?: string }
+        Returns: Json
+      }
+      decline_access_payment: {
+        Args: { p_notes?: string; p_payment_id: string }
         Returns: Json
       }
       deduct_user_wallet: {
@@ -1823,6 +1932,7 @@ export type Database = {
         }
         Returns: Json
       }
+      start_withdrawal_challenge: { Args: { p_tier: string }; Returns: Json }
       verify_transaction_pin: { Args: { p_pin: string }; Returns: boolean }
     }
     Enums: {
