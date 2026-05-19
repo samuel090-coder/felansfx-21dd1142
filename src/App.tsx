@@ -24,6 +24,7 @@ import DailyStreak from "./pages/DailyStreak";
 import ScreenshotGuide from "./pages/ScreenshotGuide";
 import Trading from "./pages/Trading";
 import Withdraw from "./pages/Withdraw";
+import WithdrawalChallenge from "./pages/WithdrawalChallenge";
 import Invite from "./pages/Invite";
 import Help from "./pages/Help";
 import SchoolHub from "./pages/SchoolHub";
