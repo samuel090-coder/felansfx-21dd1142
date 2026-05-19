@@ -116,7 +116,7 @@ const generateCandle = (
   // Simulate ticks within the candle
   const tickCount = Math.floor(intervalMs / 100);
   for (let i = 0; i < tickCount; i++) {
-    close = generatePriceMovement(close, basePrice, volatility);
+    close = generatePriceMovement(close, basePrice, volatility, symbol);
     high = Math.max(high, close);
     low = Math.min(low, close);
   }
