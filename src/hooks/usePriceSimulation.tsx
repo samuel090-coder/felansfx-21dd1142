@@ -61,23 +61,43 @@ const VOLATILITY: Record<string, number> = {
   default: 0.0005,
 };
 
-// Generate realistic price movement using random walk with mean reversion
+// Generate realistic price movement using random walk with mean reversion,
+// occasional shock ticks, and a slight bias against active user positions.
 const generatePriceMovement = (
   currentPrice: number,
   basePrice: number,
-  volatility: number
+  volatility: number,
+  symbol?: string
 ): number => {
-  // Random component
-  const random = (Math.random() - 0.5) * 2 * volatility * currentPrice;
-  
-  // Mean reversion (pull price back toward base)
-  const meanReversion = (basePrice - currentPrice) * 0.001;
-  
-  // Trend component (slight random drift)
-  const trend = (Math.random() - 0.5) * 0.0001 * currentPrice;
-  
+  // Higher base randomness
+  let random = (Math.random() - 0.5) * 2 * volatility * currentPrice;
+
+  // Reduced mean reversion (don't telegraph trends)
+  const meanReversion = (basePrice - currentPrice) * 0.0004;
+
+  // Random trend drift
+  const trend = (Math.random() - 0.5) * 0.0002 * currentPrice;
+
+  // Shock tick: ~6% chance of a 2-3x volatility spike in either direction
+  if (Math.random() < 0.06) {
+    const shockSign = Math.random() < 0.5 ? -1 : 1;
+    random += shockSign * volatility * currentPrice * (2 + Math.random());
+  }
+
+  // Bias against active user trades — gently nudge price against their direction
+  if (symbol) {
+    const biasDir = getBiasDirection(symbol);
+    if (biasDir !== 0) {
+      // 65% of the time, add an opposing nudge
+      if (Math.random() < 0.65) {
+        random += biasDir * volatility * currentPrice * (0.8 + Math.random() * 0.6);
+      }
+    }
+  }
+
   return currentPrice + random + meanReversion + trend;
 };
+
 
 // Generate a candle from tick data
 const generateCandle = (
