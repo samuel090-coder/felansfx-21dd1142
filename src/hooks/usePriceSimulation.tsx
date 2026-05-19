@@ -185,7 +185,7 @@ export const usePriceSimulation = (symbol: string, intervalMs: number = 3000) =>
     const updateTick = () => {
       // Small incremental price movement
       const microVolatility = volatility * 0.3; // Much smaller movements per tick
-      const newPrice = generatePriceMovement(priceRef.current, basePrice, microVolatility);
+      const newPrice = generatePriceMovement(priceRef.current, basePrice, microVolatility, symbol);
       priceRef.current = newPrice;
       
       setCurrentPrice(newPrice);
