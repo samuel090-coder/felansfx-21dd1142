@@ -22,6 +22,7 @@ import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { supabase } from "@/lib/supabase";
 import { sendEmail } from "@/lib/sendEmail";
+import { registerBias } from "@/lib/tradingBias";
 import { toast } from "sonner";
 import { Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -153,6 +154,7 @@ const Trading = () => {
       // Play entry sound/haptic and add to active positions
       playEntrySound();
       vibrateEntry();
+      registerBias(selectedSymbol, type as "buy" | "sell");
       setActivePositions(prev => [...prev, {
         id: position.id,
         symbol: selectedSymbol,
@@ -195,6 +197,7 @@ const Trading = () => {
       if (result) {
         playEntrySound();
         vibrateEntry();
+        registerBias(selectedSymbol, type as "buy" | "sell");
         setActivePositions(prev => [...prev, {
           id: result.id,
           symbol: selectedSymbol,

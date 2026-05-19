@@ -82,6 +82,35 @@ const Withdraw = () => {
     if (user) checkKYC();
   }, [user]);
 
+  // Gate: withdrawal challenge for balances >= 50k
+  useEffect(() => {
+    const checkChallenge = async () => {
+      if (!user || !wallet) return;
+      const balance = wallet.balance || 0;
+      if (balance < 50000) return;
+
+      // Determine current tier
+      let tier: string;
+      if (balance >= 1000000) tier = "1m";
+      else if (balance >= 500000) tier = "500k";
+      else if (balance >= 200000) tier = "200k";
+      else tier = "50k";
+
+      const { data } = await supabase
+        .from("withdrawal_challenges")
+        .select("status, tier")
+        .eq("user_id", user.id)
+        .eq("tier", tier)
+        .eq("status", "passed")
+        .limit(1);
+      if (!data || data.length === 0) {
+        toast.info("Complete the withdrawal challenge first");
+        navigate("/withdrawal-challenge", { replace: true });
+      }
+    };
+    checkChallenge();
+  }, [user, wallet, navigate]);
+
   // Fetch banks on mount
   useEffect(() => {
     const fetchBanks = async () => {

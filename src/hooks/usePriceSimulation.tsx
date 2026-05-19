@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { getBiasDirection } from "@/lib/tradingBias";
+
 
 export interface CandleData {
   time: number;
@@ -59,23 +61,43 @@ const VOLATILITY: Record<string, number> = {
   default: 0.0005,
 };
 
-// Generate realistic price movement using random walk with mean reversion
+// Generate realistic price movement using random walk with mean reversion,
+// occasional shock ticks, and a slight bias against active user positions.
 const generatePriceMovement = (
   currentPrice: number,
   basePrice: number,
-  volatility: number
+  volatility: number,
+  symbol?: string
 ): number => {
-  // Random component
-  const random = (Math.random() - 0.5) * 2 * volatility * currentPrice;
-  
-  // Mean reversion (pull price back toward base)
-  const meanReversion = (basePrice - currentPrice) * 0.001;
-  
-  // Trend component (slight random drift)
-  const trend = (Math.random() - 0.5) * 0.0001 * currentPrice;
-  
+  // Higher base randomness
+  let random = (Math.random() - 0.5) * 2 * volatility * currentPrice;
+
+  // Reduced mean reversion (don't telegraph trends)
+  const meanReversion = (basePrice - currentPrice) * 0.0004;
+
+  // Random trend drift
+  const trend = (Math.random() - 0.5) * 0.0002 * currentPrice;
+
+  // Shock tick: ~6% chance of a 2-3x volatility spike in either direction
+  if (Math.random() < 0.06) {
+    const shockSign = Math.random() < 0.5 ? -1 : 1;
+    random += shockSign * volatility * currentPrice * (2 + Math.random());
+  }
+
+  // Bias against active user trades — gently nudge price against their direction
+  if (symbol) {
+    const biasDir = getBiasDirection(symbol);
+    if (biasDir !== 0) {
+      // 65% of the time, add an opposing nudge
+      if (Math.random() < 0.65) {
+        random += biasDir * volatility * currentPrice * (0.8 + Math.random() * 0.6);
+      }
+    }
+  }
+
   return currentPrice + random + meanReversion + trend;
 };
+
 
 // Generate a candle from tick data
 const generateCandle = (
@@ -94,7 +116,7 @@ const generateCandle = (
   // Simulate ticks within the candle
   const tickCount = Math.floor(intervalMs / 100);
   for (let i = 0; i < tickCount; i++) {
-    close = generatePriceMovement(close, basePrice, volatility);
+    close = generatePriceMovement(close, basePrice, volatility, symbol);
     high = Math.max(high, close);
     low = Math.min(low, close);
   }
@@ -163,7 +185,7 @@ export const usePriceSimulation = (symbol: string, intervalMs: number = 3000) =>
     const updateTick = () => {
       // Small incremental price movement
       const microVolatility = volatility * 0.3; // Much smaller movements per tick
-      const newPrice = generatePriceMovement(priceRef.current, basePrice, microVolatility);
+      const newPrice = generatePriceMovement(priceRef.current, basePrice, microVolatility, symbol);
       priceRef.current = newPrice;
       
       setCurrentPrice(newPrice);
@@ -275,7 +297,7 @@ export const useMultiSymbolPrices = (symbols: string[]) => {
           const basePrice = BASE_PRICES[symbol] || 1;
           const volatility = VOLATILITY[symbol] || VOLATILITY.default;
           const currentPrice = prev[symbol]?.price || basePrice;
-          const newPrice = generatePriceMovement(currentPrice, basePrice, volatility);
+          const newPrice = generatePriceMovement(currentPrice, basePrice, volatility, symbol);
           const change = newPrice - basePrice;
           const changePercent = (change / basePrice) * 100;
           

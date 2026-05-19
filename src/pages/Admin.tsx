@@ -55,6 +55,7 @@ import { AdminMessagingCenter } from "@/components/admin/AdminMessagingCenter";
 import { WithdrawalManager } from "@/components/admin/WithdrawalManager";
 import { KYCManager } from "@/components/admin/KYCManager";
 import { ReportsManager } from "@/components/admin/ReportsManager";
+import { AccessPayments } from "@/components/admin/AccessPayments";
 
 interface PendingDeposit {
   id: string;
@@ -737,7 +738,8 @@ const Admin = () => {
           </TabsContent>
 
           {/* Users Tab */}
-          <TabsContent value="users">
+          <TabsContent value="users" className="space-y-4">
+            <AccessPayments />
             <UserManagement />
           </TabsContent>
 

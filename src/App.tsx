@@ -24,6 +24,7 @@ import DailyStreak from "./pages/DailyStreak";
 import ScreenshotGuide from "./pages/ScreenshotGuide";
 import Trading from "./pages/Trading";
 import Withdraw from "./pages/Withdraw";
+import WithdrawalChallenge from "./pages/WithdrawalChallenge";
 import Invite from "./pages/Invite";
 import Help from "./pages/Help";
 import SchoolHub from "./pages/SchoolHub";
@@ -84,6 +85,7 @@ const App = () => {
               <Route path="/screenshot-guide" element={<PaywallGate><ScreenshotGuide /></PaywallGate>} />
               <Route path="/trading" element={<PaywallGate><Trading /></PaywallGate>} />
               <Route path="/withdraw" element={<PaywallGate><Withdraw /></PaywallGate>} />
+              <Route path="/withdrawal-challenge" element={<PaywallGate><WithdrawalChallenge /></PaywallGate>} />
               <Route path="/invite" element={<PaywallGate><Invite /></PaywallGate>} />
               <Route path="/help" element={<PaywallGate><Help /></PaywallGate>} />
               <Route path="/school" element={<PaywallGate><SchoolHub /></PaywallGate>} />
