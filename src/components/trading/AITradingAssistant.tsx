@@ -123,18 +123,19 @@ export const AITradingAssistant = ({
         ? new Date(Date.now() + plan.expiryMs).toISOString()
         : "9999-12-31T23:59:59.999Z"; // lifetime
 
-      const { error: insertErr } = await supabase.from("user_unlocks").insert({
-        user_id: user.id,
-        unlock_type: "ai_trading_bot",
-        expires_at: expiresAt,
-      });
+      const { error: insertErr } = await supabase.from("user_unlocks").upsert(
+        {
+          user_id: user.id,
+          unlock_type: "ai_trading_bot",
+          expires_at: expiresAt,
+        },
+        { onConflict: "user_id,unlock_type" }
+      );
 
       if (insertErr) {
-        // Refund if insert fails
-        console.error("Insert failed, refunding:", insertErr);
-        await supabase.functions.invoke("process-transfer", {
-          body: { type: "refund", user_id: user.id, amount: price },
-        }).catch(() => {});
+        // Refund if upsert fails
+        console.error("Upsert failed, refunding:", insertErr);
+        await supabase.rpc("credit_user_wallet_service", { p_user_id: user.id, p_amount: price }).catch(() => {});
         throw new Error("Purchase failed. Your balance has been refunded.");
       }
 
