@@ -197,6 +197,7 @@ const Trading = () => {
       if (result) {
         playEntrySound();
         vibrateEntry();
+        registerBias(selectedSymbol, type as "buy" | "sell");
         setActivePositions(prev => [...prev, {
           id: result.id,
           symbol: selectedSymbol,
