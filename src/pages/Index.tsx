@@ -27,6 +27,24 @@ const Index = () => {
   const { settings } = useAppSettings();
   const { requestPermission, permission, isSubscribed, subscribe, isLoading: pushLoading } = usePushNotifications();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [qualifiedTier, setQualifiedTier] = useState<null | { key: string; label: string; min: number }>(null);
+
+  useEffect(() => {
+    if (!user || !wallet) return;
+    const tiers = [
+      { key: "1m", label: "₦1,000,000 Tier", min: 1000000 },
+      { key: "500k", label: "₦500,000 Tier", min: 500000 },
+      { key: "200k", label: "₦200,000 Tier", min: 200000 },
+      { key: "50k", label: "₦50,000 Tier", min: 50000 },
+    ];
+    const eligible = tiers.find((t) => (wallet.balance || 0) >= t.min);
+    if (!eligible) return;
+    const seenKey = `wc_popup_${user.id}_${eligible.key}`;
+    if (localStorage.getItem(seenKey)) return;
+    setQualifiedTier(eligible);
+    localStorage.setItem(seenKey, "1");
+  }, [user, wallet]);
+
 
   useEffect(() => {
     if (!authLoading && !user) {
