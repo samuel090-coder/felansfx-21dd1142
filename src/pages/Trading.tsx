@@ -488,7 +488,10 @@ const Trading = () => {
         onTrade={handleTrade}
         disabled={accountType === "demo" ? !demoWallet : !realWallet}
         accountType={accountType}
+        prefilledAmount={prefilledAmount}
+        prefilledDuration={prefilledDuration}
       />
+
 
       {/* AI Trading Assistant */}
       <AITradingAssistant
