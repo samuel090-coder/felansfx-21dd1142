@@ -187,9 +187,19 @@ const WithdrawalChallenge = () => {
                   </AlertDescription>
                 </Alert>
               )}
-              <Button className="w-full gradient-primary" onClick={() => navigate("/trading")}>
+              <Button className="w-full gradient-primary" onClick={() => {
+                const tier = TIERS.find((t) => t.key === activeChallenge.tier);
+                const params = new URLSearchParams({
+                  amount: String(tier?.tradeAmount || 1000),
+                  duration: String(tier?.tradeDuration || 60),
+                  account: "real",
+                  from: "challenge",
+                });
+                navigate(`/trading?${params.toString()}`);
+              }}>
                 <TrendingUp className="w-4 h-4 mr-2" /> Go Trade
               </Button>
+
             </CardContent>
           </Card>
         )}
