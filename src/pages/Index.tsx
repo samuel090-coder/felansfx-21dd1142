@@ -14,8 +14,11 @@ import { MainMenuDrawer } from "@/components/layout/MainMenuDrawer";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Trophy } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { Link } from "react-router-dom";
+
 
 const Index = () => {
   const navigate = useNavigate();
