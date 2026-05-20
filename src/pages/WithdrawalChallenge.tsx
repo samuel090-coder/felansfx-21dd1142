@@ -88,13 +88,26 @@ const WithdrawalChallenge = () => {
   const balance = wallet?.balance || 0;
   const eligibleTier = [...TIERS].reverse().find((t) => balance >= t.min);
 
-  const startChallenge = async (tier: string) => {
+  const startChallenge = async (tierKey: string) => {
     setStarting(true);
-    const { error } = await supabase.rpc("start_withdrawal_challenge", { p_tier: tier });
-    if (error) toast.error(error.message);
-    else { toast.success("Challenge started — head to the trading room"); await load(); }
+    const { error } = await supabase.rpc("start_withdrawal_challenge", { p_tier: tierKey });
+    if (error) {
+      toast.error(error.message);
+      setStarting(false);
+      return;
+    }
+    toast.success("Challenge started — opening trading room");
+    const tier = TIERS.find((t) => t.key === tierKey);
+    const params = new URLSearchParams({
+      amount: String(tier?.tradeAmount || 1000),
+      duration: String(tier?.tradeDuration || 60),
+      account: "real",
+      from: "challenge",
+    });
+    navigate(`/trading?${params.toString()}`);
     setStarting(false);
   };
+
 
   if (loading || walletLoading) {
     return (
