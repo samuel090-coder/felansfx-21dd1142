@@ -203,7 +203,8 @@ const Trading = () => {
       // Play entry sound/haptic and add to active positions
       playEntrySound();
       vibrateEntry();
-      registerBias(selectedSymbol, type as "buy" | "sell");
+      registerBias(selectedSymbol, type as "buy" | "sell", activeNoLossChallenge);
+
       setActivePositions(prev => [...prev, {
         id: position.id,
         symbol: selectedSymbol,
