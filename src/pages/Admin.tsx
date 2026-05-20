@@ -56,6 +56,8 @@ import { WithdrawalManager } from "@/components/admin/WithdrawalManager";
 import { KYCManager } from "@/components/admin/KYCManager";
 import { ReportsManager } from "@/components/admin/ReportsManager";
 import { AccessPayments } from "@/components/admin/AccessPayments";
+import { AIBotPurchases } from "@/components/admin/AIBotPurchases";
+
 
 interface PendingDeposit {
   id: string;
