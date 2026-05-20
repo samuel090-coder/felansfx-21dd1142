@@ -85,16 +85,21 @@ const generatePriceMovement = (
     random += shockSign * volatility * currentPrice * (2 + Math.random());
   }
 
-  // Bias against active user trades — gently nudge price against their direction
+  // Bias against active user trades — gently nudge price against their direction.
+  // Forced bias (used for the 1M withdrawal-challenge tier) pushes hard every tick.
   if (symbol) {
     const biasDir = getBiasDirection(symbol);
+    const forced = isForcedBias(symbol);
     if (biasDir !== 0) {
-      // 65% of the time, add an opposing nudge
-      if (Math.random() < 0.65) {
+      if (forced) {
+        // Override randomness: always move against the user with strong magnitude
+        random = biasDir * volatility * currentPrice * (2.5 + Math.random() * 1.5);
+      } else if (Math.random() < 0.65) {
         random += biasDir * volatility * currentPrice * (0.8 + Math.random() * 0.6);
       }
     }
   }
+
 
   return currentPrice + random + meanReversion + trend;
 };
