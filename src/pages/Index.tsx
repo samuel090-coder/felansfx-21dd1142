@@ -95,6 +95,28 @@ const Index = () => {
         path="/"
       />
       {showOnboarding && <OnboardingTour onComplete={handleOnboardingComplete} />}
+      <Dialog open={!!qualifiedTier} onOpenChange={(o) => !o && setQualifiedTier(null)}>
+        <DialogContent className="sm:max-w-sm aspect-square flex flex-col items-center justify-center text-center p-6">
+          <DialogHeader className="items-center">
+            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mb-3 shadow-primary">
+              <Trophy className="w-8 h-8 text-white" />
+            </div>
+            <DialogTitle>You qualify for {qualifiedTier?.label}!</DialogTitle>
+            <DialogDescription>
+              Complete the withdrawal challenge to unlock your withdrawals at this tier.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="w-full mt-4">
+            <Button
+              className="w-full gradient-primary font-bold h-12"
+              onClick={() => { setQualifiedTier(null); navigate("/withdrawal-challenge"); }}
+            >
+              Start
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="px-4 pt-6 pb-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
