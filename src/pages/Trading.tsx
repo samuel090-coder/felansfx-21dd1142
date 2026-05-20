@@ -46,6 +46,7 @@ interface ActivePosition {
 
 const Trading = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { wallet: realWallet, refetch: refetchWallet } = useWallet();
   const { playEntrySound, playWinSound, playLossSound } = useTradeSound();
@@ -54,12 +55,16 @@ const Trading = () => {
   const [activePositions, setActivePositions] = useState<ActivePosition[]>([]);
   const [currentDuration, setCurrentDuration] = useState(30);
   const [showAIBot, setShowAIBot] = useState(false);
+  const [prefilledAmount, setPrefilledAmount] = useState<number | undefined>(undefined);
+  const [prefilledDuration, setPrefilledDuration] = useState<number | undefined>(undefined);
+  const [activeNoLossChallenge, setActiveNoLossChallenge] = useState(false);
   const settlementQueue = useRef<Promise<void>>(Promise.resolve());
   const settledIds = useRef<Set<string>>(new Set());
 
   const { currentPrice, candles, getFormattedPrice } = usePriceSimulation(selectedSymbol, 3000);
   const allPrices = useMultiSymbolPrices(ALL_SYMBOLS);
   const { vibrateEntry } = useHapticFeedback();
+
   
   const {
     wallet: demoWallet,
