@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Minus, Plus, ChevronLeft, ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ interface TradingBottomControlsProps {
   onTrade: (type: "buy" | "sell", amount: number, duration: number) => void;
   disabled?: boolean;
   accountType: "demo" | "real";
+  prefilledAmount?: number;
+  prefilledDuration?: number;
 }
 
 const DURATIONS = [30, 60, 120, 300, 600]; // seconds
@@ -24,6 +26,8 @@ export const TradingBottomControls = ({
   onTrade,
   disabled,
   accountType,
+  prefilledAmount,
+  prefilledDuration,
 }: TradingBottomControlsProps) => {
   const [investment, setInvestment] = useState(50);
   const [durationIndex, setDurationIndex] = useState(0);
@@ -31,8 +35,20 @@ export const TradingBottomControls = ({
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Apply prefilled values from challenge / signal redirects
+  useEffect(() => {
+    if (prefilledAmount && prefilledAmount > 0) setInvestment(prefilledAmount);
+  }, [prefilledAmount]);
+  useEffect(() => {
+    if (prefilledDuration && prefilledDuration > 0) {
+      const idx = DURATIONS.indexOf(prefilledDuration);
+      if (idx >= 0) setDurationIndex(idx);
+    }
+  }, [prefilledDuration]);
+
   const duration = DURATIONS[durationIndex];
   const currencySymbol = accountType === "demo" ? "$" : "₦";
+
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

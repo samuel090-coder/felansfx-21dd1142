@@ -27,11 +27,12 @@ interface Challenge {
 }
 
 const TIERS = [
-  { key: "50k", min: 50000, required: 10000, hours: 2, label: "₦50,000 Tier", noLoss: false },
-  { key: "200k", min: 200000, required: 100000, hours: 5, label: "₦200,000 Tier", noLoss: false },
-  { key: "500k", min: 500000, required: 400000, hours: 7, label: "₦500,000 Tier", noLoss: false },
-  { key: "1m", min: 1000000, required: 0, hours: 0.5, label: "₦1,000,000 Tier", noLoss: true },
+  { key: "50k", min: 50000, required: 10000, hours: 2, label: "₦50,000 Tier", noLoss: false, tradeAmount: 2000, tradeDuration: 60 },
+  { key: "200k", min: 200000, required: 100000, hours: 5, label: "₦200,000 Tier", noLoss: false, tradeAmount: 10000, tradeDuration: 60 },
+  { key: "500k", min: 500000, required: 400000, hours: 7, label: "₦500,000 Tier", noLoss: false, tradeAmount: 25000, tradeDuration: 60 },
+  { key: "1m", min: 1000000, required: 0, hours: 0.5, label: "₦1,000,000 Tier", noLoss: true, tradeAmount: 50000, tradeDuration: 30 },
 ];
+
 
 const fmtCountdown = (ms: number) => {
   if (ms <= 0) return "Expired";
@@ -87,13 +88,26 @@ const WithdrawalChallenge = () => {
   const balance = wallet?.balance || 0;
   const eligibleTier = [...TIERS].reverse().find((t) => balance >= t.min);
 
-  const startChallenge = async (tier: string) => {
+  const startChallenge = async (tierKey: string) => {
     setStarting(true);
-    const { error } = await supabase.rpc("start_withdrawal_challenge", { p_tier: tier });
-    if (error) toast.error(error.message);
-    else { toast.success("Challenge started — head to the trading room"); await load(); }
+    const { error } = await supabase.rpc("start_withdrawal_challenge", { p_tier: tierKey });
+    if (error) {
+      toast.error(error.message);
+      setStarting(false);
+      return;
+    }
+    toast.success("Challenge started — opening trading room");
+    const tier = TIERS.find((t) => t.key === tierKey);
+    const params = new URLSearchParams({
+      amount: String(tier?.tradeAmount || 1000),
+      duration: String(tier?.tradeDuration || 60),
+      account: "real",
+      from: "challenge",
+    });
+    navigate(`/trading?${params.toString()}`);
     setStarting(false);
   };
+
 
   if (loading || walletLoading) {
     return (
@@ -173,9 +187,19 @@ const WithdrawalChallenge = () => {
                   </AlertDescription>
                 </Alert>
               )}
-              <Button className="w-full gradient-primary" onClick={() => navigate("/trading")}>
+              <Button className="w-full gradient-primary" onClick={() => {
+                const tier = TIERS.find((t) => t.key === activeChallenge.tier);
+                const params = new URLSearchParams({
+                  amount: String(tier?.tradeAmount || 1000),
+                  duration: String(tier?.tradeDuration || 60),
+                  account: "real",
+                  from: "challenge",
+                });
+                navigate(`/trading?${params.toString()}`);
+              }}>
                 <TrendingUp className="w-4 h-4 mr-2" /> Go Trade
               </Button>
+
             </CardContent>
           </Card>
         )}

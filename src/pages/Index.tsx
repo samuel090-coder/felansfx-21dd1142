@@ -14,8 +14,11 @@ import { MainMenuDrawer } from "@/components/layout/MainMenuDrawer";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Trophy } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { Link } from "react-router-dom";
+
 
 const Index = () => {
   const navigate = useNavigate();
@@ -24,6 +27,24 @@ const Index = () => {
   const { settings } = useAppSettings();
   const { requestPermission, permission, isSubscribed, subscribe, isLoading: pushLoading } = usePushNotifications();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [qualifiedTier, setQualifiedTier] = useState<null | { key: string; label: string; min: number }>(null);
+
+  useEffect(() => {
+    if (!user || !wallet) return;
+    const tiers = [
+      { key: "1m", label: "₦1,000,000 Tier", min: 1000000 },
+      { key: "500k", label: "₦500,000 Tier", min: 500000 },
+      { key: "200k", label: "₦200,000 Tier", min: 200000 },
+      { key: "50k", label: "₦50,000 Tier", min: 50000 },
+    ];
+    const eligible = tiers.find((t) => (wallet.balance || 0) >= t.min);
+    if (!eligible) return;
+    const seenKey = `wc_popup_${user.id}_${eligible.key}`;
+    if (localStorage.getItem(seenKey)) return;
+    setQualifiedTier(eligible);
+    localStorage.setItem(seenKey, "1");
+  }, [user, wallet]);
+
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -74,6 +95,28 @@ const Index = () => {
         path="/"
       />
       {showOnboarding && <OnboardingTour onComplete={handleOnboardingComplete} />}
+      <Dialog open={!!qualifiedTier} onOpenChange={(o) => !o && setQualifiedTier(null)}>
+        <DialogContent className="sm:max-w-sm aspect-square flex flex-col items-center justify-center text-center p-6">
+          <DialogHeader className="items-center">
+            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mb-3 shadow-primary">
+              <Trophy className="w-8 h-8 text-white" />
+            </div>
+            <DialogTitle>You qualify for {qualifiedTier?.label}!</DialogTitle>
+            <DialogDescription>
+              Complete the withdrawal challenge to unlock your withdrawals at this tier.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="w-full mt-4">
+            <Button
+              className="w-full gradient-primary font-bold h-12"
+              onClick={() => { setQualifiedTier(null); navigate("/withdrawal-challenge"); }}
+            >
+              Start
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="px-4 pt-6 pb-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

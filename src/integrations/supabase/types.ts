@@ -109,6 +109,48 @@ export type Database = {
           },
         ]
       }
+      ai_bot_purchases: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          plan_key: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          screenshot_url: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          plan_key: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screenshot_url: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          plan_key?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screenshot_url?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_signals: {
         Row: {
           analysis: string | null
@@ -1891,6 +1933,10 @@ export type Database = {
         Args: { p_notes?: string; p_payment_id: string }
         Returns: Json
       }
+      approve_ai_bot_purchase: {
+        Args: { p_notes?: string; p_purchase_id: string }
+        Returns: Json
+      }
       credit_user_wallet: {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
@@ -1905,6 +1951,10 @@ export type Database = {
       }
       decline_access_payment: {
         Args: { p_notes?: string; p_payment_id: string }
+        Returns: Json
+      }
+      decline_ai_bot_purchase: {
+        Args: { p_notes?: string; p_purchase_id: string }
         Returns: Json
       }
       deduct_user_wallet: {
