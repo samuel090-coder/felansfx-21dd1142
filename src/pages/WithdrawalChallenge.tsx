@@ -27,11 +27,12 @@ interface Challenge {
 }
 
 const TIERS = [
-  { key: "50k", min: 50000, required: 10000, hours: 2, label: "₦50,000 Tier", noLoss: false },
-  { key: "200k", min: 200000, required: 100000, hours: 5, label: "₦200,000 Tier", noLoss: false },
-  { key: "500k", min: 500000, required: 400000, hours: 7, label: "₦500,000 Tier", noLoss: false },
-  { key: "1m", min: 1000000, required: 0, hours: 0.5, label: "₦1,000,000 Tier", noLoss: true },
+  { key: "50k", min: 50000, required: 10000, hours: 2, label: "₦50,000 Tier", noLoss: false, tradeAmount: 2000, tradeDuration: 60 },
+  { key: "200k", min: 200000, required: 100000, hours: 5, label: "₦200,000 Tier", noLoss: false, tradeAmount: 10000, tradeDuration: 60 },
+  { key: "500k", min: 500000, required: 400000, hours: 7, label: "₦500,000 Tier", noLoss: false, tradeAmount: 25000, tradeDuration: 60 },
+  { key: "1m", min: 1000000, required: 0, hours: 0.5, label: "₦1,000,000 Tier", noLoss: true, tradeAmount: 50000, tradeDuration: 30 },
 ];
+
 
 const fmtCountdown = (ms: number) => {
   if (ms <= 0) return "Expired";
