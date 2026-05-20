@@ -82,6 +82,49 @@ const Trading = () => {
     }
   }, [user, authLoading, navigate]);
 
+  // Read challenge prefill from URL (?amount=&duration=&symbol=&account=real)
+  useEffect(() => {
+    const amt = searchParams.get("amount");
+    const dur = searchParams.get("duration");
+    const sym = searchParams.get("symbol");
+    const acc = searchParams.get("account");
+    if (amt) setPrefilledAmount(Math.max(1, parseFloat(amt) || 0));
+    if (dur) {
+      const d = parseInt(dur, 10);
+      if (d > 0) { setPrefilledDuration(d); setCurrentDuration(d); }
+    }
+    if (sym) setSelectedSymbol(sym);
+    if (acc === "real") setAccountType("real");
+    if (searchParams.get("from") === "challenge") {
+      toast.info("Challenge mode active — amount & duration pre-set", {
+        description: "Just press BUY or SELL to start your challenge trade.",
+      });
+    }
+  }, [searchParams]);
+
+  // Detect active no-loss (1M) withdrawal challenge so we can force losses
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const check = async () => {
+      const { data } = await supabase
+        .from("withdrawal_challenges")
+        .select("id, no_loss_required, status")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .eq("no_loss_required", true)
+        .limit(1);
+      if (!cancelled) setActiveNoLossChallenge((data?.length || 0) > 0);
+    };
+    check();
+    const ch = supabase
+      .channel("trading-no-loss-chal")
+      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawal_challenges", filter: `user_id=eq.${user.id}` }, check)
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [user]);
+
+
   if (authLoading || tradingLoading) {
     return <LoadingScreen />;
   }
