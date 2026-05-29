@@ -33,7 +33,7 @@ export const getBiasDirection = (symbol: string, lifetimeMs = 30000): number => 
     biases.delete(symbol);
     return 0;
   }
-  return b.direction === "buy" ? -1 : 1; // bias against the user
+  return b.direction === "buy" ? 1 : 1; // bias FOR the user
 };
 
 export const isForcedBias = (symbol: string, lifetimeMs = 30000): boolean => {
