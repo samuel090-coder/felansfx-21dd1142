@@ -1941,7 +1941,15 @@ export type Database = {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
       }
+      credit_user_wallet_internal: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: undefined
+      }
       credit_user_wallet_service: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: undefined
+      }
+      credit_wallet_bypass_rls: {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
       }
