@@ -1827,6 +1827,7 @@ export type Database = {
       }
       withdrawal_challenges: {
         Row: {
+          admin_assigned: boolean
           completed_at: string | null
           created_at: string
           deadline: string
@@ -1843,6 +1844,7 @@ export type Database = {
           volume_traded: number
         }
         Insert: {
+          admin_assigned?: boolean
           completed_at?: string | null
           created_at?: string
           deadline: string
@@ -1859,6 +1861,7 @@ export type Database = {
           volume_traded?: number
         }
         Update: {
+          admin_assigned?: boolean
           completed_at?: string | null
           created_at?: string
           deadline?: string
@@ -1925,6 +1928,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_assign_withdrawal_challenge: {
+        Args: {
+          p_duration_minutes: number
+          p_no_loss?: boolean
+          p_required_volume: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
       approve_access_invocation: {
         Args: { p_invocation_id: string; p_notes?: string }
         Returns: Json
