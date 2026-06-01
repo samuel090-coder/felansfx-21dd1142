@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getBiasDirection, isForcedBias } from "@/lib/tradingBias";
 
 
 
