@@ -82,34 +82,24 @@ const Withdraw = () => {
     if (user) checkKYC();
   }, [user]);
 
-  // Gate: withdrawal challenge for balances >= 50k
+  // Gate: only block withdrawal when an admin has assigned an active challenge
   useEffect(() => {
     const checkChallenge = async () => {
-      if (!user || !wallet) return;
-      const balance = wallet.balance || 0;
-      if (balance < 50000) return;
-
-      // Determine current tier
-      let tier: string;
-      if (balance >= 1000000) tier = "1m";
-      else if (balance >= 500000) tier = "500k";
-      else if (balance >= 200000) tier = "200k";
-      else tier = "50k";
-
+      if (!user) return;
       const { data } = await supabase
         .from("withdrawal_challenges")
-        .select("status, tier")
+        .select("status, admin_assigned")
         .eq("user_id", user.id)
-        .eq("tier", tier)
-        .eq("status", "passed")
+        .eq("admin_assigned", true)
+        .eq("status", "active")
         .limit(1);
-      if (!data || data.length === 0) {
-        toast.info("Complete the withdrawal challenge first");
+      if (data && data.length > 0) {
+        toast.info("Complete the challenge assigned to you before withdrawing");
         navigate("/withdrawal-challenge", { replace: true });
       }
     };
     checkChallenge();
-  }, [user, wallet, navigate]);
+  }, [user, navigate]);
 
   // Fetch banks on mount
   useEffect(() => {

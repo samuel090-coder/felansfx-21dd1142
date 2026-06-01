@@ -51,9 +51,10 @@ export const TradingBottomControls = ({
 
 
   const formatDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}:00`;
+    return secs === 0 ? `${mins}m` : `${mins}m ${secs}s`;
   };
 
   const adjustInvestment = (delta: number) => {
