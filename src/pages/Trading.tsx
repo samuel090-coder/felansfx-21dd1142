@@ -141,6 +141,58 @@ const Trading = () => {
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [user]);
 
+  // Check AI bot subscription validity (real account feature only)
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const check = async () => {
+      const { data } = await supabase
+        .from("user_unlocks")
+        .select("expires_at")
+        .eq("user_id", user.id)
+        .eq("unlock_type", "ai_trading_bot")
+        .order("expires_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      let valid = false;
+      if (data) {
+        const lifetime = !data.expires_at || new Date(data.expires_at).getFullYear() >= 9000;
+        valid = lifetime || new Date(data.expires_at) > new Date();
+      }
+      if (!cancelled) setAiUnlocked(valid);
+    };
+    check();
+    return () => { cancelled = true; };
+  }, [user, showAIBot]);
+
+  // Count today's AI bot trades (10/day cap)
+  const fetchAiCount = useCallback(async () => {
+    if (!user) return;
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const { count } = await supabase
+      .from("demo_trade_history")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("account_type", "real")
+      .eq("close_reason", "ai_bot")
+      .gte("closed_at", start.toISOString());
+    setAiTradesToday(count || 0);
+  }, [user]);
+
+  useEffect(() => { fetchAiCount(); }, [fetchAiCount]);
+
+  // Show the exclusive AI promo once when a user lands on the real account
+  // without an active AI subscription.
+  useEffect(() => {
+    if (accountType === "real" && !aiUnlocked && !promoShownRef.current) {
+      promoShownRef.current = true;
+      setShowAiPromo(true);
+    }
+  }, [accountType, aiUnlocked]);
+
+
+
 
   if (authLoading || tradingLoading) {
     return <LoadingScreen />;
