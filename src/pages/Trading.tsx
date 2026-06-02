@@ -301,14 +301,14 @@ const Trading = () => {
       // Demo trading
       if (!demoWallet) {
         toast.error("Demo wallet not ready");
-        return;
+        return null;
       }
 
       if (amount > demoWallet.balance) {
         toast.error("Insufficient demo balance", {
           description: `You need $${amount} but only have $${demoWallet.balance.toFixed(2)}`,
         });
-        return;
+        return null;
       }
       
       const result = await openPosition(
@@ -339,16 +339,88 @@ const Trading = () => {
           description: `${selectedSymbol} @ ${getFormattedPrice(currentPrice)} - $${amount}`,
         });
       }
+
+      // Run fraud detection in background after each trade
+      supabase.functions.invoke("fraud-detection", {
+        body: { type: "trade_check", user_id: user.id },
+      }).catch(() => {});
+
+      // Refresh smart alerts after trade
+      refreshAlerts();
+      return result ? result.id : null;
     }
 
-    // Run fraud detection in background after each trade
-    supabase.functions.invoke("fraud-detection", {
-      body: { type: "trade_check", user_id: user.id },
-    }).catch(() => {});
-
-    // Refresh smart alerts after trade
-    refreshAlerts();
+    // Run fraud detection in background after each trade (real, non-AI)
+    if (!isAi) {
+      supabase.functions.invoke("fraud-detection", {
+        body: { type: "trade_check", user_id: user.id },
+      }).catch(() => {});
+      // Refresh smart alerts after trade
+      refreshAlerts();
+    }
+    return null;
   };
+
+  // ---- AI auto-trader ----
+  const openAiTrade = useCallback(async () => {
+    if (aiOpeningRef.current) return;
+    if (!realWallet || realWallet.balance < aiStake) {
+      toast.error("Insufficient balance — top up to keep the AI trading");
+      setAiRunning(false);
+      return;
+    }
+    if (aiTradesToday >= AI_DAILY_LIMIT) {
+      setAiRunning(false);
+      return;
+    }
+    aiOpeningRef.current = true;
+    setAiBusy(true);
+    const type: "buy" | "sell" = Math.random() < 0.5 ? "buy" : "sell";
+    const id = await handleTrade(type, aiStake, AI_TRADE_DURATION, true);
+    setAiBusy(false);
+    aiOpeningRef.current = false;
+    if (!id) setAiRunning(false);
+  }, [realWallet, aiStake, aiTradesToday]);
+
+  // Drive the AI: open a new trade whenever it has none active and is running
+  useEffect(() => {
+    if (!aiRunning || aiPaused || accountType !== "real") return;
+    const hasAiOpen = activePositions.some(p => aiTradeIds.current.has(p.id));
+    if (hasAiOpen || aiOpeningRef.current) return;
+    if (aiTradesToday >= AI_DAILY_LIMIT) {
+      setAiRunning(false);
+      toast.info(`AI daily limit reached — ${AI_DAILY_LIMIT}/${AI_DAILY_LIMIT} trades placed`);
+      return;
+    }
+    const t = setTimeout(() => { openAiTrade(); }, 2500);
+    return () => clearTimeout(t);
+  }, [aiRunning, aiPaused, accountType, activePositions, aiTradesToday, openAiTrade]);
+
+  const startAiBot = () => {
+    if (!aiUnlocked) { setShowAIBot(true); return; }
+    if (accountType !== "real") setAccountType("real");
+    if (!aiStake || aiStake < 1) { toast.error("Enter a stake amount first"); return; }
+    if (!realWallet || realWallet.balance < aiStake) {
+      toast.error("Insufficient balance", { description: "Fund your account to start the AI bot" });
+      return;
+    }
+    if (aiTradesToday >= AI_DAILY_LIMIT) {
+      toast.info("You've used all 10 AI trades today — purchase or renew to continue");
+      return;
+    }
+    setAiPaused(false);
+    setAiRunning(true);
+    toast.success("🤖 AI bot started — it will trade automatically for you");
+  };
+
+  const cancelAiBot = () => {
+    setAiRunning(false);
+    setAiPaused(false);
+    clearBias(selectedSymbol);
+    toast.info("AI bot stopped");
+  };
+
+
 
 
   const handlePositionExpire = async (positionId: string, exitPrice: number) => {
