@@ -458,6 +458,7 @@ const Trading = () => {
           toast.error("Trade settlement failed", {
             description: "Please contact support if your balance was affected",
           });
+          if (isAiTrade) { aiTradeIds.current.delete(positionId); clearBias(position.symbol); }
           setActivePositions(prev => prev.filter(p => p.id !== positionId));
           return;
         }
@@ -467,6 +468,7 @@ const Trading = () => {
         // Handle already_closed gracefully
         if (result?.status === "already_closed") {
           console.log("Position already settled:", positionId);
+          if (isAiTrade) { aiTradeIds.current.delete(positionId); clearBias(position.symbol); fetchAiCount(); }
           setActivePositions(prev => prev.filter(p => p.id !== positionId));
           return;
         }
