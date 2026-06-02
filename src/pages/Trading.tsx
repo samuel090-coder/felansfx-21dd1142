@@ -66,6 +66,18 @@ const Trading = () => {
   const settlementQueue = useRef<Promise<void>>(Promise.resolve());
   const settledIds = useRef<Set<string>>(new Set());
 
+  // AI auto-trader state
+  const [aiUnlocked, setAiUnlocked] = useState(false);
+  const [showAiPromo, setShowAiPromo] = useState(false);
+  const [aiRunning, setAiRunning] = useState(false);
+  const [aiPaused, setAiPaused] = useState(false);
+  const [aiStake, setAiStake] = useState<number>(0);
+  const [aiTradesToday, setAiTradesToday] = useState(0);
+  const [aiBusy, setAiBusy] = useState(false);
+  const aiTradeIds = useRef<Set<string>>(new Set());
+  const aiOpeningRef = useRef(false);
+  const promoShownRef = useRef(false);
+
   const { currentPrice, candles, getFormattedPrice } = usePriceSimulation(selectedSymbol, 3000);
   const allPrices = useMultiSymbolPrices(ALL_SYMBOLS);
   const { vibrateEntry } = useHapticFeedback();
