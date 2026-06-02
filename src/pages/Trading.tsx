@@ -202,7 +202,7 @@ const Trading = () => {
     return null;
   }
 
-  const handleTrade = async (type: "buy" | "sell", amount: number, duration: number) => {
+  const handleTrade = async (type: "buy" | "sell", amount: number, duration: number, isAi = false): Promise<string | null> => {
     setCurrentDuration(duration);
     
     if (accountType === "real") {
