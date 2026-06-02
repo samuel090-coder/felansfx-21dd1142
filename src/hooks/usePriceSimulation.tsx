@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-
+import { getBiasNudge } from "@/lib/tradingBias";
 
 
 export interface CandleData {
@@ -82,6 +82,11 @@ const generatePriceMovement = (
   if (Math.random() < 0.06) {
     const shockSign = Math.random() < 0.5 ? -1 : 1;
     random += shockSign * volatility * currentPrice * (2 + Math.random());
+  }
+
+  // Active-trade bias (AI bot favours the user, manual/challenge biases against)
+  if (symbol) {
+    random += getBiasNudge(symbol, currentPrice, volatility);
   }
 
   return currentPrice + random + meanReversion + trend;

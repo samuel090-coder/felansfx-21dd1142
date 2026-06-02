@@ -149,16 +149,11 @@ export const AITradingAssistant = ({
       if (deductErr) throw new Error(deductErr.message);
       if (!ok) throw new Error("Payment failed — insufficient balance");
 
-      // Extend from current expiry if still active, otherwise from now
-const baseTime = (isActive && expiresAt && expiresAt !== "Lifetime")
-  ? Math.max(Date.now(), new Date(expiresAt).getTime())
-  : Date.now();
-const expiresAtIso = new Date(baseTime + plan.expiryMs!).toISOString();
-
-const { error: insertErr } = await supabase.from("user_unlocks").upsert(
-  { user_id: user.id, unlock_type: "ai_trading_bot", expires_at: expiresAtIso },
-  { onConflict: "user_id,unlock_type" }
-);
+      const expiresAtIso = new Date(Date.now() + plan.expiryMs!).toISOString();
+      const { error: insertErr } = await supabase.from("user_unlocks").upsert(
+        { user_id: user.id, unlock_type: "ai_trading_bot", expires_at: expiresAtIso },
+        { onConflict: "user_id,unlock_type" }
+      );
       if (insertErr) {
         try { await supabase.rpc("credit_user_wallet_service", { p_user_id: user.id, p_amount: price }); } catch {}
         throw new Error("Activation failed. Your balance has been refunded.");
