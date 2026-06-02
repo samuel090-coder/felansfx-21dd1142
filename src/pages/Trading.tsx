@@ -215,7 +215,7 @@ const Trading = () => {
             onClick: () => navigate("/deposit"),
           },
         });
-        return;
+        return null;
       }
 
       // Deduct from real wallet
@@ -226,7 +226,7 @@ const Trading = () => {
         toast.error("Failed to process trade", {
           description: "Please try again",
         });
-        return;
+        return null;
       }
 
       // Create position with account_type = 'real'
@@ -250,29 +250,36 @@ const Trading = () => {
         // Refund on failure
         await supabase.rpc("credit_user_wallet", { p_user_id: user.id, p_amount: amount });
         toast.error("Failed to open position");
-        return;
+        return null;
       }
 
-      // Trigger copy trades for followers (fire and forget)
-      supabase.functions.invoke("execute-copy-trades", {
-        body: {
-          leader_id: user.id,
-          symbol: selectedSymbol,
-          trade_type: type,
-          entry_price: currentPrice,
-        },
-      }).then(({ data, error: copyError }) => {
-        if (copyError) {
-          console.error("Copy trade error:", copyError);
-        } else if (data?.copied > 0) {
-          console.log(`Trade copied for ${data.copied} followers`);
-        }
-      });
+      // Trigger copy trades for followers (fire and forget) — skip AI bot trades
+      if (!isAi) {
+        supabase.functions.invoke("execute-copy-trades", {
+          body: {
+            leader_id: user.id,
+            symbol: selectedSymbol,
+            trade_type: type,
+            entry_price: currentPrice,
+          },
+        }).then(({ data, error: copyError }) => {
+          if (copyError) {
+            console.error("Copy trade error:", copyError);
+          } else if (data?.copied > 0) {
+            console.log(`Trade copied for ${data.copied} followers`);
+          }
+        });
+      }
 
       // Play entry sound/haptic and add to active positions
       playEntrySound();
       vibrateEntry();
-      registerBias(selectedSymbol, type as "buy" | "sell", activeNoLossChallenge);
+      if (isAi) {
+        aiTradeIds.current.add(position.id);
+        registerFavorBias(selectedSymbol, type as "buy" | "sell");
+      } else {
+        registerBias(selectedSymbol, type as "buy" | "sell", activeNoLossChallenge);
+      }
 
       setActivePositions(prev => [...prev, {
         id: position.id,
@@ -284,11 +291,12 @@ const Trading = () => {
         duration,
       }]);
 
-      toast.success(`${type.toUpperCase()} position opened!`, {
+      toast.success(`${isAi ? "🤖 AI " : ""}${type.toUpperCase()} position opened!`, {
         description: `${selectedSymbol} @ ${getFormattedPrice(currentPrice)} - ₦${amount}`,
       });
 
       refetchWallet();
+      return position.id;
     } else {
       // Demo trading
       if (!demoWallet) {
