@@ -612,20 +612,49 @@ const Trading = () => {
         accountType={accountType}
       />
 
-      {/* Current price display + AI Bot button */}
+      {/* Current price display + AI Bot button (real account only) */}
       <div className="absolute left-2 top-32 z-10 flex flex-col gap-2">
         <div className="bg-primary px-3 py-1 rounded text-sm font-bold text-primary-foreground tabular-nums">
           {getFormattedPrice(currentPrice)}
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-8 text-xs bg-background/80 backdrop-blur-sm border-primary/30"
-          onClick={() => setShowAIBot(true)}
-        >
-          <Bot className="w-3 h-3 mr-1" /> AI Bot
-        </Button>
+        {accountType === "real" && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs bg-background/80 backdrop-blur-sm border-primary/30"
+            onClick={() => setShowAIBot(true)}
+          >
+            <Bot className="w-3 h-3 mr-1" /> AI Bot
+          </Button>
+        )}
       </div>
+
+      {/* AI auto-trader control panel (real account, subscribed) */}
+      {accountType === "real" && (
+        <AIBotPanel
+          unlocked={aiUnlocked}
+          running={aiRunning}
+          paused={aiPaused}
+          stake={aiStake}
+          setStake={setAiStake}
+          tradesToday={aiTradesToday}
+          dailyLimit={AI_DAILY_LIMIT}
+          balance={realWallet?.balance || 0}
+          busy={aiBusy}
+          onStart={startAiBot}
+          onPause={() => setAiPaused(true)}
+          onResume={() => setAiPaused(false)}
+          onCancel={cancelAiBot}
+          onRenew={() => setShowAIBot(true)}
+        />
+      )}
+
+      {/* Exclusive AI promo popup */}
+      <AIBotPromoBanner
+        open={showAiPromo}
+        onBuy={() => { setShowAiPromo(false); setShowAIBot(true); }}
+        onCancel={() => setShowAiPromo(false)}
+      />
 
       {/* Active positions with countdown */}
       <ActivePositions
