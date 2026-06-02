@@ -520,6 +520,7 @@ const Trading = () => {
         }
       } catch (err) {
         console.error("Settlement exception:", err);
+        if (isAiTrade) { aiTradeIds.current.delete(positionId); clearBias(position.symbol); }
         setActivePositions(prev => prev.filter(p => p.id !== positionId));
       }
     });
