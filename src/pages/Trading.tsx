@@ -357,16 +357,6 @@ const Trading = () => {
       refreshAlerts();
       return result ? result.id : null;
     }
-
-    // Run fraud detection in background after each trade (real, non-AI)
-    if (!isAi) {
-      supabase.functions.invoke("fraud-detection", {
-        body: { type: "trade_check", user_id: user.id },
-      }).catch(() => {});
-      // Refresh smart alerts after trade
-      refreshAlerts();
-    }
-    return null;
   };
 
   // ---- AI auto-trader ----
