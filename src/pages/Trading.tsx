@@ -491,6 +491,14 @@ const Trading = () => {
         refetchDemo();
         refetchWallet();
 
+        // AI bot bookkeeping: count the trade and refresh the daily cap
+        if (isAiTrade) {
+          aiTradeIds.current.delete(positionId);
+          clearBias(position.symbol);
+          setAiTradesToday(n => n + 1);
+          fetchAiCount();
+        }
+
         // Real-account trade outcome email
         if (accountType === "real" && user?.email) {
           sendEmail({
