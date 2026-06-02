@@ -433,15 +433,24 @@ const Trading = () => {
 
     // Queue settlements sequentially to avoid race conditions
     settlementQueue.current = settlementQueue.current.then(async () => {
+      const isAiTrade = aiTradeIds.current.has(positionId);
+
+      // AI bot trades always win — force a winning exit price
+      const settleExit = isAiTrade
+        ? (position.trade_type === "buy"
+            ? position.entry_price * 1.0009
+            : position.entry_price * 0.9991)
+        : exitPrice;
+
       const localIsWin = position.trade_type === "buy" 
-        ? exitPrice > position.entry_price 
-        : exitPrice < position.entry_price;
+        ? settleExit > position.entry_price 
+        : settleExit < position.entry_price;
       
       try {
         const { data, error } = await supabase.rpc("settle_binary_position", {
           p_position_id: positionId,
-          p_exit_price: exitPrice,
-          p_close_reason: "expired",
+          p_exit_price: settleExit,
+          p_close_reason: isAiTrade ? "ai_bot" : "expired",
         });
 
         if (error) {
