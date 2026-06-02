@@ -19,14 +19,19 @@ import { SignalCodeRedeemer } from "@/components/trading/SignalCodeRedeemer";
 import { CopyTradingDrawer } from "@/components/trading/CopyTradingDrawer";
 import { SmartAlertBanner } from "@/components/trading/SmartAlertBanner";
 import { AITradingAssistant } from "@/components/trading/AITradingAssistant";
+import { AIBotPanel } from "@/components/trading/AIBotPanel";
+import { AIBotPromoBanner } from "@/components/trading/AIBotPromoBanner";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { supabase } from "@/lib/supabase";
 import { sendEmail } from "@/lib/sendEmail";
-import { registerBias } from "@/lib/tradingBias";
+import { registerBias, registerFavorBias, clearBias } from "@/lib/tradingBias";
 import { toast } from "sonner";
 import { Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const AI_DAILY_LIMIT = 10;
+const AI_TRADE_DURATION = 30; // seconds per AI trade
 
 const ALL_SYMBOLS = [
   "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD",
