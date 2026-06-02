@@ -543,13 +543,22 @@ const Trading = () => {
   const handleAccountChange = (type: "demo" | "real") => {
     setAccountType(type);
     setActivePositions([]); // Clear active positions when switching
-    if (type === "real" && (!realWallet || realWallet.balance === 0)) {
-      toast.info("Fund your real account to start trading", {
-        action: {
-          label: "Deposit",
-          onClick: () => navigate("/deposit"),
-        },
-      });
+    // AI bot is a real-account-only feature — stop it on demo
+    if (type === "demo") {
+      setAiRunning(false);
+      setAiPaused(false);
+      setShowAiPromo(false);
+    } else {
+      // Re-offer the AI promo when entering real account without a subscription
+      if (!aiUnlocked) setShowAiPromo(true);
+      if (!realWallet || realWallet.balance === 0) {
+        toast.info("Fund your real account to start trading", {
+          action: {
+            label: "Deposit",
+            onClick: () => navigate("/deposit"),
+          },
+        });
+      }
     }
   };
 
