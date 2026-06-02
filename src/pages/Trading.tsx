@@ -296,6 +296,14 @@ const Trading = () => {
       });
 
       refetchWallet();
+
+      // Side effects for manual real trades only (skip AI bot trades)
+      if (!isAi) {
+        supabase.functions.invoke("fraud-detection", {
+          body: { type: "trade_check", user_id: user.id },
+        }).catch(() => {});
+        refreshAlerts();
+      }
       return position.id;
     } else {
       // Demo trading
