@@ -666,7 +666,7 @@ const Trading = () => {
           onPause={() => setAiPaused(true)}
           onResume={() => setAiPaused(false)}
           onCancel={cancelAiBot}
-          onRenew={() => setShowAIBot(true)}
+          onRenew={() => { setAiRenewMode(true); setShowAIBot(true); }}
         />
       )}
 
