@@ -27,6 +27,8 @@ interface AITradingAssistantProps {
   currentPrice: number;
   accountType: "demo" | "real";
   onExecuteTrade?: (type: "buy" | "sell", amount: number, duration: number) => void;
+  /** Force the purchase/renew view even when a subscription is still active (e.g. daily trade limit reached). */
+  forceRenew?: boolean;
 }
 
 type PlanKey = "daily" | "6month" | "lifetime";
