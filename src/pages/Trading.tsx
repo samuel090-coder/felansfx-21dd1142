@@ -194,13 +194,6 @@ const Trading = () => {
 
 
 
-  if (authLoading || tradingLoading) {
-    return <LoadingScreen />;
-  }
-
-  if (!user) {
-    return null;
-  }
 
   const handleTrade = async (type: "buy" | "sell", amount: number, duration: number, isAi = false): Promise<string | null> => {
     setCurrentDuration(duration);
@@ -393,6 +386,14 @@ const Trading = () => {
     const t = setTimeout(() => { openAiTrade(); }, 2500);
     return () => clearTimeout(t);
   }, [aiRunning, aiPaused, accountType, activePositions, aiTradesToday, openAiTrade]);
+
+  if (authLoading || tradingLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (!user) {
+    return null;
+  }
 
   const startAiBot = () => {
     if (!aiUnlocked) { setShowAIBot(true); return; }
