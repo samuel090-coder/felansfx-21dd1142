@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Bot, Play, Pause, Square, Zap, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Bot, Play, Pause, Square, Zap, Loader2, RefreshCw, ShieldCheck, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
