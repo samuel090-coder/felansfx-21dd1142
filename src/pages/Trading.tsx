@@ -60,6 +60,7 @@ const Trading = () => {
   const [activePositions, setActivePositions] = useState<ActivePosition[]>([]);
   const [currentDuration, setCurrentDuration] = useState(30);
   const [showAIBot, setShowAIBot] = useState(false);
+  const [aiRenewMode, setAiRenewMode] = useState(false);
   const [prefilledAmount, setPrefilledAmount] = useState<number | undefined>(undefined);
   const [prefilledDuration, setPrefilledDuration] = useState<number | undefined>(undefined);
   const [activeNoLossChallenge, setActiveNoLossChallenge] = useState(false);
@@ -168,15 +169,36 @@ const Trading = () => {
   // Count today's AI bot trades (10/day cap)
   const fetchAiCount = useCallback(async () => {
     if (!user) return;
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
+    // Default window: start of today
+    let windowStart = new Date();
+    windowStart.setHours(0, 0, 0, 0);
+
+    // For the Daily plan, the 10-trade cap applies to the current 24h subscription
+    // window. Use the activation time (expires_at - 24h) so a fresh purchase resets the count.
+    const { data: unlock } = await supabase
+      .from("user_unlocks")
+      .select("expires_at")
+      .eq("user_id", user.id)
+      .eq("unlock_type", "ai_trading_bot")
+      .order("expires_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (unlock?.expires_at) {
+      const exp = new Date(unlock.expires_at);
+      const diffMs = exp.getTime() - Date.now();
+      if (exp.getFullYear() < 9000 && diffMs > 0 && diffMs <= 24 * 60 * 60 * 1000) {
+        const activation = new Date(exp.getTime() - 24 * 60 * 60 * 1000);
+        if (activation > windowStart) windowStart = activation;
+      }
+    }
+
     const { count } = await supabase
       .from("demo_trade_history")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("account_type", "real")
       .eq("close_reason", "ai_bot")
-      .gte("closed_at", start.toISOString());
+      .gte("closed_at", windowStart.toISOString());
     setAiTradesToday(count || 0);
   }, [user]);
 
@@ -644,7 +666,7 @@ const Trading = () => {
           onPause={() => setAiPaused(true)}
           onResume={() => setAiPaused(false)}
           onCancel={cancelAiBot}
-          onRenew={() => setShowAIBot(true)}
+          onRenew={() => { setAiRenewMode(true); setShowAIBot(true); }}
         />
       )}
 
@@ -702,11 +724,15 @@ const Trading = () => {
       {/* AI Trading Assistant */}
       <AITradingAssistant
         open={showAIBot}
-        onOpenChange={setShowAIBot}
+        onOpenChange={(o) => {
+          setShowAIBot(o);
+          if (!o) { setAiRenewMode(false); fetchAiCount(); }
+        }}
         selectedSymbol={selectedSymbol}
         currentPrice={currentPrice}
         accountType={accountType}
         onExecuteTrade={handleTrade}
+        forceRenew={aiRenewMode}
       />
     </div>
   );

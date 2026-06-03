@@ -27,6 +27,8 @@ interface AITradingAssistantProps {
   currentPrice: number;
   accountType: "demo" | "real";
   onExecuteTrade?: (type: "buy" | "sell", amount: number, duration: number) => void;
+  /** Force the purchase/renew view even when a subscription is still active (e.g. daily trade limit reached). */
+  forceRenew?: boolean;
 }
 
 type PlanKey = "daily" | "6month" | "lifetime";
@@ -51,7 +53,7 @@ const PLANS: PricingPlan[] = [
 interface BankMethod { id: string; name: string; details: string; }
 
 export const AITradingAssistant = ({
-  open, onOpenChange, selectedSymbol, currentPrice, accountType, onExecuteTrade,
+  open, onOpenChange, selectedSymbol, currentPrice, accountType, onExecuteTrade, forceRenew = false,
 }: AITradingAssistantProps) => {
   const { user } = useAuth();
   const { wallet, refetch: refetchWallet } = useWallet();
@@ -161,8 +163,10 @@ export const AITradingAssistant = ({
       await refetchWallet();
       setIsActive(true);
       setExpiresAt(expiresAtIso);
-      toast.success("🤖 Daily AI Bot activated — valid 24 hours");
+      toast.success("🤖 Daily AI Bot activated — valid 24 hours, fresh 10 trades unlocked");
       loadSignals();
+      // When renewing after hitting the daily limit, close so the bot panel reflects the reset
+      if (forceRenew) onOpenChange(false);
     } catch (e: any) {
       toast.error(e.message || "Purchase failed");
     }
@@ -286,8 +290,13 @@ export const AITradingAssistant = ({
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
-          {!isActive ? (
+          {(!isActive || forceRenew) ? (
             <div className="space-y-4 py-2">
+              {forceRenew && isActive && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-center">
+                  ✅ You've used all your AI trades for today. Renew the Daily plan below to unlock a fresh batch of trades instantly.
+                </div>
+              )}
               <div className="text-center space-y-2">
                 <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                   <Bot className="w-8 h-8 text-primary" />
