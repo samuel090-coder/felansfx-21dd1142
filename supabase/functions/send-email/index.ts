@@ -648,8 +648,11 @@ Deno.serve(async (req) => {
     }).select("id").single();
 
     if (!ok) {
-      return new Response(JSON.stringify({ success: false, error: ejText, id: logRow?.id }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      // Email provider failed (e.g. monthly quota exceeded). Email is
+      // fire-and-forget — return 200 with a structured error so the client
+      // can degrade gracefully without surfacing a runtime crash.
+      return new Response(JSON.stringify({ success: false, error: ejText, fallback: true, id: logRow?.id }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
