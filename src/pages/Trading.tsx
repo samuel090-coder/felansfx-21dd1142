@@ -394,6 +394,14 @@ const Trading = () => {
     return () => clearTimeout(t);
   }, [aiRunning, aiPaused, accountType, activePositions, aiTradesToday, openAiTrade]);
 
+  if (authLoading || tradingLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (!user) {
+    return null;
+  }
+
   const startAiBot = () => {
     if (!aiUnlocked) { setShowAIBot(true); return; }
     if (accountType !== "real") setAccountType("real");
