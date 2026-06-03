@@ -661,8 +661,9 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     console.error("send-email error:", err);
-    return new Response(JSON.stringify({ success: false, error: err?.message || String(err) }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Never return 5xx — email failures must not surface as frontend crashes.
+    return new Response(JSON.stringify({ success: false, error: err?.message || String(err), fallback: true }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
