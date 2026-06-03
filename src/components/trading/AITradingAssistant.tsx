@@ -163,8 +163,10 @@ export const AITradingAssistant = ({
       await refetchWallet();
       setIsActive(true);
       setExpiresAt(expiresAtIso);
-      toast.success("🤖 Daily AI Bot activated — valid 24 hours");
+      toast.success("🤖 Daily AI Bot activated — valid 24 hours, fresh 10 trades unlocked");
       loadSignals();
+      // When renewing after hitting the daily limit, close so the bot panel reflects the reset
+      if (forceRenew) onOpenChange(false);
     } catch (e: any) {
       toast.error(e.message || "Purchase failed");
     }
