@@ -724,11 +724,15 @@ const Trading = () => {
       {/* AI Trading Assistant */}
       <AITradingAssistant
         open={showAIBot}
-        onOpenChange={setShowAIBot}
+        onOpenChange={(o) => {
+          setShowAIBot(o);
+          if (!o) { setAiRenewMode(false); fetchAiCount(); }
+        }}
         selectedSymbol={selectedSymbol}
         currentPrice={currentPrice}
         accountType={accountType}
         onExecuteTrade={handleTrade}
+        forceRenew={aiRenewMode}
       />
     </div>
   );
