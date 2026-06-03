@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Bot, Play, Pause, Square, Zap, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Bot, Play, Pause, Square, Zap, Loader2, RefreshCw, ShieldCheck, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -27,29 +27,67 @@ export const AIBotPanel = ({
 }: AIBotPanelProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [input, setInput] = useState(stake ? String(stake) : "");
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const dragState = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
 
   useEffect(() => {
     if (stake) setInput(String(stake));
   }, [stake]);
+
+  const onDragStart = (e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragState.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      baseX: pos?.x ?? 0,
+      baseY: pos?.y ?? 0,
+    };
+  };
+
+  const onDragMove = (e: React.PointerEvent) => {
+    if (!dragState.current) return;
+    const dx = e.clientX - dragState.current.startX;
+    const dy = e.clientY - dragState.current.startY;
+    setPos({ x: dragState.current.baseX + dx, y: dragState.current.baseY + dy });
+  };
+
+  const onDragEnd = (e: React.PointerEvent) => {
+    dragState.current = null;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
+  };
 
   if (!unlocked) return null;
 
   const limitReached = tradesToday >= dailyLimit;
 
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-32 z-20 w-[92%] max-w-sm">
+    <div
+      className={cn(
+        "absolute z-20 w-[92%] max-w-sm touch-none",
+        pos ? "" : "left-1/2 -translate-x-1/2 top-32"
+      )}
+      style={pos ? { left: pos.x, top: pos.y, transform: "none" } : undefined}
+    >
       <div className="rounded-2xl border border-primary/40 bg-card/95 backdrop-blur-md shadow-lg overflow-hidden">
-        {/* Header */}
-        <button
-          onClick={() => setCollapsed(c => !c)}
-          className="w-full flex items-center justify-between px-3 py-2 bg-gradient-to-r from-primary/15 to-primary/5"
+        {/* Header (drag handle + collapse toggle) */}
+        <div
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+          className="w-full flex items-center justify-between px-3 py-2 bg-gradient-to-r from-primary/15 to-primary/5 cursor-grab active:cursor-grabbing touch-none select-none"
         >
-          <span className="flex items-center gap-2 text-sm font-bold">
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            className="flex items-center gap-2 text-sm font-bold"
+          >
+            <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
             <span className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
               <Bot className="w-3.5 h-3.5 text-primary" />
             </span>
             AI Auto-Trader
-          </span>
+          </button>
           <span className={cn(
             "text-[10px] font-semibold px-2 py-0.5 rounded-full",
             running && !paused ? "bg-emerald-500/20 text-emerald-500" :
@@ -57,7 +95,7 @@ export const AIBotPanel = ({
           )}>
             {running ? (paused ? "Paused" : "Trading…") : "Ready"}
           </span>
-        </button>
+        </div>
 
         {!collapsed && (
           <div className="p-3 space-y-3">

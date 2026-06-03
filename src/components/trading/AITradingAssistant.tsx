@@ -417,10 +417,6 @@ export const AITradingAssistant = ({
                   </Badge>
                   <span className="text-[10px] text-muted-foreground">{formatExpiry()}</span>
                 </div>
-                <Button size="sm" variant="outline" onClick={generateSignal} disabled={generating} className="h-7 text-xs">
-                  {generating ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
-                  {generating ? "Analyzing..." : `Analyze ${selectedSymbol}`}
-                </Button>
               </div>
 
               {loading && <p className="text-center text-sm text-muted-foreground">Loading signals...</p>}
