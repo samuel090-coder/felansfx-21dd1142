@@ -27,10 +27,35 @@ export const AIBotPanel = ({
 }: AIBotPanelProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [input, setInput] = useState(stake ? String(stake) : "");
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const dragState = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
 
   useEffect(() => {
     if (stake) setInput(String(stake));
   }, [stake]);
+
+  const onDragStart = (e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragState.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      baseX: pos?.x ?? 0,
+      baseY: pos?.y ?? 0,
+    };
+  };
+
+  const onDragMove = (e: React.PointerEvent) => {
+    if (!dragState.current) return;
+    const dx = e.clientX - dragState.current.startX;
+    const dy = e.clientY - dragState.current.startY;
+    setPos({ x: dragState.current.baseX + dx, y: dragState.current.baseY + dy });
+  };
+
+  const onDragEnd = (e: React.PointerEvent) => {
+    dragState.current = null;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
+  };
 
   if (!unlocked) return null;
 
