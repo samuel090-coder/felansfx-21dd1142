@@ -290,8 +290,13 @@ export const AITradingAssistant = ({
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
-          {!isActive ? (
+          {(!isActive || forceRenew) ? (
             <div className="space-y-4 py-2">
+              {forceRenew && isActive && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-center">
+                  ✅ You've used all your AI trades for today. Renew the Daily plan below to unlock a fresh batch of trades instantly.
+                </div>
+              )}
               <div className="text-center space-y-2">
                 <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                   <Bot className="w-8 h-8 text-primary" />
