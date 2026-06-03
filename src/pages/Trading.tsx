@@ -194,13 +194,6 @@ const Trading = () => {
 
 
 
-  if (authLoading || tradingLoading) {
-    return <LoadingScreen />;
-  }
-
-  if (!user) {
-    return null;
-  }
 
   const handleTrade = async (type: "buy" | "sell", amount: number, duration: number, isAi = false): Promise<string | null> => {
     setCurrentDuration(duration);
