@@ -53,7 +53,7 @@ const PLANS: PricingPlan[] = [
 interface BankMethod { id: string; name: string; details: string; }
 
 export const AITradingAssistant = ({
-  open, onOpenChange, selectedSymbol, currentPrice, accountType, onExecuteTrade,
+  open, onOpenChange, selectedSymbol, currentPrice, accountType, onExecuteTrade, forceRenew = false,
 }: AITradingAssistantProps) => {
   const { user } = useAuth();
   const { wallet, refetch: refetchWallet } = useWallet();
