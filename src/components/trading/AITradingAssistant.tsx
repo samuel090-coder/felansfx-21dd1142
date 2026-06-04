@@ -139,14 +139,29 @@ export const AITradingAssistant = ({
   // Daily plan only — uses wallet balance
   const purchaseDaily = async () => {
     const plan = PLANS.find(p => p.key === "daily")!;
-    if (!user || !wallet) return;
+    if (!user) return;
     const price = getPrice(plan);
-    if (wallet.balance < price) {
-      toast.error("Insufficient balance", { description: `You need ₦${price.toLocaleString()} to activate the Daily AI Bot. Top up to renew.` });
+    if (!price || price <= 0) {
+      toast.error("Plan price not configured. Contact support.");
       return;
     }
     setPurchaseLoading("daily");
     try {
+      // Always read the freshest balance from the DB before charging so a stale
+      // or not-yet-loaded wallet cannot silently skip the deduction.
+      const { data: freshWallet, error: walletErr } = await supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (walletErr) throw new Error(walletErr.message);
+      const currentBalance = Number(freshWallet?.balance ?? 0);
+      if (currentBalance < price) {
+        toast.error("Insufficient balance", { description: `You need ₦${price.toLocaleString()} to activate the Daily AI Bot. Top up to renew.` });
+        setPurchaseLoading(null);
+        return;
+      }
+
       const { data: ok, error: deductErr } = await supabase.rpc("deduct_user_wallet", { p_user_id: user.id, p_amount: price });
       if (deductErr) throw new Error(deductErr.message);
       if (!ok) throw new Error("Payment failed — insufficient balance");
