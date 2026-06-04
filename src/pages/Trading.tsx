@@ -718,6 +718,8 @@ const Trading = () => {
         accountType={accountType}
         prefilledAmount={prefilledAmount}
         prefilledDuration={prefilledDuration}
+        onAiTrading={() => { setAiRenewMode(false); setShowAIBot(true); }}
+        aiActive={aiRunning && !aiPaused}
       />
 
 
