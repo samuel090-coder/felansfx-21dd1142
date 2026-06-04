@@ -34,12 +34,12 @@ export const TradingHeader = ({
   };
 
   return (
-    <header className="flex items-center justify-between p-2 bg-card border-b border-border/30">
+    <header className="flex items-center justify-between gap-2 p-2.5 bg-gradient-to-b from-card to-card/80 backdrop-blur-xl border-b border-border/40 shadow-sm">
       {/* Menu Button */}
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        className="relative text-muted-foreground hover:text-foreground"
+      <Button
+        variant="ghost"
+        size="icon"
+        className="relative shrink-0 text-muted-foreground hover:text-foreground"
       >
         <Menu className="w-5 h-5" />
         <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">
@@ -50,24 +50,25 @@ export const TradingHeader = ({
       {/* Balance Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button 
-            variant="ghost" 
-            className="flex flex-col items-center gap-0 h-auto py-1 px-4 hover:bg-muted/20"
+          <Button
+            variant="ghost"
+            className="flex flex-col items-center gap-0 h-auto py-1 px-3 rounded-xl hover:bg-muted/30 flex-1 min-w-0"
           >
+            <span className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              {accountType === "demo" ? "Demo Account" : "Real Account"}
+              <ChevronDown className="w-3 h-3" />
+            </span>
             <span className={cn(
-              "text-xl font-bold tabular-nums",
+              "text-2xl font-extrabold tabular-nums leading-tight truncate max-w-full",
               accountType === "demo" ? "text-chart-2" : "text-primary"
             )}>
               {formatBalance(currentBalance)}
             </span>
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              {accountType === "demo" ? "Demo Balance" : "Real Account"}
-              <ChevronDown className="w-3 h-3" />
-            </span>
+            <span className="text-[10px] text-muted-foreground">Available Balance</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-56 bg-card border-border/50 z-[100]">
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={() => onAccountChange("demo")}
             className={cn(
               "flex justify-between cursor-pointer",
@@ -82,7 +83,7 @@ export const TradingHeader = ({
               ${demoBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </DropdownMenuItem>
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={() => onAccountChange("real")}
             className={cn(
               "flex justify-between cursor-pointer",
@@ -101,20 +102,12 @@ export const TradingHeader = ({
       </DropdownMenu>
 
       {/* Finances Button */}
-      <Button 
+      <Button
         onClick={onFinancesClick}
-        className="bg-info hover:bg-info/90 text-info-foreground font-semibold px-6"
+        className="shrink-0 bg-info hover:bg-info/90 text-info-foreground font-semibold px-5 rounded-xl shadow-md shadow-info/20"
       >
+        <Wallet className="w-4 h-4 mr-1.5" />
         Finances
-      </Button>
-
-      {/* Settings Menu */}
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        className="text-muted-foreground hover:text-foreground"
-      >
-        <Menu className="w-5 h-5" />
       </Button>
     </header>
   );
