@@ -13,9 +13,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export const CopyTradingDrawer = () => {
+interface CopyTradingDrawerProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export const CopyTradingDrawer = ({ open: controlledOpen, onOpenChange }: CopyTradingDrawerProps = {}) => {
   const { leaders, loading, followLeader, unfollowLeader, isFollowing, getFollowAmount } = useCopyTrading();
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const isOpen = isControlled ? controlledOpen : internalOpen;
+  const setIsOpen = (v: boolean) => {
+    if (isControlled) onOpenChange?.(v);
+    else setInternalOpen(v);
+  };
   const [followAmount, setFollowAmount] = useState<number>(5000);
   const [selectedLeader, setSelectedLeader] = useState<string | null>(null);
 
@@ -28,25 +39,32 @@ export const CopyTradingDrawer = () => {
 
   return (
     <>
-      {/* Toggle button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="absolute bottom-[240px] left-2 z-30 bg-card/90 backdrop-blur-sm border border-border rounded-lg px-3 py-1.5 flex items-center gap-2"
-      >
-        <Users className="w-4 h-4 text-primary" />
-        <span className="text-xs text-muted-foreground">Copy Trading</span>
-        {isOpen ? (
-          <ChevronDown className="w-4 h-4 text-muted-foreground" />
-        ) : (
-          <ChevronUp className="w-4 h-4 text-muted-foreground" />
-        )}
-      </button>
+      {/* Toggle button (uncontrolled mode only) */}
+      {!isControlled && (
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="fixed bottom-24 left-2 z-40 bg-card/90 backdrop-blur-sm border border-border rounded-lg px-3 py-1.5 flex items-center gap-2"
+        >
+          <Users className="w-4 h-4 text-primary" />
+          <span className="text-xs text-muted-foreground">Copy Trading</span>
+          {isOpen ? (
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+          )}
+        </button>
+      )}
+
+      {/* Backdrop */}
+      {isOpen && (
+        <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setIsOpen(false)} />
+      )}
 
       {/* Drawer */}
       <div
         className={cn(
-          "absolute left-0 right-0 bottom-[240px] z-20 bg-card/95 backdrop-blur-md border-t border-border transition-all duration-300 ease-out",
-          isOpen ? "h-[40vh] opacity-100" : "h-0 opacity-0 pointer-events-none"
+          "fixed left-0 right-0 bottom-0 z-50 max-w-md mx-auto bg-card border-t border-border rounded-t-2xl transition-all duration-300 ease-out",
+          isOpen ? "h-[55vh] opacity-100" : "h-0 opacity-0 pointer-events-none"
         )}
       >
         <div className="h-full flex flex-col">
