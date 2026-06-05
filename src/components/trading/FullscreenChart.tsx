@@ -279,47 +279,112 @@ export const FullscreenChart = ({
     };
   }, [draw]);
 
+  const iconBtn =
+    "h-8 w-8 rounded-lg bg-background/70 backdrop-blur-sm hover:bg-background border border-border/40 text-muted-foreground";
+
   return (
-    <div 
-      ref={containerRef} 
-      className={cn("w-full h-full relative touch-none", className)}
-    >
-      <canvas ref={canvasRef} className="w-full h-full" />
-      
-      {/* Zoom Controls */}
-      <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleZoomIn}
-          className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background"
-        >
-          <ZoomIn className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleZoomOut}
-          className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background"
-        >
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleReset}
-          className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      {/* Zoom indicator */}
-      {zoom !== 1 && (
-        <div className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-muted-foreground">
-          {Math.round(zoom * 100)}%
-        </div>
+    <div
+      ref={rootRef}
+      className={cn(
+        "flex flex-col rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm overflow-hidden",
+        className
       )}
+    >
+      {/* Chart drawing area */}
+      <div ref={containerRef} className="relative w-full h-[300px] touch-none">
+        <canvas ref={canvasRef} className="w-full h-full" />
+
+        {/* Header overlay */}
+        <div className="absolute top-2 left-2 z-10 flex flex-col gap-2 items-start pointer-events-none">
+          <div className="flex items-center gap-1.5 bg-background/70 backdrop-blur-sm rounded-lg px-2 py-1">
+            <span className="text-xs font-bold text-foreground">{symbol}</span>
+            <span className="text-[10px] text-muted-foreground">• {timeframe}</span>
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold pl-1 tabular-nums">
+            <span className={up ? "text-success" : "text-destructive"}>
+              {priceLabel ?? currentPrice.toFixed(2)}
+            </span>
+            <span className={up ? "text-success" : "text-destructive"}>
+              {up ? "+" : ""}
+              {change.toFixed(2)} ({up ? "+" : ""}
+              {changePercent.toFixed(2)}%)
+            </span>
+          </div>
+
+          {/* Side action buttons */}
+          <div className="flex flex-col gap-1.5 pt-1 pointer-events-auto">
+            {onAiClick && (
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={onAiClick}
+                className="h-9 w-9 rounded-xl bg-primary/15 border-primary/40 text-primary hover:bg-primary/25"
+              >
+                <Bot className="h-4 w-4" />
+              </Button>
+            )}
+            {onTradersClick && (
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={onTradersClick}
+                className="h-9 w-9 rounded-xl bg-background/70 border-border/40 text-muted-foreground hover:bg-background"
+              >
+                <Users className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Right controls */}
+        <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
+          <Button variant="ghost" size="icon" onClick={handleZoomIn} className={iconBtn}>
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className={iconBtn}>
+            <LineChart className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleZoomOut} className={iconBtn}>
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleReset} className={iconBtn}>
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Zoom indicator */}
+        {zoom !== 1 && (
+          <div className="absolute bottom-2 left-2 bg-background/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-muted-foreground">
+            {Math.round(zoom * 100)}%
+          </div>
+        )}
+      </div>
+
+      {/* Timeframe pills */}
+      <div className="flex items-center gap-1 px-2 py-2 border-t border-border/40 overflow-x-auto no-scrollbar">
+        {TIMEFRAMES.map((tf) => (
+          <button
+            key={tf}
+            onClick={() => onTimeframeChange?.(tf)}
+            className={cn(
+              "shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors tabular-nums",
+              tf === timeframe
+                ? "bg-primary/20 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+            )}
+          >
+            {tf}
+          </button>
+        ))}
+        <button
+          onClick={handleFullscreen}
+          className="ml-auto shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40"
+        >
+          <Maximize2 className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
+
 };
