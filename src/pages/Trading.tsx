@@ -64,6 +64,8 @@ const Trading = () => {
   const [currentDuration, setCurrentDuration] = useState(30);
   const [showAIBot, setShowAIBot] = useState(false);
   const [aiRenewMode, setAiRenewMode] = useState(false);
+  const [chartTimeframe, setChartTimeframe] = useState("30s");
+  const [showCopyTrading, setShowCopyTrading] = useState(false);
   const [prefilledAmount, setPrefilledAmount] = useState<number | undefined>(undefined);
   const [prefilledDuration, setPrefilledDuration] = useState<number | undefined>(undefined);
   const [activeNoLossChallenge, setActiveNoLossChallenge] = useState(false);
