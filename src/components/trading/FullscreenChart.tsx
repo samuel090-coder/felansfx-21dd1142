@@ -28,8 +28,16 @@ export const FullscreenChart = ({
   candles, 
   currentPrice, 
   symbol, 
-  className 
+  className,
+  timeframe = "30s",
+  onTimeframeChange,
+  priceLabel,
+  change = 0,
+  changePercent = 0,
+  onAiClick,
+  onTradersClick,
 }: FullscreenChartProps) => {
+  const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>();
