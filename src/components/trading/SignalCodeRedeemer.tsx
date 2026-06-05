@@ -93,27 +93,36 @@ export const SignalCodeRedeemer = ({ onExecuteTrade, onSymbolChange, accountType
     setExecuting(false);
   };
 
+  const priceDecimals = (symbol || "").includes("JPY")
+    ? 3
+    : ["BTCUSD", "ETHUSD", "XAUUSD", "XAGUSD", "XTIUSD", "XBRUSD"].includes(symbol || "")
+    ? 2
+    : 5;
+
   return (
     <>
-      <div className="flex items-center gap-2 px-3 py-2 bg-card/50 border-b border-border">
-        <Ticket className="w-4 h-4 text-muted-foreground shrink-0" />
+      <div className="flex items-center gap-2 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-md p-1.5">
+        {currentPrice !== undefined && (
+          <div className="shrink-0 rounded-xl bg-success px-3 py-2 text-sm font-bold text-success-foreground tabular-nums">
+            {currentPrice.toFixed(priceDecimals)}
+          </div>
+        )}
         <Input
           value={code}
           onChange={e => setCode(e.target.value.toUpperCase())}
-          placeholder="Paste signal code (SIG-...)"
-          className="h-8 text-xs bg-background/50 font-mono"
+          placeholder="Signal code (SIG-...)"
+          className="h-9 text-sm bg-transparent border-0 font-mono focus-visible:ring-0 px-1 placeholder:text-muted-foreground"
           onKeyDown={e => e.key === "Enter" && fetchSignal()}
         />
         <Button
-          size="sm"
-          variant="secondary"
           onClick={fetchSignal}
           disabled={loading || !code.trim()}
-          className="h-8 px-3 text-xs shrink-0"
+          className="h-9 px-5 text-sm shrink-0 rounded-xl bg-primary/15 text-primary hover:bg-primary/25 border-0 font-semibold"
         >
-          {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : "Use"}
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Use"}
         </Button>
       </div>
+
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-sm mx-auto">
