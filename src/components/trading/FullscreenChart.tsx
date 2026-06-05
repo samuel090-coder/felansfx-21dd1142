@@ -53,6 +53,16 @@ export const FullscreenChart = ({
     setZoom(1);
     setPanOffset(0);
   };
+  const handleFullscreen = () => {
+    const el = rootRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+    } else {
+      el.requestFullscreen?.();
+    }
+  };
+  const up = change >= 0;
 
   // Handle touch gestures for pinch-to-zoom
   const handleTouchStart = useCallback((e: TouchEvent) => {
