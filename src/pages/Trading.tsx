@@ -595,8 +595,15 @@ const Trading = () => {
     max: Math.max(...prices),
   };
 
+  // Derived price-change values for chart header + 24h card
+  const prevClose = candles[candles.length - 2]?.close ?? candles[0]?.open ?? currentPrice;
+  const priceChange = currentPrice - prevClose;
+  const priceChangePct = prevClose ? (priceChange / prevClose) * 100 : 0;
+  const dayChangePct = allPrices[selectedSymbol]?.changePercent ?? priceChangePct;
+  const sparkCloses = candles.slice(-24).map(c => c.close);
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col max-w-md mx-auto overflow-hidden">
       <Seo
         title="Live Trading Room — Felans FX"
         description="Trade binary options on forex, crypto, and metals using real or demo wallets with live charts, signals and AI-assisted setups."
@@ -625,35 +632,73 @@ const Trading = () => {
         />
       )}
 
-      {/* Symbol selector row */}
-      <SymbolSelectorCompact
-        selectedSymbol={selectedSymbol}
-        onSymbolChange={setSelectedSymbol}
-      />
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Symbol info bar */}
+        <TradingSymbolBar
+          selectedSymbol={selectedSymbol}
+          onSymbolChange={setSelectedSymbol}
+          changePercent={dayChangePct}
+          closes={sparkCloses}
+          onChat={() => navigate("/chat-rooms")}
+        />
 
-      {/* Signal code redeemer */}
-      <SignalCodeRedeemer
-        onExecuteTrade={handleSignalTrade}
-        onSymbolChange={setSelectedSymbol}
-        accountType={accountType}
-      />
-
-      {/* Current price display + AI Bot button (real account only) */}
-      <div className="absolute left-2 top-32 z-10 flex flex-col gap-2">
-        <div className="bg-primary px-3 py-1 rounded text-sm font-bold text-primary-foreground tabular-nums">
-          {getFormattedPrice(currentPrice)}
+        {/* Signal code redeemer */}
+        <div className="px-3 pb-2">
+          <SignalCodeRedeemer
+            onExecuteTrade={handleSignalTrade}
+            onSymbolChange={setSelectedSymbol}
+            accountType={accountType}
+            currentPrice={currentPrice}
+            symbol={selectedSymbol}
+          />
         </div>
-        {accountType === "real" && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 text-xs bg-background/80 backdrop-blur-sm border-primary/30"
-            onClick={() => setShowAIBot(true)}
-          >
-            <Bot className="w-3 h-3 mr-1" /> AI Bot
-          </Button>
-        )}
+
+        {/* Chart card with live traders overlay */}
+        <div className="px-3 pb-2">
+          <div className="relative">
+            <FullscreenChart
+              candles={candles}
+              currentPrice={currentPrice}
+              symbol={selectedSymbol}
+              timeframe={chartTimeframe}
+              onTimeframeChange={setChartTimeframe}
+              priceLabel={getFormattedPrice(currentPrice)}
+              change={priceChange}
+              changePercent={priceChangePct}
+              onAiClick={accountType === "real" ? () => setShowAIBot(true) : undefined}
+              onTradersClick={() => navigate("/chat-rooms")}
+            />
+            <div className="absolute inset-x-0 top-0 h-[300px] pointer-events-none overflow-hidden rounded-2xl">
+              <LiveTradersOverlay
+                symbol={selectedSymbol}
+                currentPrice={currentPrice}
+                priceRange={priceRange}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom trading controls */}
+        <TradingBottomControls
+          balance={accountType === "demo" ? (demoWallet?.balance || 10000) : (realWallet?.balance || 0)}
+          currentPrice={currentPrice}
+          symbol={selectedSymbol}
+          onTrade={handleTrade}
+          disabled={accountType === "demo" ? !demoWallet : !realWallet}
+          accountType={accountType}
+          prefilledAmount={prefilledAmount}
+          prefilledDuration={prefilledDuration}
+          onAiTrading={() => { setAiRenewMode(false); setShowAIBot(true); }}
+          aiActive={aiRunning && !aiPaused}
+        />
+
+        {/* Trade / Positions / Orders / History tabs */}
+        <TradingTabBar accountType={accountType} positions={activePositions} />
       </div>
+
+      {/* Bottom dock navigation */}
+      <TradingDockNav onCopyTrading={() => setShowCopyTrading(true)} />
 
       {/* AI auto-trader control panel (real account, subscribed) */}
       {accountType === "real" && (
@@ -691,42 +736,10 @@ const Trading = () => {
         accountType={accountType}
       />
 
-      {/* Main chart area with live traders overlay */}
-      <div className="flex-1 relative">
-        <FullscreenChart
-          candles={candles}
-          currentPrice={currentPrice}
-          symbol={selectedSymbol}
-        />
-        
-        {/* Live traders overlay */}
-        <LiveTradersOverlay
-          symbol={selectedSymbol}
-          currentPrice={currentPrice}
-          priceRange={priceRange}
-        />
-
-        {/* Trade history drawer */}
-        <TradeHistoryDrawer accountType={accountType} />
-
-        {/* Copy trading drawer */}
-        {accountType === "real" && <CopyTradingDrawer />}
-      </div>
-
-      {/* Bottom trading controls */}
-      <TradingBottomControls
-        balance={accountType === "demo" ? (demoWallet?.balance || 10000) : (realWallet?.balance || 0)}
-        currentPrice={currentPrice}
-        symbol={selectedSymbol}
-        onTrade={handleTrade}
-        disabled={accountType === "demo" ? !demoWallet : !realWallet}
-        accountType={accountType}
-        prefilledAmount={prefilledAmount}
-        prefilledDuration={prefilledDuration}
-        onAiTrading={() => { setAiRenewMode(false); setShowAIBot(true); }}
-        aiActive={aiRunning && !aiPaused}
-      />
-
+      {/* Copy trading (opened from dock nav) */}
+      {accountType === "real" && (
+        <CopyTradingDrawer open={showCopyTrading} onOpenChange={setShowCopyTrading} />
+      )}
 
       {/* AI Trading Assistant */}
       <AITradingAssistant
