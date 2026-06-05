@@ -24,6 +24,7 @@ export const TradingHeader = ({
   onAccountChange,
   onFinancesClick,
 }: TradingHeaderProps) => {
+  const navigate = useNavigate();
   const currentBalance = accountType === "demo" ? demoBalance : realBalance;
   
   const formatBalance = (amount: number) => {
@@ -35,17 +36,28 @@ export const TradingHeader = ({
 
   return (
     <header className="flex items-center justify-between gap-2 p-2.5 bg-gradient-to-b from-card to-card/80 backdrop-blur-xl border-b border-border/40 shadow-sm">
-      {/* Menu Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="relative shrink-0 text-muted-foreground hover:text-foreground"
-      >
-        <Menu className="w-5 h-5" />
-        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">
-          1
-        </span>
-      </Button>
+      {/* Menu + Bell */}
+      <div className="flex items-center gap-0.5 shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <Menu className="w-5 h-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/notifications")}
+          className="relative text-muted-foreground hover:text-foreground"
+        >
+          <Bell className="w-5 h-5" />
+          <span className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-success text-[10px] font-bold text-success-foreground flex items-center justify-center">
+            1
+          </span>
+        </Button>
+      </div>
+
 
       {/* Balance Dropdown */}
       <DropdownMenu>
