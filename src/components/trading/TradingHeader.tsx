@@ -72,8 +72,9 @@ export const TradingHeader = ({
             </span>
             <span className={cn(
               "text-2xl font-extrabold tabular-nums leading-tight truncate max-w-full",
-              accountType === "demo" ? "text-chart-2" : "text-primary"
+              accountType === "demo" ? "text-chart-2" : "text-success"
             )}>
+
               {formatBalance(currentBalance)}
             </span>
             <span className="text-[10px] text-muted-foreground">Available Balance</span>
