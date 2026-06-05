@@ -22,9 +22,11 @@ interface SignalCodeRedeemerProps {
   onExecuteTrade: (symbol: string, tradeType: "buy" | "sell", amount: number, duration: number) => Promise<void>;
   onSymbolChange: (symbol: string) => void;
   accountType: "demo" | "real";
+  currentPrice?: number;
+  symbol?: string;
 }
 
-export const SignalCodeRedeemer = ({ onExecuteTrade, onSymbolChange, accountType }: SignalCodeRedeemerProps) => {
+export const SignalCodeRedeemer = ({ onExecuteTrade, onSymbolChange, accountType, currentPrice, symbol }: SignalCodeRedeemerProps) => {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [signal, setSignal] = useState<SignalData | null>(null);
