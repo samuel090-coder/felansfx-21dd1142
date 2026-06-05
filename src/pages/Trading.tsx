@@ -12,7 +12,6 @@ import { TradingHeader } from "@/components/trading/TradingHeader";
 import { FullscreenChart } from "@/components/trading/FullscreenChart";
 import { LiveTradersOverlay } from "@/components/trading/LiveTradersOverlay";
 import { TradingBottomControls } from "@/components/trading/TradingBottomControls";
-import { SymbolSelectorCompact } from "@/components/trading/SymbolSelectorCompact";
 import { TradingSymbolBar } from "@/components/trading/TradingSymbolBar";
 import { TradingTabBar } from "@/components/trading/TradingTabBar";
 import { TradingDockNav } from "@/components/trading/TradingDockNav";
