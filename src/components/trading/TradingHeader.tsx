@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronDown, Menu, Wallet } from "lucide-react";
+import { ChevronDown, Menu, Wallet, Bell } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
