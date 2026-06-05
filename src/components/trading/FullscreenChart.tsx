@@ -1,14 +1,23 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Maximize2, LineChart, Bot, Users } from "lucide-react";
 import { CandleData } from "@/hooks/usePriceSimulation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+
+const TIMEFRAMES = ["5s", "15s", "30s", "1m", "5m", "15m", "1h", "4h", "1D"];
 
 interface FullscreenChartProps {
   candles: CandleData[];
   currentPrice: number;
   symbol: string;
   className?: string;
+  timeframe?: string;
+  onTimeframeChange?: (tf: string) => void;
+  priceLabel?: string;
+  change?: number;
+  changePercent?: number;
+  onAiClick?: () => void;
+  onTradersClick?: () => void;
 }
 
 const MIN_ZOOM = 0.5;
