@@ -29,8 +29,6 @@ import { supabase } from "@/lib/supabase";
 import { sendEmail } from "@/lib/sendEmail";
 import { registerBias, registerFavorBias, clearBias } from "@/lib/tradingBias";
 import { toast } from "sonner";
-import { Bot } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const AI_DAILY_LIMIT = 10;
 const AI_TRADE_DURATION = 30; // seconds per AI trade
