@@ -16,7 +16,7 @@ import { TradingSymbolBar } from "@/components/trading/TradingSymbolBar";
 import { TradingTabBar } from "@/components/trading/TradingTabBar";
 import { TradingDockNav } from "@/components/trading/TradingDockNav";
 import { ActivePositions } from "@/components/trading/ActivePositions";
-import { TradeHistoryDrawer } from "@/components/trading/TradeHistoryDrawer";
+
 import { SignalCodeRedeemer } from "@/components/trading/SignalCodeRedeemer";
 import { CopyTradingDrawer } from "@/components/trading/CopyTradingDrawer";
 import { SmartAlertBanner } from "@/components/trading/SmartAlertBanner";
