@@ -184,6 +184,15 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+
   /* Slow bounce animation for splash screen */
   @keyframes bounce-slow {
     0%, 100% {
