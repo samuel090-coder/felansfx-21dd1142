@@ -1,46 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Settings,
-  CreditCard,
-  Share2,
-  Bookmark,
-  FileText,
-  LogOut,
-  ChevronRight,
-  Crown,
-  Bell,
-  BellOff,
-  Sun,
-  Moon,
-  Monitor,
-  ShieldCheck,
-  Globe,
-  HelpCircle,
-  Lock,
-  Wallet,
-  Sparkles,
-  BadgeCheck,
-  TrendingUp,
-} from "lucide-react";
+import { Bell, CalendarDays, ChevronRight, Copy, CreditCard, FileText, Globe, HelpCircle, Lock, LogOut, Moon, Shield, ShieldCheck, Smartphone, Sun, User, Wallet, Monitor, BadgeCheck, Settings, ArrowRight, Users, BookOpen, Landmark } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useTheme } from "@/hooks/useTheme";
 import { useCurrencyPreference } from "@/hooks/useCurrencyPreference";
-import { useBackgroundImage } from "@/hooks/useBackgroundImage";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LoadingScreen } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ProfilePictureUpload } from "@/components/profile/ProfilePictureUpload";
-import { BackgroundSelector } from "@/components/profile/BackgroundSelector";
-import { SecuritySettings } from "@/components/profile/SecuritySettings";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { FintechCard } from "@/components/ui/fintech";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -55,8 +30,7 @@ const Profile = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [kycData, setKycData] = useState<{ full_name?: string | null; date_of_birth?: string | null; id_number?: string | null } | null>(null);
-  const { bgUrl, uploading: bgUploading, uploadBackground, removeBackground, selectPreset } = useBackgroundImage();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(1);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -65,42 +39,22 @@ const Profile = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (!user) return;
-    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }).then(({ data }) => {
-      setIsAdmin(data === true);
-    });
-  }, [user]);
-
-  useEffect(() => {
     const fetchUserData = async () => {
       if (!user) return;
-      
-      const { count } = await supabase
-        .from("analyses")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("is_saved", true);
-      setSavedCount(count || 0);
 
-      const { count: tradeCount } = await supabase
-        .from("demo_trade_history")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
+      const [{ count }, { count: tradeCount }, { data: profile }, { data: kyc }, { count: unreadCount }] = await Promise.all([
+        supabase.from("analyses").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("is_saved", true),
+        supabase.from("demo_trade_history").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("profiles").select("display_id, avatar_url").eq("user_id", user.id).maybeSingle(),
+        supabase.from("kyc_verifications").select("status, full_name, date_of_birth, id_number, selfie_url").eq("user_id", user.id).maybeSingle(),
+        supabase.from("notifications").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false),
+      ]);
+
+      setSavedCount(count || 0);
       setTotalTrades(tradeCount || 0);
-      
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_id, avatar_url")
-        .eq("user_id", user.id)
-        .maybeSingle();
       setDisplayId(profile?.display_id || null);
       setAvatarUrl(profile?.avatar_url || null);
-
-      const { data: kyc } = await supabase
-        .from("kyc_verifications")
-        .select("status, full_name, date_of_birth, id_number, selfie_url")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      setUnreadNotifications(unreadCount || 0);
       setKycStatus(kyc?.status || null);
       if (kyc?.status === "approved") {
         setKycData({ full_name: kyc.full_name, date_of_birth: kyc.date_of_birth, id_number: kyc.id_number });
@@ -124,347 +78,222 @@ const Profile = () => {
     }
   };
 
-  const handleRefreshSubscription = async () => {
-    await subscribe(true);
-  };
-
-  if (authLoading || walletLoading) {
-    return <LoadingScreen />;
-  }
-
-  if (!user) {
-    return null;
-  }
+  if (authLoading || walletLoading) return <LoadingScreen />;
+  if (!user) return null;
 
   const userName = kycData?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Trader";
   const initials = userName.slice(0, 2).toUpperCase();
   const isVerified = kycStatus === "approved";
   const memberSince = user.created_at ? new Date(user.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "";
-
-  const menuItems = [
-    ...(isAdmin ? [{ icon: Settings, label: "Admin Panel", to: "/admin", accent: true }] : []),
-    { icon: CreditCard, label: "Manage Deposits", to: "/deposit" },
-    { icon: ShieldCheck, label: isVerified ? "KYC Verified" : "Verify Identity (KYC)", to: "/kyc", verified: isVerified },
-    { icon: Bell, label: "Notification Settings", to: "/notification-settings" },
-    { icon: FileText, label: "Screenshot Guide", to: "/screenshot-guide" },
-    { icon: Share2, label: "Invite Friends", to: "/invite" },
-    { icon: Bookmark, label: "My Saved Setups", to: "/saved" },
-    { icon: HelpCircle, label: "How Felans FX Works", to: "/help" },
+  const accountHealth = [
+    { label: "Identity", value: isVerified ? "Verified" : "Pending", ok: isVerified },
+    { label: "Email", value: user.email_confirmed_at ? "Verified" : "Pending", ok: !!user.email_confirmed_at },
+    { label: "Phone", value: user.phone ? "Verified" : "Not added", ok: !!user.phone },
+    { label: "Transaction PIN", value: "Active", ok: true },
+    { label: "2FA", value: isSubscribed ? "Enabled" : "Available", ok: isSubscribed },
   ];
+
+  const sections = useMemo(() => ([
+    {
+      title: "Trading Tools",
+      items: [
+        { icon: Wallet, title: "Live Trade", subtitle: "Access TradingView charting platform and advanced tools.", accent: "primary", action: "Open TradingView", to: "/trading", badge: "Live" },
+        { icon: Shield, title: "AI Trade Assistant", subtitle: "Upload chart screenshot and get AI-powered market analysis and predictions.", accent: "accent", action: "Try AI Prediction", to: "/analyze", badge: "New" },
+      ],
+      grid: true,
+    },
+    {
+      title: "Security",
+      items: [
+        { icon: Lock, title: "Change Password", to: "/auth" },
+        { icon: Smartphone, title: "Change Transaction PIN", to: "/profile" },
+        { icon: ShieldCheck, title: "Two-Factor Authentication", to: "/notification-settings" },
+        { icon: Monitor, title: "Trusted Devices", to: "/notifications" },
+        { icon: CalendarDays, title: "Login History", to: "/notifications" },
+      ],
+    },
+    {
+      title: "Verification",
+      items: [
+        { icon: ShieldCheck, title: "KYC Verification", subtitle: isVerified ? "Level 2 Verified" : "Verification required", to: "/kyc", accent: "primary" },
+        { icon: FileText, title: "Documents", subtitle: "Manage your documents", to: "/kyc" },
+        { icon: Landmark, title: "Bank Accounts", subtitle: "Manage linked banks", to: "/withdraw" },
+        { icon: CreditCard, title: "Payment Methods", subtitle: "Manage payment options", to: "/deposit" },
+      ],
+    },
+    {
+      title: "Preferences",
+      items: [
+        { icon: theme === "dark" ? Moon : Sun, title: "Appearance", subtitle: theme === "dark" ? "Dark Mode" : theme === "light" ? "Light Mode" : "System", custom: "theme" },
+        { icon: Globe, title: "Currency", subtitle: `${currency} (${format(wallet?.balance || 0)})`, custom: "currency" },
+        { icon: Bell, title: "Notifications", subtitle: isSubscribed ? "Push, Email" : "Enable alerts", custom: "notifications" },
+        { icon: Globe, title: "Language", subtitle: "English", to: "/help" },
+      ],
+    },
+    {
+      title: "Help & Support",
+      items: [
+        { icon: BookOpen, title: "How Felans FX Works", to: "/help" },
+        { icon: FileText, title: "Screenshot Guide", to: "/screenshot-guide" },
+        { icon: Users, title: "Contact Support", to: "/notifications" },
+        { icon: HelpCircle, title: "FAQ", to: "/help" },
+      ],
+    },
+  ]), [currency, format, isSubscribed, theme, wallet?.balance, isVerified]);
 
   return (
     <AppLayout>
-      <div className="min-h-screen">
-        {/* Hero Profile Header */}
-        <div className="relative overflow-hidden">
-          {/* Gradient Background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-accent" />
-          {/* Decorative circles */}
-          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-accent/20 blur-2xl" />
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-primary-foreground/10 blur-xl" />
-          
-          {isVerified && (
-            <>
-              {/* Celebration sparkle dots for verified users */}
-              <div className="absolute top-4 right-8 w-2 h-2 rounded-full bg-primary-foreground/60 animate-pulse" />
-              <div className="absolute top-12 right-16 w-1.5 h-1.5 rounded-full bg-accent/80 animate-pulse" style={{ animationDelay: "0.3s" }} />
-              <div className="absolute top-6 right-24 w-1 h-1 rounded-full bg-primary-foreground/40 animate-pulse" style={{ animationDelay: "0.6s" }} />
-              <div className="absolute top-16 left-12 w-1.5 h-1.5 rounded-full bg-primary-foreground/50 animate-pulse" style={{ animationDelay: "0.9s" }} />
-              <div className="absolute bottom-20 right-6 w-2 h-2 rounded-full bg-accent/60 animate-pulse" style={{ animationDelay: "1.2s" }} />
-            </>
-          )}
-
-          <div className="relative z-10 px-5 pt-8 pb-16">
-            {/* Top bar */}
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-lg font-semibold text-primary-foreground">My Profile</h1>
-              {isAdmin && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
-                  onClick={() => navigate("/admin")}
-                >
-                  <Settings className="w-4 h-4 mr-1" /> Admin
-                </Button>
-              )}
-            </div>
-
-            {/* Avatar + Info */}
-            <div className="flex items-center gap-4">
-              <div className="relative shrink-0">
-                {isVerified && (
-                  <>
-                    {/* Soft glow halo */}
-                    <div className="absolute -inset-1.5 rounded-full bg-primary-foreground/20 blur-md" />
-                    {/* Rotating conic gradient ring */}
-                    <div className="absolute -inset-[3px] rounded-full bg-[conic-gradient(from_0deg,hsl(var(--primary-foreground))_0%,transparent_30%,hsl(var(--accent))_60%,transparent_90%,hsl(var(--primary-foreground))_100%)] opacity-80" />
-                    <div className="absolute inset-0 rounded-full bg-primary" />
-                  </>
-                )}
-                <div className="relative">
-                  <ProfilePictureUpload
-                    currentUrl={avatarUrl}
-                    initials={initials}
-                    onUpload={setAvatarUrl}
-                    locked={isVerified}
-                  />
-                </div>
-                {isVerified && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-gradient-to-br from-primary-foreground to-primary-foreground/90 border-2 border-primary flex items-center justify-center shadow-lg cursor-help">
-                          <BadgeCheck className="w-4 h-4 text-primary fill-primary-foreground" strokeWidth={2.5} />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-[200px] text-center">
-                        <p className="text-xs">Identity verified through KYC</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <h2 className="text-xl font-bold text-primary-foreground truncate">{userName}</h2>
-                </div>
-                <p className="text-sm text-primary-foreground/70 truncate">{user.email}</p>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  {isVerified && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-primary bg-primary-foreground px-2 py-0.5 rounded-full shadow-sm">
-                      <ShieldCheck className="w-3 h-3" strokeWidth={2.5} />
-                      Verified
-                    </span>
-                  )}
-                  {displayId && (
-                    <span className="text-xs font-mono text-primary-foreground/70 bg-primary-foreground/10 px-2 py-0.5 rounded-full">{displayId}</span>
-                  )}
-                  {memberSince && (
-                    <span className="text-xs text-primary-foreground/60">Since {memberSince}</span>
-                  )}
+      <div className="bg-fx-app">
+        <div className="mx-auto min-h-screen max-w-md px-4 pb-28 pt-5 safe-area-top">
+          <header className="mb-4 flex items-start justify-between">
+            <div className="flex items-start gap-4">
+              <div className="relative">
+                <Avatar className="h-24 w-24 border-[3px] border-primary shadow-[0_0_0_4px_rgba(255,255,255,0.03)]">
+                  <AvatarImage src={avatarUrl || undefined} />
+                  <AvatarFallback className="bg-[linear-gradient(180deg,rgba(32,214,199,0.2),rgba(24,98,178,0.25))] text-2xl font-bold text-white">{initials}</AvatarFallback>
+                </Avatar>
+                <div className="absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-background bg-primary text-primary-foreground">
+                  <BadgeCheck className="h-5 w-5" />
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Verified Celebration Banner */}
-        {isVerified && (
-          <div className="mx-4 -mt-6 relative z-20 mb-4">
-            <div className="relative overflow-hidden bg-card border border-primary/20 rounded-2xl p-4 shadow-md">
-              {/* Decorative gradient stripe */}
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-accent" />
-              {/* Subtle background flourish */}
-              <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-primary/5 blur-2xl" />
-              <div className="relative flex items-center gap-3">
-                <div className="relative shrink-0">
-                  <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-md" />
-                  <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-primary">
-                    <BadgeCheck className="w-6 h-6 text-primary-foreground" strokeWidth={2.5} />
-                  </div>
+              <div>
+                <h1 className="text-[2.3rem] font-extrabold text-white">{userName}</h1>
+                <div className="mt-2 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-white/74">
+                  <span className="font-mono text-base">{displayId || 'FX188380'}</span>
+                  <Copy className="h-4 w-4" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-bold text-foreground">Identity Verified</p>
-                    <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">Trusted member with full platform access</p>
+                <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-primary"><ShieldCheck className="h-4 w-4" /> Verified Account</span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/74"><Shield className="h-4 w-4" /> Level 2 KYC Verified</span>
                 </div>
+                <p className="mt-3 flex items-center gap-2 text-base text-white/56"><CalendarDays className="h-4 w-4" /> Member since {memberSince || 'Jan 2026'}</p>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Stats Cards - Overlapping the hero */}
-        <div className={`px-4 ${!isVerified ? '-mt-6' : ''} relative z-20`}>
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-card border border-border rounded-2xl p-3 text-center shadow-sm">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-1.5">
-                <Wallet className="w-4 h-4 text-primary" />
-              </div>
-              <p className="text-base font-bold text-foreground">{format(wallet?.balance || 0)}</p>
-              <p className="text-[10px] text-muted-foreground">Balance</p>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="relative h-14 w-14 rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
+                <Bell className="h-6 w-6" />
+                {unreadNotifications > 0 && <span className="absolute right-3 top-3 h-3.5 w-3.5 rounded-full bg-destructive" />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => navigate('/profile')} className="h-14 w-14 rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
+                <Settings className="h-6 w-6" />
+              </Button>
             </div>
-            <div className="bg-card border border-border rounded-2xl p-3 text-center shadow-sm">
-              <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-1.5">
-                <TrendingUp className="w-4 h-4 text-accent" />
-              </div>
-              <p className="text-base font-bold text-foreground">{totalTrades}</p>
-              <p className="text-[10px] text-muted-foreground">Trades</p>
-            </div>
-            <div className="bg-card border border-border rounded-2xl p-3 text-center shadow-sm">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-1.5">
-                <Bookmark className="w-4 h-4 text-primary" />
-              </div>
-              <p className="text-base font-bold text-foreground">{savedCount}</p>
-              <p className="text-[10px] text-muted-foreground">Saved</p>
-            </div>
-          </div>
+          </header>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <Button
-              className="h-auto py-3 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-2xl shadow-sm"
-              onClick={() => navigate("/deposit")}
-            >
-              <CreditCard className="w-4 h-4 mr-2" />
-              Deposit
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto py-3 rounded-2xl border-border"
-              onClick={() => navigate("/invite")}
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Invite
-            </Button>
-          </div>
-
-          {/* Settings Section */}
-          <div className="bg-card border border-border rounded-2xl overflow-hidden mb-4 shadow-sm">
-            <div className="px-4 py-3 border-b border-border">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Preferences</p>
-            </div>
-
-            {/* Push Notifications */}
-            {isSupported && (
-              <>
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                      {isSubscribed ? <Bell className="w-4 h-4 text-primary" /> : <BellOff className="w-4 h-4 text-muted-foreground" />}
+          <FintechCard className="mb-5 p-5">
+            <div className="grid grid-cols-[1fr_112px] gap-4">
+              <div>
+                <div className="mb-5 flex items-center gap-2">
+                  <h2 className="text-[1.8rem] font-bold text-white">Account Health</h2>
+                  <HelpCircle className="h-4 w-4 text-white/45" />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  {accountHealth.map((item) => (
+                    <div key={item.label} className="space-y-2">
+                      <div className={cn("flex h-9 w-9 items-center justify-center rounded-full", item.ok ? 'bg-success/15 text-success' : 'bg-white/8 text-white/45')}>
+                        <ShieldCheck className="h-5 w-5" />
+                      </div>
+                      <p className="text-sm font-semibold text-white">{item.label}</p>
+                      <p className="text-sm text-white/52">{item.value}</p>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">Push Notifications</p>
-                      <p className="text-xs text-muted-foreground">{isSubscribed ? "Enabled" : "Disabled"}</p>
-                    </div>
-                  </div>
-                  <Switch checked={isSubscribed} onCheckedChange={handlePushToggle} disabled={pushLoading} />
-                </div>
-                {isSubscribed && (
-                  <div className="px-4 pb-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-xs border-primary/30 text-primary"
-                      onClick={handleRefreshSubscription}
-                      disabled={pushLoading}
-                    >
-                      🔄 {pushLoading ? "Refreshing..." : "Refresh Subscription"}
-                    </Button>
-                  </div>
-                )}
-                <Separator />
-              </>
-            )}
-
-            {/* Theme */}
-            <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                  {theme === "dark" ? <Moon className="w-4 h-4 text-primary" /> : theme === "light" ? <Sun className="w-4 h-4 text-primary" /> : <Monitor className="w-4 h-4 text-primary" />}
-                </div>
-                <p className="text-sm font-medium">Theme</p>
-              </div>
-              <div className="flex gap-1 bg-muted rounded-xl p-0.5">
-                {(["light", "dark", "system"] as const).map((t) => (
-                  <button
-                    key={t}
-                    className={`p-1.5 rounded-lg transition-colors ${theme === t ? 'bg-card shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                    onClick={() => setTheme(t)}
-                  >
-                    {t === "light" ? <Sun className="w-3.5 h-3.5" /> : t === "dark" ? <Moon className="w-3.5 h-3.5" /> : <Monitor className="w-3.5 h-3.5" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <Separator />
-
-            {/* Currency */}
-            <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Globe className="w-4 h-4 text-primary" />
-                </div>
-                <p className="text-sm font-medium">Currency</p>
-              </div>
-              <Select value={currency} onValueChange={(v: any) => setCurrency(v)}>
-                <SelectTrigger className="w-24 h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableCurrencies.map((c) => (
-                    <SelectItem key={c.code} value={c.code}>
-                      {c.symbol} {c.code}
-                    </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Background & Security */}
-          <div className="bg-card border border-border rounded-2xl overflow-hidden mb-4 shadow-sm">
-            <div className="px-4 py-3 border-b border-border">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Personalization & Security</p>
-            </div>
-            <div className="p-4 space-y-4">
-              <BackgroundSelector
-                currentBg={bgUrl}
-                uploading={bgUploading}
-                onUpload={uploadBackground}
-                onRemove={removeBackground}
-                onSelectPreset={selectPreset}
-              />
-              <SecuritySettings />
-            </div>
-          </div>
-
-          {/* Navigation Menu */}
-          <div className="bg-card border border-border rounded-2xl overflow-hidden mb-4 shadow-sm">
-            <div className="px-4 py-3 border-b border-border">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Account</p>
-            </div>
-            {menuItems.map((item, index) => (
-              <div key={item.label}>
-                <button
-                  onClick={() => navigate(item.to)}
-                  className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                      'accent' in item && item.accent ? 'bg-accent/10' : 
-                      'verified' in item && item.verified ? 'bg-primary/10' : 'bg-muted'
-                    }`}>
-                      <item.icon className={`w-4 h-4 ${
-                        'accent' in item && item.accent ? 'text-accent' :
-                        'verified' in item && item.verified ? 'text-primary' : 'text-muted-foreground'
-                      }`} />
-                    </div>
-                    <span className="text-sm font-medium">{item.label}</span>
-                    {'verified' in item && item.verified && (
-                      <BadgeCheck className="w-4 h-4 text-primary" />
-                    )}
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
-                {index < menuItems.length - 1 && <Separator />}
+                </div>
               </div>
-            ))}
-          </div>
+              <div className="flex flex-col items-center justify-center border-l border-white/10 pl-4">
+                <p className="text-base text-white/65">Security Score</p>
+                <div className="mt-4 flex h-28 w-28 items-center justify-center rounded-full border-[10px] border-primary/25 border-t-primary text-center">
+                  <div>
+                    <p className="text-[2.2rem] font-bold text-white">95%</p>
+                    <p className="text-sm text-primary">Excellent</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </FintechCard>
 
-          {/* Sign Out */}
-          <div className="mb-10">
-            <Button
-              variant="ghost"
-              className="w-full text-destructive hover:bg-destructive/10 rounded-2xl h-12"
-              onClick={handleSignOut}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
+          {sections.map((section) => (
+            <section key={section.title} className="mb-5">
+              <h3 className="mb-3 text-[13px] uppercase tracking-[0.18em] text-white/48">{section.title}</h3>
+              {section.grid ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {section.items.map((item) => (
+                    <FintechCard key={item.title} className="p-5 text-left" >
+                      <button onClick={() => item.to && navigate(item.to)} className="flex h-full w-full flex-col items-start text-left">
+                        <div className={cn("mb-4 flex h-12 w-12 items-center justify-center rounded-2xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : item.accent === 'accent' ? 'bg-accent/12 text-accent' : 'bg-white/6 text-white')}>
+                          <item.icon className="h-6 w-6" />
+                        </div>
+                        <div className="mb-2 flex items-center gap-2">
+                          <p className="text-[1.6rem] font-bold text-white leading-tight">{item.title}</p>
+                          {item.badge ? <span className="rounded-full bg-primary/12 px-2 py-0.5 text-xs font-medium text-primary">{item.badge}</span> : null}
+                        </div>
+                        <p className="text-base leading-relaxed text-white/60">{item.subtitle}</p>
+                        {item.action ? <p className="mt-4 inline-flex items-center gap-2 text-base font-semibold text-primary">{item.action} <ArrowRight className="h-4 w-4" /></p> : null}
+                      </button>
+                    </FintechCard>
+                  ))}
+                </div>
+              ) : (
+                <FintechCard className="overflow-hidden p-0">
+                  {section.items.map((item, idx) => (
+                    <div key={item.title}>
+                      <button onClick={() => item.to && navigate(item.to)} className="flex w-full items-center gap-4 px-4 py-4 text-left hover:bg-white/[0.03]">
+                        <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : 'bg-white/5 text-white')}>
+                          <item.icon className="h-6 w-6" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-lg font-semibold text-white">{item.title}</p>
+                          {item.subtitle ? <p className="mt-1 text-sm text-white/52">{item.subtitle}</p> : null}
+                          {item.custom === 'theme' ? (
+                            <div className="mt-3 flex gap-2">
+                              {(['light', 'dark', 'system'] as const).map((t) => (
+                                <button key={t} type="button" onClick={(e) => { e.stopPropagation(); setTheme(t); }} className={cn('rounded-xl border px-3 py-2 text-sm', theme === t ? 'border-primary bg-primary/10 text-primary' : 'border-white/10 bg-white/5 text-white/55')}>
+                                  {t}
+                                </button>
+                              ))}
+                            </div>
+                          ) : null}
+                          {item.custom === 'currency' ? (
+                            <div className="mt-3 max-w-[180px]" onClick={(e) => e.stopPropagation()}>
+                              <Select value={currency} onValueChange={(v: any) => setCurrency(v)}>
+                                <SelectTrigger className="h-11 rounded-xl border-white/10 bg-white/5 text-white">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableCurrencies.map((c) => <SelectItem key={c.code} value={c.code}>{c.symbol} {c.code}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : null}
+                          {item.custom === 'notifications' && isSupported ? (
+                            <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                              <Switch checked={isSubscribed} onCheckedChange={handlePushToggle} disabled={pushLoading} />
+                            </div>
+                          ) : null}
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-white/35" />
+                      </button>
+                      {idx < section.items.length - 1 ? <div className="mx-4 h-px bg-white/8" /> : null}
+                    </div>
+                  ))}
+                </FintechCard>
+              )}
+            </section>
+          ))}
+
+          <FintechCard className="mb-5 flex items-center justify-between p-5">
+            <div>
+              <p className="text-[1.7rem] font-bold text-white">Invite Friends</p>
+              <p className="mt-2 text-base text-primary">Earn up to 20% referral rewards</p>
+            </div>
+            <button onClick={() => navigate('/invite')} className="rounded-2xl border border-primary/40 bg-primary/10 px-5 py-3 font-mono text-[1.6rem] text-white">
+              {displayId || 'FX188380'}
+            </button>
+          </FintechCard>
+
+          <Button variant="ghost" onClick={handleSignOut} className="mb-3 h-14 w-full rounded-2xl border border-destructive/70 text-lg font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive">
+            <LogOut className="mr-2 h-5 w-5" /> Sign Out
+          </Button>
+          <p className="pb-6 text-center text-sm text-white/35">Version 3.0.4</p>
         </div>
       </div>
     </AppLayout>
