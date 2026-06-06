@@ -218,7 +218,12 @@ const NotificationSettings = () => {
                 <div>
                   <p className="mb-2 text-lg font-medium text-white">Delivery Channels</p>
                   <div className="space-y-3">
-                    {[['Push Notifications', true], ['In-App Alerts', true], ['Email Alerts', true], ['WhatsApp Alerts', false]].map(([label, active]) => (
+                    {[
+                      { label: 'Push Notifications', active: true },
+                      { label: 'In-App Alerts', active: true },
+                      { label: 'Email Alerts', active: true },
+                      { label: 'WhatsApp Alerts', active: false },
+                    ].map(({ label, active }) => (
                       <div key={label} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
                         <p className="text-base text-white">{label}</p>
                         <Switch checked={active} />
