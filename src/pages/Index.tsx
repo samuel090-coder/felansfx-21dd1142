@@ -119,12 +119,6 @@ const Index = () => {
     }
     setShowOnboarding(false);
   };
-const activity = useMemo(() => ([
-    { title: "Deposit received", meta: "₦50,000.00 • 2h ago", amount: "+₦50,000.00", tone: "success" },
-    { title: "Bought BTC", meta: "₦25,000.00 • 5h ago", amount: "-₦25,000.00", tone: "danger" },
-    { title: "2FA enabled", meta: "Security event • Yesterday", amount: "", tone: "neutral" },
-    { title: "Account verified", meta: "May 17, 2024", amount: "", tone: "neutral" },
-  ]), []);
 
   if (authLoading || walletLoading) return <LoadingScreen />;
   if (!user) return null;
@@ -141,7 +135,13 @@ const activity = useMemo(() => ([
   const usdApprox = balance * 0.00063;
   const delta = Math.max(12480, Math.round(balance * 0.0116));
   const updateTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  
+  const activity = useMemo(() => ([
+    { title: "Deposit received", meta: "₦50,000.00 • 2h ago", amount: "+₦50,000.00", tone: "success" },
+    { title: "Bought BTC", meta: "₦25,000.00 • 5h ago", amount: "-₦25,000.00", tone: "danger" },
+    { title: "2FA enabled", meta: "Security event • Yesterday", amount: "", tone: "neutral" },
+    { title: "Account verified", meta: "May 17, 2024", amount: "", tone: "neutral" },
+  ]), []);
+
   return (
     <AppLayout>
       <Seo
