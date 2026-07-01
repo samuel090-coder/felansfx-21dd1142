@@ -266,7 +266,7 @@ export const usePriceSimulation = (symbol: string, intervalMs: number = 3000, ti
       clearTimeout(tickTimeout);
       clearInterval(candleInterval);
     };
-  }, [symbol, previousClose]);
+  }, [symbol, previousClose, timeframe]);
 
   const getFormattedPrice = useCallback((price: number) => {
     if (symbol.includes("JPY")) {
