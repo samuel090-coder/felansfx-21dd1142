@@ -131,7 +131,33 @@ const generateCandle = (
   };
 };
 
-export const usePriceSimulation = (symbol: string, intervalMs: number = 3000) => {
+// Visual candle cadence (ms) per selected timeframe. Real TFs are scaled to a
+// responsive on-screen speed so switching visibly changes the chart.
+const TIMEFRAME_CADENCE: Record<string, number> = {
+  "5s": 2000,
+  "15s": 3500,
+  "30s": 6000,
+  "1m": 10000,
+  "5m": 18000,
+  "15m": 28000,
+  "1h": 40000,
+  "4h": 55000,
+  "1D": 75000,
+};
+// Historical spacing (ms) so the time axis reflects the chosen timeframe.
+const TIMEFRAME_SPACING: Record<string, number> = {
+  "5s": 5000,
+  "15s": 15000,
+  "30s": 30000,
+  "1m": 60000,
+  "5m": 300000,
+  "15m": 900000,
+  "1h": 3600000,
+  "4h": 14400000,
+  "1D": 86400000,
+};
+
+export const usePriceSimulation = (symbol: string, intervalMs: number = 3000, timeframe: string = "30s") => {
   const [currentPrice, setCurrentPrice] = useState<number>(BASE_PRICES[symbol] || 1);
   const [previousClose, setPreviousClose] = useState<number>(BASE_PRICES[symbol] || 1);
   const [candles, setCandles] = useState<CandleData[]>([]);
