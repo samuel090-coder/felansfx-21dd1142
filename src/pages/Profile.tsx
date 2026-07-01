@@ -180,31 +180,31 @@ const Profile = () => {
             </div>
           </header>
 
-          <FintechCard className="mb-5 p-5">
-            <div className="grid grid-cols-[1fr_112px] gap-4">
+          <FintechCard className="mb-5 p-4">
+            <div className="grid grid-cols-[1fr_100px] gap-3">
               <div>
-                <div className="mb-5 flex items-center gap-2">
-                  <h2 className="text-[1.8rem] font-bold text-white">Account Health</h2>
-                  <HelpCircle className="h-4 w-4 text-white/45" />
+                <div className="mb-3 flex items-center gap-2">
+                  <h2 className="text-base font-bold text-white">Account Health</h2>
+                  <HelpCircle className="h-3.5 w-3.5 text-white/45" />
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   {accountHealth.map((item) => (
-                    <div key={item.label} className="space-y-2">
-                      <div className={cn("flex h-9 w-9 items-center justify-center rounded-full", item.ok ? 'bg-success/15 text-success' : 'bg-white/8 text-white/45')}>
-                        <ShieldCheck className="h-5 w-5" />
+                    <div key={item.label} className="space-y-1.5">
+                      <div className={cn("flex h-8 w-8 items-center justify-center rounded-full", item.ok ? 'bg-success/15 text-success' : 'bg-white/8 text-white/45')}>
+                        <ShieldCheck className="h-4 w-4" />
                       </div>
-                      <p className="text-sm font-semibold text-white">{item.label}</p>
-                      <p className="text-sm text-white/52">{item.value}</p>
+                      <p className="text-xs font-semibold text-white leading-tight">{item.label}</p>
+                      <p className="text-[11px] text-white/52 leading-tight">{item.value}</p>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="flex flex-col items-center justify-center border-l border-white/10 pl-4">
-                <p className="text-base text-white/65">Security Score</p>
-                <div className="mt-4 flex h-28 w-28 items-center justify-center rounded-full border-[10px] border-primary/25 border-t-primary text-center">
+              <div className="flex flex-col items-center justify-center border-l border-white/10 pl-3">
+                <p className="text-xs text-white/65">Security Score</p>
+                <div className="mt-3 flex h-20 w-20 items-center justify-center rounded-full border-[8px] border-primary/25 border-t-primary text-center">
                   <div>
-                    <p className="text-[2.2rem] font-bold text-white">95%</p>
-                    <p className="text-sm text-primary">Excellent</p>
+                    <p className="text-xl font-bold text-white">95%</p>
+                    <p className="text-[11px] text-primary">Excellent</p>
                   </div>
                 </div>
               </div>
