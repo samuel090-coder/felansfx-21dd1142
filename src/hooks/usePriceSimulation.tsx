@@ -170,29 +170,27 @@ export const usePriceSimulation = (symbol: string, intervalMs: number = 3000, ti
     tickCount: 0,
   });
 
-  // Initialize with historical candles - slower, more realistic
+  // Initialize with historical candles - spacing reflects the selected timeframe
   useEffect(() => {
     const basePrice = BASE_PRICES[symbol] || 1;
-    
-    // Generate 50 historical candles with realistic spacing
+
     const historicalCandles: CandleData[] = [];
-    let price = basePrice;
+    let price = priceRef.current || basePrice;
     const now = Date.now();
-    const candleInterval = 60000; // 1-minute candles for historical data
-    
+    const candleInterval = TIMEFRAME_SPACING[timeframe] || 30000;
+
     for (let i = 49; i >= 0; i--) {
-      const candle = generateCandle(symbol, price, candleInterval);
+      const candle = generateCandle(symbol, price, Math.min(candleInterval, 60000));
       candle.time = now - i * candleInterval;
       historicalCandles.push(candle);
       price = candle.close;
     }
-    
+
     setCandles(historicalCandles);
     setCurrentPrice(price);
-    setPreviousClose(basePrice);
     priceRef.current = price;
     candleAccumulatorRef.current = { high: price, low: price, open: price, tickCount: 0 };
-  }, [symbol]);
+  }, [symbol, timeframe]);
 
   // Update prices in real-time with realistic tick-by-tick movement
   useEffect(() => {
