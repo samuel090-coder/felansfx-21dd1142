@@ -187,14 +187,14 @@ const Auth = () => {
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(32,214,199,0.18),transparent_33%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_30%)]" />
             <div className="pointer-events-none absolute right-[-28px] top-[90px] h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
 
-            <div className="relative z-10 mb-7 text-center">
-              <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-[28px] bg-[linear-gradient(180deg,rgba(39,232,221,1),rgba(19,175,215,1))] shadow-[0_20px_50px_rgba(32,214,199,0.28)]">
-                <TrendingUp className="h-11 w-11 text-white" strokeWidth={2.5} />
+            <div className="relative z-10 mb-6 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(39,232,221,1),rgba(19,175,215,1))] shadow-[0_20px_50px_rgba(32,214,199,0.28)]">
+                <TrendingUp className="h-8 w-8 text-white" strokeWidth={2.5} />
               </div>
-              <h1 className="text-[3rem] font-extrabold leading-none tracking-tight">
+              <h1 className="text-3xl font-extrabold leading-none tracking-tight">
                 FELANS <span className="text-primary">FX</span>
               </h1>
-              <p className="mt-3 text-[18px] text-white/72">Trade Smarter. Grow Faster.</p>
+              <p className="mt-2 text-sm text-white/72">Trade Smarter. Grow Faster.</p>
             </div>
 
             {mode === "signup" && (
