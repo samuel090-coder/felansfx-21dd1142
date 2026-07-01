@@ -236,12 +236,12 @@ const Profile = () => {
                 <FintechCard className="overflow-hidden p-0">
                   {section.items.map((item, idx) => (
                     <div key={item.title}>
-                      <button onClick={() => item.to && navigate(item.to)} className="flex w-full items-center gap-4 px-4 py-4 text-left hover:bg-white/[0.03]">
-                        <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : 'bg-white/5 text-white')}>
-                          <item.icon className="h-6 w-6" />
+                      <button onClick={() => item.to && navigate(item.to)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.03]">
+                        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : 'bg-white/5 text-white')}>
+                          <item.icon className="h-5 w-5" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-lg font-semibold text-white">{item.title}</p>
+                          <p className="text-sm font-semibold text-white">{item.title}</p>
                           {item.subtitle ? <p className="mt-1 text-sm text-white/52">{item.subtitle}</p> : null}
                           {item.custom === 'theme' ? (
                             <div className="mt-3 flex gap-2">
