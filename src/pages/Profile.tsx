@@ -170,12 +170,12 @@ const Profile = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="relative h-14 w-14 rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
-                <Bell className="h-6 w-6" />
-                {unreadNotifications > 0 && <span className="absolute right-3 top-3 h-3.5 w-3.5 rounded-full bg-destructive" />}
+              <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="relative h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
+                <Bell className="h-5 w-5" />
+                {unreadNotifications > 0 && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-destructive" />}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => navigate('/profile')} className="h-14 w-14 rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
-                <Settings className="h-6 w-6" />
+              <Button variant="ghost" size="icon" onClick={() => navigate('/profile')} className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
+                <Settings className="h-5 w-5" />
               </Button>
             </div>
           </header>
