@@ -280,20 +280,20 @@ const Profile = () => {
             </section>
           ))}
 
-          <FintechCard className="mb-5 flex items-center justify-between p-5">
-            <div>
-              <p className="text-[1.7rem] font-bold text-white">Invite Friends</p>
-              <p className="mt-2 text-base text-primary">Earn up to 20% referral rewards</p>
+          <FintechCard className="mb-5 flex items-center justify-between gap-3 p-4">
+            <div className="min-w-0">
+              <p className="text-base font-bold text-white">Invite Friends</p>
+              <p className="mt-1 text-xs text-primary">Earn up to 20% referral rewards</p>
             </div>
-            <button onClick={() => navigate('/invite')} className="rounded-2xl border border-primary/40 bg-primary/10 px-5 py-3 font-mono text-[1.6rem] text-white">
+            <button onClick={() => navigate('/invite')} className="shrink-0 rounded-xl border border-primary/40 bg-primary/10 px-4 py-2.5 font-mono text-sm text-white">
               {displayId || 'FX188380'}
             </button>
           </FintechCard>
 
-          <Button variant="ghost" onClick={handleSignOut} className="mb-3 h-14 w-full rounded-2xl border border-destructive/70 text-lg font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive">
+          <Button variant="ghost" onClick={handleSignOut} className="mb-3 h-12 w-full rounded-2xl border border-destructive/70 text-base font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive">
             <LogOut className="mr-2 h-5 w-5" /> Sign Out
           </Button>
-          <p className="pb-6 text-center text-sm text-white/35">Version 3.0.4</p>
+          <p className="pb-6 text-center text-xs text-white/35">Version 3.0.4</p>
         </div>
       </div>
     </AppLayout>
