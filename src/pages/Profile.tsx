@@ -217,17 +217,17 @@ const Profile = () => {
               {section.grid ? (
                 <div className="grid grid-cols-2 gap-3">
                   {section.items.map((item) => (
-                    <FintechCard key={item.title} className="p-5 text-left" >
+                    <FintechCard key={item.title} className="p-4 text-left" >
                       <button onClick={() => item.to && navigate(item.to)} className="flex h-full w-full flex-col items-start text-left">
-                        <div className={cn("mb-4 flex h-12 w-12 items-center justify-center rounded-2xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : item.accent === 'accent' ? 'bg-accent/12 text-accent' : 'bg-white/6 text-white')}>
-                          <item.icon className="h-6 w-6" />
+                        <div className={cn("mb-3 flex h-10 w-10 items-center justify-center rounded-xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : item.accent === 'accent' ? 'bg-accent/12 text-accent' : 'bg-white/6 text-white')}>
+                          <item.icon className="h-5 w-5" />
                         </div>
-                        <div className="mb-2 flex items-center gap-2">
-                          <p className="text-[1.6rem] font-bold text-white leading-tight">{item.title}</p>
-                          {item.badge ? <span className="rounded-full bg-primary/12 px-2 py-0.5 text-xs font-medium text-primary">{item.badge}</span> : null}
+                        <div className="mb-1.5 flex items-center gap-2">
+                          <p className="text-sm font-bold text-white leading-tight">{item.title}</p>
+                          {item.badge ? <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-medium text-primary">{item.badge}</span> : null}
                         </div>
-                        <p className="text-base leading-relaxed text-white/60">{item.subtitle}</p>
-                        {item.action ? <p className="mt-4 inline-flex items-center gap-2 text-base font-semibold text-primary">{item.action} <ArrowRight className="h-4 w-4" /></p> : null}
+                        <p className="text-xs leading-relaxed text-white/60">{item.subtitle}</p>
+                        {item.action ? <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary">{item.action} <ArrowRight className="h-3.5 w-3.5" /></p> : null}
                       </button>
                     </FintechCard>
                   ))}
