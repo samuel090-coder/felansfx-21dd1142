@@ -157,16 +157,16 @@ const Profile = () => {
                 </div>
               </div>
               <div>
-                <h1 className="text-[2.3rem] font-extrabold text-white">{userName}</h1>
-                <div className="mt-2 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-white/74">
-                  <span className="font-mono text-base">{displayId || 'FX188380'}</span>
-                  <Copy className="h-4 w-4" />
+                <h1 className="text-2xl font-extrabold text-white truncate">{userName}</h1>
+                <div className="mt-2 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-1.5 text-white/74">
+                  <span className="font-mono text-sm">{displayId || 'FX188380'}</span>
+                  <Copy className="h-3.5 w-3.5" />
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-sm">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-primary"><ShieldCheck className="h-4 w-4" /> Verified Account</span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/74"><Shield className="h-4 w-4" /> Level 2 KYC Verified</span>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-primary"><ShieldCheck className="h-3.5 w-3.5" /> Verified Account</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-white/74"><Shield className="h-3.5 w-3.5" /> Level 2 KYC</span>
                 </div>
-                <p className="mt-3 flex items-center gap-2 text-base text-white/56"><CalendarDays className="h-4 w-4" /> Member since {memberSince || 'Jan 2026'}</p>
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-white/56"><CalendarDays className="h-3.5 w-3.5" /> Member since {memberSince || 'Jan 2026'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
