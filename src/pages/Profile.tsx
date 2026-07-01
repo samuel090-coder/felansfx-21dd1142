@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, CalendarDays, ChevronRight, Copy, CreditCard, FileText, Globe, HelpCircle, Lock, LogOut, Moon, Shield, ShieldCheck, Smartphone, Sun, User, Wallet, Monitor, BadgeCheck, Settings, ArrowRight, Users, BookOpen, Landmark } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -93,7 +93,7 @@ const Profile = () => {
     { label: "2FA", value: isSubscribed ? "Enabled" : "Available", ok: isSubscribed },
   ];
 
-  const sections = useMemo(() => ([
+  const sections = ([
     {
       title: "Trading Tools",
       items: [
@@ -139,7 +139,7 @@ const Profile = () => {
         { icon: HelpCircle, title: "FAQ", to: "/help" },
       ],
     },
-  ]), [currency, format, isSubscribed, theme, wallet?.balance, isVerified]);
+  ]);
 
   return (
     <AppLayout>
@@ -148,63 +148,63 @@ const Profile = () => {
           <header className="mb-4 flex items-start justify-between">
             <div className="flex items-start gap-4">
               <div className="relative">
-                <Avatar className="h-24 w-24 border-[3px] border-primary shadow-[0_0_0_4px_rgba(255,255,255,0.03)]">
+                <Avatar className="h-16 w-16 border-2 border-primary shadow-[0_0_0_4px_rgba(255,255,255,0.03)]">
                   <AvatarImage src={avatarUrl || undefined} />
-                  <AvatarFallback className="bg-[linear-gradient(180deg,rgba(32,214,199,0.2),rgba(24,98,178,0.25))] text-2xl font-bold text-white">{initials}</AvatarFallback>
+                  <AvatarFallback className="bg-[linear-gradient(180deg,rgba(32,214,199,0.2),rgba(24,98,178,0.25))] text-lg font-bold text-white">{initials}</AvatarFallback>
                 </Avatar>
-                <div className="absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-background bg-primary text-primary-foreground">
-                  <BadgeCheck className="h-5 w-5" />
+                <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground">
+                  <BadgeCheck className="h-4 w-4" />
                 </div>
               </div>
               <div>
-                <h1 className="text-[2.3rem] font-extrabold text-white">{userName}</h1>
-                <div className="mt-2 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-white/74">
-                  <span className="font-mono text-base">{displayId || 'FX188380'}</span>
-                  <Copy className="h-4 w-4" />
+                <h1 className="text-2xl font-extrabold text-white truncate">{userName}</h1>
+                <div className="mt-2 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-1.5 text-white/74">
+                  <span className="font-mono text-sm">{displayId || 'FX188380'}</span>
+                  <Copy className="h-3.5 w-3.5" />
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-sm">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-primary"><ShieldCheck className="h-4 w-4" /> Verified Account</span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/74"><Shield className="h-4 w-4" /> Level 2 KYC Verified</span>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-primary"><ShieldCheck className="h-3.5 w-3.5" /> Verified Account</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-white/74"><Shield className="h-3.5 w-3.5" /> Level 2 KYC</span>
                 </div>
-                <p className="mt-3 flex items-center gap-2 text-base text-white/56"><CalendarDays className="h-4 w-4" /> Member since {memberSince || 'Jan 2026'}</p>
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-white/56"><CalendarDays className="h-3.5 w-3.5" /> Member since {memberSince || 'Jan 2026'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="relative h-14 w-14 rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
-                <Bell className="h-6 w-6" />
-                {unreadNotifications > 0 && <span className="absolute right-3 top-3 h-3.5 w-3.5 rounded-full bg-destructive" />}
+              <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="relative h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
+                <Bell className="h-5 w-5" />
+                {unreadNotifications > 0 && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-destructive" />}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => navigate('/profile')} className="h-14 w-14 rounded-2xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
-                <Settings className="h-6 w-6" />
+              <Button variant="ghost" size="icon" onClick={() => navigate('/profile')} className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
+                <Settings className="h-5 w-5" />
               </Button>
             </div>
           </header>
 
-          <FintechCard className="mb-5 p-5">
-            <div className="grid grid-cols-[1fr_112px] gap-4">
+          <FintechCard className="mb-5 p-4">
+            <div className="grid grid-cols-[1fr_100px] gap-3">
               <div>
-                <div className="mb-5 flex items-center gap-2">
-                  <h2 className="text-[1.8rem] font-bold text-white">Account Health</h2>
-                  <HelpCircle className="h-4 w-4 text-white/45" />
+                <div className="mb-3 flex items-center gap-2">
+                  <h2 className="text-base font-bold text-white">Account Health</h2>
+                  <HelpCircle className="h-3.5 w-3.5 text-white/45" />
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   {accountHealth.map((item) => (
-                    <div key={item.label} className="space-y-2">
-                      <div className={cn("flex h-9 w-9 items-center justify-center rounded-full", item.ok ? 'bg-success/15 text-success' : 'bg-white/8 text-white/45')}>
-                        <ShieldCheck className="h-5 w-5" />
+                    <div key={item.label} className="space-y-1.5">
+                      <div className={cn("flex h-8 w-8 items-center justify-center rounded-full", item.ok ? 'bg-success/15 text-success' : 'bg-white/8 text-white/45')}>
+                        <ShieldCheck className="h-4 w-4" />
                       </div>
-                      <p className="text-sm font-semibold text-white">{item.label}</p>
-                      <p className="text-sm text-white/52">{item.value}</p>
+                      <p className="text-xs font-semibold text-white leading-tight">{item.label}</p>
+                      <p className="text-[11px] text-white/52 leading-tight">{item.value}</p>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="flex flex-col items-center justify-center border-l border-white/10 pl-4">
-                <p className="text-base text-white/65">Security Score</p>
-                <div className="mt-4 flex h-28 w-28 items-center justify-center rounded-full border-[10px] border-primary/25 border-t-primary text-center">
+              <div className="flex flex-col items-center justify-center border-l border-white/10 pl-3">
+                <p className="text-xs text-white/65">Security Score</p>
+                <div className="mt-3 flex h-20 w-20 items-center justify-center rounded-full border-[8px] border-primary/25 border-t-primary text-center">
                   <div>
-                    <p className="text-[2.2rem] font-bold text-white">95%</p>
-                    <p className="text-sm text-primary">Excellent</p>
+                    <p className="text-xl font-bold text-white">95%</p>
+                    <p className="text-[11px] text-primary">Excellent</p>
                   </div>
                 </div>
               </div>
@@ -217,17 +217,17 @@ const Profile = () => {
               {section.grid ? (
                 <div className="grid grid-cols-2 gap-3">
                   {section.items.map((item) => (
-                    <FintechCard key={item.title} className="p-5 text-left" >
+                    <FintechCard key={item.title} className="p-4 text-left" >
                       <button onClick={() => item.to && navigate(item.to)} className="flex h-full w-full flex-col items-start text-left">
-                        <div className={cn("mb-4 flex h-12 w-12 items-center justify-center rounded-2xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : item.accent === 'accent' ? 'bg-accent/12 text-accent' : 'bg-white/6 text-white')}>
-                          <item.icon className="h-6 w-6" />
+                        <div className={cn("mb-3 flex h-10 w-10 items-center justify-center rounded-xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : item.accent === 'accent' ? 'bg-accent/12 text-accent' : 'bg-white/6 text-white')}>
+                          <item.icon className="h-5 w-5" />
                         </div>
-                        <div className="mb-2 flex items-center gap-2">
-                          <p className="text-[1.6rem] font-bold text-white leading-tight">{item.title}</p>
-                          {item.badge ? <span className="rounded-full bg-primary/12 px-2 py-0.5 text-xs font-medium text-primary">{item.badge}</span> : null}
+                        <div className="mb-1.5 flex items-center gap-2">
+                          <p className="text-sm font-bold text-white leading-tight">{item.title}</p>
+                          {item.badge ? <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-medium text-primary">{item.badge}</span> : null}
                         </div>
-                        <p className="text-base leading-relaxed text-white/60">{item.subtitle}</p>
-                        {item.action ? <p className="mt-4 inline-flex items-center gap-2 text-base font-semibold text-primary">{item.action} <ArrowRight className="h-4 w-4" /></p> : null}
+                        <p className="text-xs leading-relaxed text-white/60">{item.subtitle}</p>
+                        {item.action ? <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary">{item.action} <ArrowRight className="h-3.5 w-3.5" /></p> : null}
                       </button>
                     </FintechCard>
                   ))}
@@ -236,12 +236,12 @@ const Profile = () => {
                 <FintechCard className="overflow-hidden p-0">
                   {section.items.map((item, idx) => (
                     <div key={item.title}>
-                      <button onClick={() => item.to && navigate(item.to)} className="flex w-full items-center gap-4 px-4 py-4 text-left hover:bg-white/[0.03]">
-                        <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : 'bg-white/5 text-white')}>
-                          <item.icon className="h-6 w-6" />
+                      <button onClick={() => item.to && navigate(item.to)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.03]">
+                        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : 'bg-white/5 text-white')}>
+                          <item.icon className="h-5 w-5" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-lg font-semibold text-white">{item.title}</p>
+                          <p className="text-sm font-semibold text-white">{item.title}</p>
                           {item.subtitle ? <p className="mt-1 text-sm text-white/52">{item.subtitle}</p> : null}
                           {item.custom === 'theme' ? (
                             <div className="mt-3 flex gap-2">
@@ -280,20 +280,20 @@ const Profile = () => {
             </section>
           ))}
 
-          <FintechCard className="mb-5 flex items-center justify-between p-5">
-            <div>
-              <p className="text-[1.7rem] font-bold text-white">Invite Friends</p>
-              <p className="mt-2 text-base text-primary">Earn up to 20% referral rewards</p>
+          <FintechCard className="mb-5 flex items-center justify-between gap-3 p-4">
+            <div className="min-w-0">
+              <p className="text-base font-bold text-white">Invite Friends</p>
+              <p className="mt-1 text-xs text-primary">Earn up to 20% referral rewards</p>
             </div>
-            <button onClick={() => navigate('/invite')} className="rounded-2xl border border-primary/40 bg-primary/10 px-5 py-3 font-mono text-[1.6rem] text-white">
+            <button onClick={() => navigate('/invite')} className="shrink-0 rounded-xl border border-primary/40 bg-primary/10 px-4 py-2.5 font-mono text-sm text-white">
               {displayId || 'FX188380'}
             </button>
           </FintechCard>
 
-          <Button variant="ghost" onClick={handleSignOut} className="mb-3 h-14 w-full rounded-2xl border border-destructive/70 text-lg font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive">
+          <Button variant="ghost" onClick={handleSignOut} className="mb-3 h-12 w-full rounded-2xl border border-destructive/70 text-base font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive">
             <LogOut className="mr-2 h-5 w-5" /> Sign Out
           </Button>
-          <p className="pb-6 text-center text-sm text-white/35">Version 3.0.4</p>
+          <p className="pb-6 text-center text-xs text-white/35">Version 3.0.4</p>
         </div>
       </div>
     </AppLayout>

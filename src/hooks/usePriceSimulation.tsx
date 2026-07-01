@@ -131,7 +131,33 @@ const generateCandle = (
   };
 };
 
-export const usePriceSimulation = (symbol: string, intervalMs: number = 3000) => {
+// Visual candle cadence (ms) per selected timeframe. Real TFs are scaled to a
+// responsive on-screen speed so switching visibly changes the chart.
+const TIMEFRAME_CADENCE: Record<string, number> = {
+  "5s": 2000,
+  "15s": 3500,
+  "30s": 6000,
+  "1m": 10000,
+  "5m": 18000,
+  "15m": 28000,
+  "1h": 40000,
+  "4h": 55000,
+  "1D": 75000,
+};
+// Historical spacing (ms) so the time axis reflects the chosen timeframe.
+const TIMEFRAME_SPACING: Record<string, number> = {
+  "5s": 5000,
+  "15s": 15000,
+  "30s": 30000,
+  "1m": 60000,
+  "5m": 300000,
+  "15m": 900000,
+  "1h": 3600000,
+  "4h": 14400000,
+  "1D": 86400000,
+};
+
+export const usePriceSimulation = (symbol: string, intervalMs: number = 3000, timeframe: string = "30s") => {
   const [currentPrice, setCurrentPrice] = useState<number>(BASE_PRICES[symbol] || 1);
   const [previousClose, setPreviousClose] = useState<number>(BASE_PRICES[symbol] || 1);
   const [candles, setCandles] = useState<CandleData[]>([]);
@@ -144,29 +170,27 @@ export const usePriceSimulation = (symbol: string, intervalMs: number = 3000) =>
     tickCount: 0,
   });
 
-  // Initialize with historical candles - slower, more realistic
+  // Initialize with historical candles - spacing reflects the selected timeframe
   useEffect(() => {
     const basePrice = BASE_PRICES[symbol] || 1;
-    
-    // Generate 50 historical candles with realistic spacing
+
     const historicalCandles: CandleData[] = [];
-    let price = basePrice;
+    let price = priceRef.current || basePrice;
     const now = Date.now();
-    const candleInterval = 60000; // 1-minute candles for historical data
-    
+    const candleInterval = TIMEFRAME_SPACING[timeframe] || 30000;
+
     for (let i = 49; i >= 0; i--) {
-      const candle = generateCandle(symbol, price, candleInterval);
+      const candle = generateCandle(symbol, price, Math.min(candleInterval, 60000));
       candle.time = now - i * candleInterval;
       historicalCandles.push(candle);
       price = candle.close;
     }
-    
+
     setCandles(historicalCandles);
     setCurrentPrice(price);
-    setPreviousClose(basePrice);
     priceRef.current = price;
     candleAccumulatorRef.current = { high: price, low: price, open: price, tickCount: 0 };
-  }, [symbol]);
+  }, [symbol, timeframe]);
 
   // Update prices in real-time with realistic tick-by-tick movement
   useEffect(() => {
@@ -210,7 +234,8 @@ export const usePriceSimulation = (symbol: string, intervalMs: number = 3000) =>
     // Start tick updates
     tickTimeout = window.setTimeout(updateTick, 1000);
     
-    // Create new candle every 15-30 seconds (more realistic timeframe)
+    // Create a new candle at a cadence derived from the selected timeframe
+    const cadence = TIMEFRAME_CADENCE[timeframe] || 6000;
     const candleInterval = setInterval(() => {
       const acc = candleAccumulatorRef.current;
       if (acc.tickCount === 0) return;
@@ -235,13 +260,13 @@ export const usePriceSimulation = (symbol: string, intervalMs: number = 3000) =>
         
         return [...prev.slice(-49), newCandle];
       });
-    }, 15000 + Math.random() * 15000); // 15-30 second candles
+    }, cadence);
     
     return () => {
       clearTimeout(tickTimeout);
       clearInterval(candleInterval);
     };
-  }, [symbol, previousClose]);
+  }, [symbol, previousClose, timeframe]);
 
   const getFormattedPrice = useCallback((price: number) => {
     if (symbol.includes("JPY")) {

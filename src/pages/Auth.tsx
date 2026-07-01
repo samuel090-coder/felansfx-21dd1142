@@ -187,14 +187,14 @@ const Auth = () => {
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(32,214,199,0.18),transparent_33%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_30%)]" />
             <div className="pointer-events-none absolute right-[-28px] top-[90px] h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
 
-            <div className="relative z-10 mb-7 text-center">
-              <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-[28px] bg-[linear-gradient(180deg,rgba(39,232,221,1),rgba(19,175,215,1))] shadow-[0_20px_50px_rgba(32,214,199,0.28)]">
-                <TrendingUp className="h-11 w-11 text-white" strokeWidth={2.5} />
+            <div className="relative z-10 mb-6 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(39,232,221,1),rgba(19,175,215,1))] shadow-[0_20px_50px_rgba(32,214,199,0.28)]">
+                <TrendingUp className="h-8 w-8 text-white" strokeWidth={2.5} />
               </div>
-              <h1 className="text-[3rem] font-extrabold leading-none tracking-tight">
+              <h1 className="text-3xl font-extrabold leading-none tracking-tight">
                 FELANS <span className="text-primary">FX</span>
               </h1>
-              <p className="mt-3 text-[18px] text-white/72">Trade Smarter. Grow Faster.</p>
+              <p className="mt-2 text-sm text-white/72">Trade Smarter. Grow Faster.</p>
             </div>
 
             {mode === "signup" && (
@@ -218,93 +218,93 @@ const Auth = () => {
             )}
 
             <div className="relative z-10 rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,23,49,0.94),rgba(8,20,41,0.96))] p-4 sm:p-5">
-              <div className="mb-6 grid grid-cols-2 border-b border-white/10 text-center">
+              <div className="mb-5 grid grid-cols-2 border-b border-white/10 text-center">
                 <button
                   type="button"
                   onClick={() => setMode("signin")}
-                  className={cn("pb-3 text-[18px] font-semibold transition-colors", mode === "signin" ? "border-b-2 border-primary text-primary" : "text-white/45")}
+                  className={cn("pb-3 text-base font-semibold transition-colors", mode === "signin" ? "border-b-2 border-primary text-primary" : "text-white/45")}
                 >
                   Sign In
                 </button>
                 <button
                   type="button"
                   onClick={() => setMode("signup")}
-                  className={cn("pb-3 text-[18px] font-semibold transition-colors", mode === "signup" ? "border-b-2 border-primary text-primary" : "text-white/45")}
+                  className={cn("pb-3 text-base font-semibold transition-colors", mode === "signup" ? "border-b-2 border-primary text-primary" : "text-white/45")}
                 >
                   Sign Up
                 </button>
               </div>
 
               {mode === "signin" ? (
-                <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-5">
+                <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
                   <div>
-                    <Label htmlFor="signin-email" className="mb-2 block text-base text-white">Email</Label>
+                    <Label htmlFor="signin-email" className="mb-1.5 block text-sm text-white">Email</Label>
                     <div className="relative">
-                      <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                      <Input id="signin-email" type="email" placeholder="you@example.com" {...signInForm.register("email")} className="h-16 rounded-2xl border-white/12 bg-black/20 pl-12 text-lg text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
+                      <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                      <Input id="signin-email" type="email" placeholder="you@example.com" {...signInForm.register("email")} className="h-12 rounded-xl border-white/12 bg-black/20 pl-11 text-sm text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
                     </div>
                     <FieldError message={signInForm.formState.errors.email?.message} />
                   </div>
 
                   <div>
-                    <Label htmlFor="signin-password" className="mb-2 block text-base text-white">Password</Label>
+                    <Label htmlFor="signin-password" className="mb-1.5 block text-sm text-white">Password</Label>
                     <div className="relative">
-                      <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                      <Input id="signin-password" type={showSignInPassword ? "text" : "password"} placeholder="Enter your password" {...signInForm.register("password")} className="h-16 rounded-2xl border-white/12 bg-black/20 pl-12 pr-12 text-lg text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
-                      <button type="button" onClick={() => setShowSignInPassword((v) => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/45">
-                        {showSignInPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                      <Input id="signin-password" type={showSignInPassword ? "text" : "password"} placeholder="Enter your password" {...signInForm.register("password")} className="h-12 rounded-xl border-white/12 bg-black/20 pl-11 pr-11 text-sm text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
+                      <button type="button" onClick={() => setShowSignInPassword((v) => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/45">
+                        {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                     <FieldError message={signInForm.formState.errors.password?.message} />
                   </div>
 
-                  <div className="flex items-center justify-between text-base">
-                    <label className="flex items-center gap-3 text-white/78">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">✓</span>
+                  <div className="flex items-center justify-between text-sm">
+                    <label className="flex items-center gap-2 text-white/78">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary text-xs text-primary-foreground">✓</span>
                       Remember me
                     </label>
                     <button type="button" className="text-primary">Forgot password?</button>
                   </div>
 
-                  <Button type="submit" disabled={isSubmitting} className="h-16 w-full rounded-2xl gradient-primary text-[18px] font-bold shadow-primary">
-                    {isSubmitting ? <LoadingSpinner size="sm" /> : <><Lock className="h-5 w-5" /> Sign In</>}
+                  <Button type="submit" disabled={isSubmitting} className="h-12 w-full rounded-xl gradient-primary text-base font-bold shadow-primary">
+                    {isSubmitting ? <LoadingSpinner size="sm" /> : <><Lock className="h-4 w-4" /> Sign In</>}
                   </Button>
                 </form>
               ) : (
                 <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
                   <div>
-                    <Label htmlFor="signup-name" className="mb-2 block text-base text-white">Full Name</Label>
+                    <Label htmlFor="signup-name" className="mb-1.5 block text-sm text-white">Full Name</Label>
                     <div className="relative">
-                      <User className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                      <Input id="signup-name" type="text" placeholder="Enter your full name" {...signUpForm.register("fullName")} className="h-14 rounded-2xl border-white/12 bg-black/20 pl-12 text-base text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
+                      <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                      <Input id="signup-name" type="text" placeholder="Enter your full name" {...signUpForm.register("fullName")} className="h-12 rounded-xl border-white/12 bg-black/20 pl-11 text-sm text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
                     </div>
                     <FieldError message={signUpForm.formState.errors.fullName?.message} />
                   </div>
 
                   <div>
-                    <Label htmlFor="signup-email" className="mb-2 block text-base text-white">Email Address</Label>
+                    <Label htmlFor="signup-email" className="mb-1.5 block text-sm text-white">Email Address</Label>
                     <div className="relative">
-                      <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                      <Input id="signup-email" type="email" placeholder="Enter your email address" {...signUpForm.register("email")} className="h-14 rounded-2xl border-white/12 bg-black/20 pl-12 text-base text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
+                      <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                      <Input id="signup-email" type="email" placeholder="Enter your email address" {...signUpForm.register("email")} className="h-12 rounded-xl border-white/12 bg-black/20 pl-11 text-sm text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
                     </div>
                     <FieldError message={signUpForm.formState.errors.email?.message} />
                   </div>
 
                   <div>
-                    <Label htmlFor="signup-phone" className="mb-2 block text-base text-white">Phone Number</Label>
+                    <Label htmlFor="signup-phone" className="mb-1.5 block text-sm text-white">Phone Number</Label>
                     <div className="relative">
-                      <Phone className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                      <Input id="signup-phone" type="tel" placeholder="Enter your phone number" {...signUpForm.register("phone")} className="h-14 rounded-2xl border-white/12 bg-black/20 pl-12 text-base text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
+                      <Phone className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                      <Input id="signup-phone" type="tel" placeholder="Enter your phone number" {...signUpForm.register("phone")} className="h-12 rounded-xl border-white/12 bg-black/20 pl-11 text-sm text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="signup-password" className="mb-2 block text-base text-white">Create Password</Label>
+                    <Label htmlFor="signup-password" className="mb-1.5 block text-sm text-white">Create Password</Label>
                     <div className="relative">
-                      <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                      <Input id="signup-password" type={showSignUpPassword ? "text" : "password"} placeholder="Create a strong password" {...signUpForm.register("password")} className="h-14 rounded-2xl border-white/12 bg-black/20 pl-12 pr-12 text-base text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
-                      <button type="button" onClick={() => setShowSignUpPassword((v) => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/45">
-                        {showSignUpPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                      <Input id="signup-password" type={showSignUpPassword ? "text" : "password"} placeholder="Create a strong password" {...signUpForm.register("password")} className="h-12 rounded-xl border-white/12 bg-black/20 pl-11 pr-11 text-sm text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
+                      <button type="button" onClick={() => setShowSignUpPassword((v) => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/45">
+                        {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                     <div className="mt-2 flex items-center gap-2">
@@ -317,12 +317,12 @@ const Auth = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="signup-confirm" className="mb-2 block text-base text-white">Confirm Password</Label>
+                    <Label htmlFor="signup-confirm" className="mb-1.5 block text-sm text-white">Confirm Password</Label>
                     <div className="relative">
-                      <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                      <Input id="signup-confirm" type={showConfirmPassword ? "text" : "password"} placeholder="Confirm your password" {...signUpForm.register("confirmPassword")} className="h-14 rounded-2xl border-white/12 bg-black/20 pl-12 pr-12 text-base text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
-                      <button type="button" onClick={() => setShowConfirmPassword((v) => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/45">
-                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                      <Input id="signup-confirm" type={showConfirmPassword ? "text" : "password"} placeholder="Confirm your password" {...signUpForm.register("confirmPassword")} className="h-12 rounded-xl border-white/12 bg-black/20 pl-11 pr-11 text-sm text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
+                      <button type="button" onClick={() => setShowConfirmPassword((v) => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/45">
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                     <FieldError message={signUpForm.formState.errors.confirmPassword?.message} />
@@ -333,13 +333,13 @@ const Auth = () => {
                     <Input {...signUpForm.register("confirmPin")} />
                   </div>
 
-                  <label className="flex items-start gap-3 text-base text-white/78">
-                    <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">✓</span>
+                  <label className="flex items-start gap-2 text-sm text-white/78">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary text-xs text-primary-foreground">✓</span>
                     <span>I agree to the <span className="text-primary">Terms of Service</span> and <span className="text-primary">Privacy Policy</span></span>
                   </label>
 
-                  <Button type="submit" disabled={isSubmitting} className="h-16 w-full rounded-2xl gradient-primary text-[18px] font-bold shadow-primary">
-                    {isSubmitting ? <LoadingSpinner size="sm" /> : <><UserPlus className="h-5 w-5" /> Create Account</>}
+                  <Button type="submit" disabled={isSubmitting} className="h-12 w-full rounded-xl gradient-primary text-base font-bold shadow-primary">
+                    {isSubmitting ? <LoadingSpinner size="sm" /> : <><UserPlus className="h-4 w-4" /> Create Account</>}
                   </Button>
                 </form>
               )}
@@ -356,7 +356,7 @@ const Auth = () => {
                   { label: "Apple", icon: "" },
                   { label: "Email", icon: "✉" },
                 ].map((item) => (
-                  <button key={item.label} type="button" className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/12 bg-black/20 text-base font-medium text-white hover:bg-white/5">
+                  <button key={item.label} type="button" className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-black/20 text-sm font-medium text-white hover:bg-white/5">
                     <span className="text-lg">{item.icon}</span>
                     <span>{item.label}</span>
                   </button>
@@ -364,17 +364,17 @@ const Auth = () => {
               </div>
             </div>
 
-            <div className="relative z-10 mt-8 flex items-start gap-4 rounded-2xl border border-white/6 bg-white/3 px-4 py-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                <ShieldCheck className="h-6 w-6" />
+            <div className="relative z-10 mt-6 flex items-start gap-3 rounded-2xl border border-white/6 bg-white/3 px-4 py-3.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[18px] font-semibold text-white">Your {mode === "signin" ? "funds and data" : "information"} {mode === "signin" ? "are protected" : "is protected"}</p>
-                <p className="mt-1 text-base text-white/55">{mode === "signin" ? "Bank-level security & encryption" : "We use industry-standard encryption to keep your data safe."}</p>
+                <p className="text-sm font-semibold text-white">Your {mode === "signin" ? "funds and data" : "information"} {mode === "signin" ? "are protected" : "is protected"}</p>
+                <p className="mt-1 text-xs text-white/55">{mode === "signin" ? "Bank-level security & encryption" : "We use industry-standard encryption to keep your data safe."}</p>
               </div>
             </div>
 
-            <div className="relative z-10 mt-8 space-y-3 text-center text-base text-white/55">
+            <div className="relative z-10 mt-6 space-y-2 text-center text-xs text-white/55">
               {mode === "signin" ? (
                 <>
                   <p>By continuing, you agree to our <span className="text-primary">Terms of Service</span> and <span className="text-primary">Privacy Policy</span></p>

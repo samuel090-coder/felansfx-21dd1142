@@ -71,7 +71,7 @@ export const TradingHeader = ({
               <ChevronDown className="w-3 h-3" />
             </span>
             <span className={cn(
-              "text-2xl font-extrabold tabular-nums leading-tight truncate max-w-full",
+              "text-lg font-extrabold tabular-nums leading-tight whitespace-nowrap",
               accountType === "demo" ? "text-chart-2" : "text-success"
             )}>
 
