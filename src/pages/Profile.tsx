@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, CalendarDays, ChevronRight, Copy, CreditCard, FileText, Globe, HelpCircle, Lock, LogOut, Moon, Shield, ShieldCheck, Smartphone, Sun, User, Wallet, Monitor, BadgeCheck, Settings, ArrowRight, Users, BookOpen, Landmark } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -93,7 +93,7 @@ const Profile = () => {
     { label: "2FA", value: isSubscribed ? "Enabled" : "Available", ok: isSubscribed },
   ];
 
-  const sections = useMemo(() => ([
+  const sections = ([
     {
       title: "Trading Tools",
       items: [
@@ -139,7 +139,7 @@ const Profile = () => {
         { icon: HelpCircle, title: "FAQ", to: "/help" },
       ],
     },
-  ]), [currency, format, isSubscribed, theme, wallet?.balance, isVerified]);
+  ]);
 
   return (
     <AppLayout>
