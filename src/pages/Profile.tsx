@@ -148,12 +148,12 @@ const Profile = () => {
           <header className="mb-4 flex items-start justify-between">
             <div className="flex items-start gap-4">
               <div className="relative">
-                <Avatar className="h-24 w-24 border-[3px] border-primary shadow-[0_0_0_4px_rgba(255,255,255,0.03)]">
+                <Avatar className="h-16 w-16 border-2 border-primary shadow-[0_0_0_4px_rgba(255,255,255,0.03)]">
                   <AvatarImage src={avatarUrl || undefined} />
-                  <AvatarFallback className="bg-[linear-gradient(180deg,rgba(32,214,199,0.2),rgba(24,98,178,0.25))] text-2xl font-bold text-white">{initials}</AvatarFallback>
+                  <AvatarFallback className="bg-[linear-gradient(180deg,rgba(32,214,199,0.2),rgba(24,98,178,0.25))] text-lg font-bold text-white">{initials}</AvatarFallback>
                 </Avatar>
-                <div className="absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-background bg-primary text-primary-foreground">
-                  <BadgeCheck className="h-5 w-5" />
+                <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground">
+                  <BadgeCheck className="h-4 w-4" />
                 </div>
               </div>
               <div>
