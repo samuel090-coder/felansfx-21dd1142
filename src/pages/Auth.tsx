@@ -236,38 +236,38 @@ const Auth = () => {
               </div>
 
               {mode === "signin" ? (
-                <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-5">
+                <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
                   <div>
-                    <Label htmlFor="signin-email" className="mb-2 block text-base text-white">Email</Label>
+                    <Label htmlFor="signin-email" className="mb-1.5 block text-sm text-white">Email</Label>
                     <div className="relative">
-                      <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                      <Input id="signin-email" type="email" placeholder="you@example.com" {...signInForm.register("email")} className="h-16 rounded-2xl border-white/12 bg-black/20 pl-12 text-lg text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
+                      <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                      <Input id="signin-email" type="email" placeholder="you@example.com" {...signInForm.register("email")} className="h-12 rounded-xl border-white/12 bg-black/20 pl-11 text-sm text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
                     </div>
                     <FieldError message={signInForm.formState.errors.email?.message} />
                   </div>
 
                   <div>
-                    <Label htmlFor="signin-password" className="mb-2 block text-base text-white">Password</Label>
+                    <Label htmlFor="signin-password" className="mb-1.5 block text-sm text-white">Password</Label>
                     <div className="relative">
-                      <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                      <Input id="signin-password" type={showSignInPassword ? "text" : "password"} placeholder="Enter your password" {...signInForm.register("password")} className="h-16 rounded-2xl border-white/12 bg-black/20 pl-12 pr-12 text-lg text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
-                      <button type="button" onClick={() => setShowSignInPassword((v) => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/45">
-                        {showSignInPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                      <Input id="signin-password" type={showSignInPassword ? "text" : "password"} placeholder="Enter your password" {...signInForm.register("password")} className="h-12 rounded-xl border-white/12 bg-black/20 pl-11 pr-11 text-sm text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
+                      <button type="button" onClick={() => setShowSignInPassword((v) => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/45">
+                        {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                     <FieldError message={signInForm.formState.errors.password?.message} />
                   </div>
 
-                  <div className="flex items-center justify-between text-base">
-                    <label className="flex items-center gap-3 text-white/78">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">✓</span>
+                  <div className="flex items-center justify-between text-sm">
+                    <label className="flex items-center gap-2 text-white/78">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary text-xs text-primary-foreground">✓</span>
                       Remember me
                     </label>
                     <button type="button" className="text-primary">Forgot password?</button>
                   </div>
 
-                  <Button type="submit" disabled={isSubmitting} className="h-16 w-full rounded-2xl gradient-primary text-[18px] font-bold shadow-primary">
-                    {isSubmitting ? <LoadingSpinner size="sm" /> : <><Lock className="h-5 w-5" /> Sign In</>}
+                  <Button type="submit" disabled={isSubmitting} className="h-12 w-full rounded-xl gradient-primary text-base font-bold shadow-primary">
+                    {isSubmitting ? <LoadingSpinner size="sm" /> : <><Lock className="h-4 w-4" /> Sign In</>}
                   </Button>
                 </form>
               ) : (
