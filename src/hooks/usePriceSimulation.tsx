@@ -234,7 +234,8 @@ export const usePriceSimulation = (symbol: string, intervalMs: number = 3000, ti
     // Start tick updates
     tickTimeout = window.setTimeout(updateTick, 1000);
     
-    // Create new candle every 15-30 seconds (more realistic timeframe)
+    // Create a new candle at a cadence derived from the selected timeframe
+    const cadence = TIMEFRAME_CADENCE[timeframe] || 6000;
     const candleInterval = setInterval(() => {
       const acc = candleAccumulatorRef.current;
       if (acc.tickCount === 0) return;
@@ -259,7 +260,7 @@ export const usePriceSimulation = (symbol: string, intervalMs: number = 3000, ti
         
         return [...prev.slice(-49), newCandle];
       });
-    }, 15000 + Math.random() * 15000); // 15-30 second candles
+    }, cadence);
     
     return () => {
       clearTimeout(tickTimeout);
