@@ -81,7 +81,7 @@ const Trading = () => {
   const aiOpeningRef = useRef(false);
   const promoShownRef = useRef(false);
 
-  const { currentPrice, candles, getFormattedPrice } = usePriceSimulation(selectedSymbol, 3000);
+  const { currentPrice, candles, getFormattedPrice } = usePriceSimulation(selectedSymbol, 3000, chartTimeframe);
   const allPrices = useMultiSymbolPrices(ALL_SYMBOLS);
   const { vibrateEntry } = useHapticFeedback();
 
