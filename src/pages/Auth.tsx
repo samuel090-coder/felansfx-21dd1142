@@ -218,18 +218,18 @@ const Auth = () => {
             )}
 
             <div className="relative z-10 rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,23,49,0.94),rgba(8,20,41,0.96))] p-4 sm:p-5">
-              <div className="mb-6 grid grid-cols-2 border-b border-white/10 text-center">
+              <div className="mb-5 grid grid-cols-2 border-b border-white/10 text-center">
                 <button
                   type="button"
                   onClick={() => setMode("signin")}
-                  className={cn("pb-3 text-[18px] font-semibold transition-colors", mode === "signin" ? "border-b-2 border-primary text-primary" : "text-white/45")}
+                  className={cn("pb-3 text-base font-semibold transition-colors", mode === "signin" ? "border-b-2 border-primary text-primary" : "text-white/45")}
                 >
                   Sign In
                 </button>
                 <button
                   type="button"
                   onClick={() => setMode("signup")}
-                  className={cn("pb-3 text-[18px] font-semibold transition-colors", mode === "signup" ? "border-b-2 border-primary text-primary" : "text-white/45")}
+                  className={cn("pb-3 text-base font-semibold transition-colors", mode === "signup" ? "border-b-2 border-primary text-primary" : "text-white/45")}
                 >
                   Sign Up
                 </button>
