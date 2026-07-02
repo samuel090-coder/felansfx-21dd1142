@@ -70,42 +70,42 @@
         </div>
        </CardHeader>
  
-       <CardContent className="pt-4 space-y-4">
-         <div className="grid grid-cols-2 gap-3">
-           <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
-             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
-               <Target className="w-3.5 h-3.5" />
-               ENTRY
-             </div>
-             <p className="text-lg font-bold text-primary">{entryPrice}</p>
-           </div>
-           
-           <div className="bg-red-500/5 rounded-lg p-3 border border-red-500/10">
-             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
-               <AlertTriangle className="w-3.5 h-3.5" />
-               STOP LOSS
-             </div>
-             <p className="text-lg font-bold text-red-600">{stopLoss}</p>
-           </div>
-         </div>
- 
-         <div className="grid grid-cols-2 gap-3">
-           <div className="bg-green-500/5 rounded-lg p-3 border border-green-500/10">
-             <div className="text-xs font-medium text-muted-foreground mb-1">
-               TAKE PROFIT
-             </div>
-             <p className="text-lg font-bold text-green-600">{takeProfit}</p>
-           </div>
-           
-           {riskReward && (
-             <div className="bg-blue-500/5 rounded-lg p-3 border border-blue-500/10">
-               <div className="text-xs font-medium text-muted-foreground mb-1">
-                 RISK:REWARD
-               </div>
-               <p className="text-lg font-bold text-blue-600">{riskReward}</p>
-             </div>
-           )}
-         </div>
+      <CardContent className="pt-4 space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="min-w-0 bg-primary/5 rounded-lg p-3 border border-primary/10">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
+              <Target className="w-3.5 h-3.5 shrink-0" />
+              ENTRY
+            </div>
+            <p className="truncate text-base font-bold text-primary tabular-nums">{entryPrice}</p>
+          </div>
+          
+          <div className="min-w-0 bg-red-500/5 rounded-lg p-3 border border-red-500/10">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              STOP LOSS
+            </div>
+            <p className="truncate text-base font-bold text-red-600 tabular-nums">{stopLoss}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="min-w-0 bg-green-500/5 rounded-lg p-3 border border-green-500/10">
+            <div className="text-xs font-medium text-muted-foreground mb-1">
+              TAKE PROFIT
+            </div>
+            <p className="truncate text-base font-bold text-green-600 tabular-nums">{takeProfit}</p>
+          </div>
+          
+          {riskReward && (
+            <div className="min-w-0 bg-blue-500/5 rounded-lg p-3 border border-blue-500/10">
+              <div className="text-xs font-medium text-muted-foreground mb-1">
+                RISK:REWARD
+              </div>
+              <p className="truncate text-base font-bold text-blue-600 tabular-nums">{riskReward}</p>
+            </div>
+          )}
+        </div>
  
          {notes && (
            <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
