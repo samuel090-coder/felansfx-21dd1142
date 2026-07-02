@@ -289,12 +289,14 @@ const Index = () => {
                 <h3 className="text-sm font-bold text-white">Watchlist</h3>
                 <button className="text-[11px] text-white/55">View all</button>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {marketRows.map((row) => (
-                  <div key={row.asset} className="grid grid-cols-[1.4fr_1fr_auto] items-center gap-2 text-[11px]">
-                    <p className="font-semibold text-white">{row.asset}</p>
-                    <p className="text-right text-white/82">{row.price}</p>
-                    <p className="text-right font-semibold text-success">{row.change}</p>
+                  <div key={row.asset} className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-[11px] font-semibold text-white">{row.asset}</p>
+                      <p className="truncate text-[10px] text-white/60">{row.price}</p>
+                    </div>
+                    <p className="shrink-0 text-[11px] font-semibold text-success">{row.change}</p>
                   </div>
                 ))}
               </div>
