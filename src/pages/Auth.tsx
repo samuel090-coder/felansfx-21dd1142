@@ -258,13 +258,14 @@ const Auth = () => {
                     <FieldError message={signInForm.formState.errors.password?.message} />
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center gap-2 text-white/78">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary text-xs text-primary-foreground">✓</span>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <label className="flex items-center gap-2 whitespace-nowrap text-white/78">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary text-xs text-primary-foreground">✓</span>
                       Remember me
                     </label>
-                    <button type="button" className="text-primary">Forgot password?</button>
+                    <button type="button" className="whitespace-nowrap text-primary">Forgot password?</button>
                   </div>
+
 
                   <Button type="submit" disabled={isSubmitting} className="h-12 w-full rounded-xl gradient-primary text-base font-bold shadow-primary">
                     {isSubmitting ? <LoadingSpinner size="sm" /> : <><Lock className="h-4 w-4" /> Sign In</>}
@@ -292,24 +293,25 @@ const Auth = () => {
 
                   <div>
                     <Label htmlFor="signup-phone" className="mb-1.5 block text-sm text-white">Phone Number</Label>
-                    <div className="flex h-12 items-center rounded-xl border border-white/12 bg-black/20 focus-within:ring-2 focus-within:ring-primary/60">
-                      <div className="flex h-full shrink-0 items-center gap-1.5 pl-3.5 pr-3 text-sm font-medium text-white">
-                        <span className="flex h-5 w-7 overflow-hidden rounded-[3px] border border-white/10">
+                    <div className="flex h-12 w-full items-center overflow-hidden rounded-xl border border-white/12 bg-black/20 focus-within:ring-2 focus-within:ring-primary/60">
+                      <div className="flex h-full shrink-0 items-center gap-1.5 pl-3 pr-2.5 text-sm font-medium text-white">
+                        <span className="flex h-4 w-6 overflow-hidden rounded-[2px] border border-white/10">
                           <span className="h-full flex-1 bg-[#008751]" />
                           <span className="h-full flex-1 bg-white" />
                           <span className="h-full flex-1 bg-[#008751]" />
                         </span>
                         <span>+234</span>
                       </div>
-                      <div className="h-6 w-px bg-white/12" />
+                      <div className="h-6 w-px shrink-0 bg-white/12" />
                       <input
                         id="signup-phone"
                         type="tel"
                         placeholder="Enter your phone number"
                         {...signUpForm.register("phone")}
-                        className="h-full flex-1 rounded-r-xl bg-transparent px-3.5 text-sm text-white placeholder:text-white/30 outline-none"
+                        className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm text-white placeholder:text-white/30 outline-none"
                       />
                     </div>
+
                   </div>
 
 
@@ -358,26 +360,10 @@ const Auth = () => {
                   </Button>
                 </form>
               )}
-
-              <div className="my-6 flex items-center gap-4 text-white/40">
-                <div className="h-px flex-1 bg-white/10" />
-                <span className="text-sm">or continue with</span>
-                <div className="h-px flex-1 bg-white/10" />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "Google", icon: "G" },
-                  { label: "Apple", icon: "" },
-                  { label: "Email", icon: "✉" },
-                ].map((item) => (
-                  <button key={item.label} type="button" className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-black/20 text-sm font-medium text-white hover:bg-white/5">
-                    <span className="text-lg">{item.icon}</span>
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-              </div>
             </div>
+
+
+
 
             <div className="relative z-10 mt-6 flex items-start gap-3 rounded-2xl border border-white/6 bg-white/3 px-4 py-3.5">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
