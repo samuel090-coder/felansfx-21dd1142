@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Eye, EyeOff, Lock, Mail, ShieldCheck, TrendingUp, User, Phone, UserPlus, Zap } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Lock, Mail, ShieldCheck, TrendingUp, User, UserPlus, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { useAppSettings } from "@/hooks/useAppSettings";
