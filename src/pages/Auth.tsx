@@ -258,13 +258,14 @@ const Auth = () => {
                     <FieldError message={signInForm.formState.errors.password?.message} />
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center gap-2 text-white/78">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary text-xs text-primary-foreground">✓</span>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <label className="flex items-center gap-2 whitespace-nowrap text-white/78">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary text-xs text-primary-foreground">✓</span>
                       Remember me
                     </label>
-                    <button type="button" className="text-primary">Forgot password?</button>
+                    <button type="button" className="whitespace-nowrap text-primary">Forgot password?</button>
                   </div>
+
 
                   <Button type="submit" disabled={isSubmitting} className="h-12 w-full rounded-xl gradient-primary text-base font-bold shadow-primary">
                     {isSubmitting ? <LoadingSpinner size="sm" /> : <><Lock className="h-4 w-4" /> Sign In</>}
