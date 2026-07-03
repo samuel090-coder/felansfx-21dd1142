@@ -292,24 +292,25 @@ const Auth = () => {
 
                   <div>
                     <Label htmlFor="signup-phone" className="mb-1.5 block text-sm text-white">Phone Number</Label>
-                    <div className="flex h-12 items-center rounded-xl border border-white/12 bg-black/20 focus-within:ring-2 focus-within:ring-primary/60">
-                      <div className="flex h-full shrink-0 items-center gap-1.5 pl-3.5 pr-3 text-sm font-medium text-white">
-                        <span className="flex h-5 w-7 overflow-hidden rounded-[3px] border border-white/10">
+                    <div className="flex h-12 w-full items-center overflow-hidden rounded-xl border border-white/12 bg-black/20 focus-within:ring-2 focus-within:ring-primary/60">
+                      <div className="flex h-full shrink-0 items-center gap-1.5 pl-3 pr-2.5 text-sm font-medium text-white">
+                        <span className="flex h-4 w-6 overflow-hidden rounded-[2px] border border-white/10">
                           <span className="h-full flex-1 bg-[#008751]" />
                           <span className="h-full flex-1 bg-white" />
                           <span className="h-full flex-1 bg-[#008751]" />
                         </span>
                         <span>+234</span>
                       </div>
-                      <div className="h-6 w-px bg-white/12" />
+                      <div className="h-6 w-px shrink-0 bg-white/12" />
                       <input
                         id="signup-phone"
                         type="tel"
                         placeholder="Enter your phone number"
                         {...signUpForm.register("phone")}
-                        className="h-full flex-1 rounded-r-xl bg-transparent px-3.5 text-sm text-white placeholder:text-white/30 outline-none"
+                        className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm text-white placeholder:text-white/30 outline-none"
                       />
                     </div>
+
                   </div>
 
 
