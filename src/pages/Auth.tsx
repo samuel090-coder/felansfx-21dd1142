@@ -359,25 +359,6 @@ const Auth = () => {
                 </form>
               )}
 
-              <div className="my-6 flex items-center gap-4 text-white/40">
-                <div className="h-px flex-1 bg-white/10" />
-                <span className="text-sm">or continue with</span>
-                <div className="h-px flex-1 bg-white/10" />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "Google", icon: "G" },
-                  { label: "Apple", icon: "" },
-                  { label: "Email", icon: "✉" },
-                ].map((item) => (
-                  <button key={item.label} type="button" className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-black/20 text-sm font-medium text-white hover:bg-white/5">
-                    <span className="text-lg">{item.icon}</span>
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <div className="relative z-10 mt-6 flex items-start gap-3 rounded-2xl border border-white/6 bg-white/3 px-4 py-3.5">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
