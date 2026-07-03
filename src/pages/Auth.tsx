@@ -358,6 +358,9 @@ const Auth = () => {
                   </Button>
                 </form>
               )}
+            </div>
+
+
 
 
             <div className="relative z-10 mt-6 flex items-start gap-3 rounded-2xl border border-white/6 bg-white/3 px-4 py-3.5">
