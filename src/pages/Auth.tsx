@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Eye, EyeOff, Lock, Mail, ShieldCheck, TrendingUp, User, Phone, UserPlus, Zap } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Lock, Mail, ShieldCheck, TrendingUp, User, UserPlus, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -292,11 +292,26 @@ const Auth = () => {
 
                   <div>
                     <Label htmlFor="signup-phone" className="mb-1.5 block text-sm text-white">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
-                      <Input id="signup-phone" type="tel" placeholder="Enter your phone number" {...signUpForm.register("phone")} className="h-12 rounded-xl border-white/12 bg-black/20 pl-11 text-sm text-white placeholder:text-white/30 focus-visible:ring-primary/60" />
+                    <div className="flex h-12 items-center rounded-xl border border-white/12 bg-black/20 focus-within:ring-2 focus-within:ring-primary/60">
+                      <div className="flex h-full shrink-0 items-center gap-1.5 pl-3.5 pr-3 text-sm font-medium text-white">
+                        <span className="flex h-5 w-7 overflow-hidden rounded-[3px] border border-white/10">
+                          <span className="h-full flex-1 bg-[#008751]" />
+                          <span className="h-full flex-1 bg-white" />
+                          <span className="h-full flex-1 bg-[#008751]" />
+                        </span>
+                        <span>+234</span>
+                      </div>
+                      <div className="h-6 w-px bg-white/12" />
+                      <input
+                        id="signup-phone"
+                        type="tel"
+                        placeholder="Enter your phone number"
+                        {...signUpForm.register("phone")}
+                        className="h-full flex-1 rounded-r-xl bg-transparent px-3.5 text-sm text-white placeholder:text-white/30 outline-none"
+                      />
                     </div>
                   </div>
+
 
                   <div>
                     <Label htmlFor="signup-password" className="mb-1.5 block text-sm text-white">Create Password</Label>
