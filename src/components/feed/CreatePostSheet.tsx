@@ -116,7 +116,28 @@ export const CreatePostSheet = ({ open, onOpenChange, onCreated }: Props) => {
       <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
         <SheetHeader><SheetTitle>Create Post</SheetTitle></SheetHeader>
         <div className="flex flex-col gap-4 mt-4 h-full overflow-y-auto">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Post type</p>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map(c => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCategory(c.id)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    category === c.id
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <Textarea value={content} onChange={e => setContent(e.target.value)} placeholder="What's on your mind? Share your trading journey... 📈" className="min-h-[100px] resize-none" />
+
 
           {/* Image preview */}
           {imagePreview && (
