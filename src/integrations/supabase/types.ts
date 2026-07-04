@@ -1333,11 +1333,13 @@ export type Database = {
       }
       posts: {
         Row: {
+          category: string
           comments_count: number
           content: string
           created_at: string
           id: string
           image_url: string | null
+          is_hidden: boolean
           likes_count: number
           tagged_trade_ids: string[] | null
           tagged_user_ids: string[] | null
@@ -1346,11 +1348,13 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          category?: string
           comments_count?: number
           content?: string
           created_at?: string
           id?: string
           image_url?: string | null
+          is_hidden?: boolean
           likes_count?: number
           tagged_trade_ids?: string[] | null
           tagged_user_ids?: string[] | null
@@ -1359,11 +1363,13 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          category?: string
           comments_count?: number
           content?: string
           created_at?: string
           id?: string
           image_url?: string | null
+          is_hidden?: boolean
           likes_count?: number
           tagged_trade_ids?: string[] | null
           tagged_user_ids?: string[] | null
