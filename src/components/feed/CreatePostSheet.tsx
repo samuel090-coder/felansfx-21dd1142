@@ -41,6 +41,7 @@ const extractVideoEmbed = (url: string): string | null => {
 export const CreatePostSheet = ({ open, onOpenChange, onCreated }: Props) => {
   const { user } = useAuth();
   const [content, setContent] = useState("");
+  const [category, setCategory] = useState("discussion");
   const [trades, setTrades] = useState<any[]>([]);
   const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
   const [showTrades, setShowTrades] = useState(false);
