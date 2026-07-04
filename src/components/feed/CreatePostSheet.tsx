@@ -18,6 +18,13 @@ interface Props {
 
 const EMOJI_LIST = ["🔥", "💰", "📈", "📉", "🎯", "💪", "🚀", "⚡", "💎", "🏆", "✅", "❌", "👀", "🤑", "😤"];
 
+const CATEGORIES = [
+  { id: "discussion", label: "Discussion" },
+  { id: "idea", label: "Trade Idea" },
+  { id: "trade", label: "Trade" },
+  { id: "market_news", label: "Market Update" },
+];
+
 const extractVideoEmbed = (url: string): string | null => {
   // YouTube
   const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
