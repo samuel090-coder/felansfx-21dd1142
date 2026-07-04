@@ -95,15 +95,16 @@ export const CreatePostSheet = ({ open, onOpenChange, onCreated }: Props) => {
     const { error } = await supabase.from("posts").insert({
       user_id: user.id,
       content: content.trim(),
+      category,
       tagged_trade_ids: selectedTrades,
       image_url: imageUrl,
       video_url: embedUrl || null,
-    });
+    } as any);
     if (error) {
       toast.error("Failed to post");
     } else {
       toast.success("Posted! 🔥");
-      setContent(""); setSelectedTrades([]); setImageFile(null); setImagePreview(null); setVideoUrl(""); setEmbedUrl(null); setShowVideoInput(false);
+      setContent(""); setCategory("discussion"); setSelectedTrades([]); setImageFile(null); setImagePreview(null); setVideoUrl(""); setEmbedUrl(null); setShowVideoInput(false);
       onOpenChange(false);
       onCreated();
     }
