@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { Heart, MessageCircle, Share2, ShieldCheck } from "lucide-react";
+import { Heart, MessageCircle, Share2, ShieldCheck, MoreHorizontal, Globe, EyeOff, Eye, Trash2, TrendingUp, BarChart3, MessageSquare, Newspaper } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { TradePreviewCard } from "./TradePreviewCard";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { sendEmail } from "@/lib/sendEmail";
+import { cn } from "@/lib/utils";
 
 async function notifyPostAuthor(type: "post_liked" | "post_commented", postUserId: string, fromUserId: string, postId: string, extra: Record<string, any> = {}) {
   if (postUserId === fromUserId) return;
@@ -15,6 +17,13 @@ async function notifyPostAuthor(type: "post_liked" | "post_commented", postUserI
   if (!ownerProfile?.email) return;
   sendEmail({ type, userEmail: ownerProfile.email, userId: fromUserId, shortId: postId, data: extra });
 }
+
+const CATEGORY_META: Record<string, { label: string; icon: any; className: string }> = {
+  idea: { label: "Trade Idea", icon: TrendingUp, className: "text-primary bg-primary/10" },
+  trade: { label: "Trade", icon: BarChart3, className: "text-primary bg-primary/10" },
+  market_news: { label: "Market Update", icon: Newspaper, className: "text-violet-400 bg-violet-400/10" },
+  discussion: { label: "Discussion", icon: MessageSquare, className: "text-primary bg-primary/10" },
+};
 
 interface PostData {
   id: string;
@@ -24,6 +33,8 @@ interface PostData {
   tagged_user_ids: string[];
   image_url: string | null;
   video_url?: string | null;
+  category?: string | null;
+  is_hidden?: boolean | null;
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -32,9 +43,10 @@ interface PostData {
 interface Props {
   post: PostData;
   onRefresh: () => void;
+  isAdmin?: boolean;
 }
 
-export const PostCard = ({ post, onRefresh }: Props) => {
+export const PostCard = ({ post, onRefresh, isAdmin = false }: Props) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isVerified, setIsVerified] = useState(false);
@@ -96,29 +108,81 @@ export const PostCard = ({ post, onRefresh }: Props) => {
     else { navigator.clipboard.writeText(url); toast.success("Link copied!"); }
   };
 
+  const toggleHidden = async () => {
+    const next = !post.is_hidden;
+    const { error } = await supabase.from("posts").update({ is_hidden: next } as any).eq("id", post.id);
+    if (error) return toast.error("Failed to update post");
+    toast.success(next ? "Post hidden from users" : "Post is now visible");
+    onRefresh();
+  };
+
+  const handleDelete = async () => {
+    const { error } = await supabase.from("posts").delete().eq("id", post.id);
+    if (error) return toast.error("Failed to delete post");
+    toast.success("Post deleted");
+    onRefresh();
+  };
+
+  const isOwner = user?.id === post.user_id;
+  const canManage = isAdmin || isOwner;
+
   const renderContent = (text: string) => {
     const parts = text.split(/(@\w+)/g);
     return parts.map((part, i) => part.startsWith("@") ? <span key={i} className="text-primary font-medium">{part}</span> : <span key={i}>{part}</span>);
   };
 
+  const cat = CATEGORY_META[post.category || "discussion"] || CATEGORY_META.discussion;
+  const CatIcon = cat.icon;
+
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden">
-      <div className="flex items-center gap-3 p-4 pb-2">
-        <Avatar className="w-10 h-10">
+    <div className={cn("bg-card border border-border rounded-2xl overflow-hidden", post.is_hidden && "opacity-70 border-dashed")}>
+      <div className="flex items-center gap-3 p-4 pb-2.5">
+        <Avatar className="w-10 h-10 shrink-0">
           <AvatarImage src={profile?.avatar_url} />
           <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">{(profile?.full_name || "U")[0]}</AvatarFallback>
         </Avatar>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
-            <p className="font-semibold text-sm">{profile?.full_name || profile?.display_id || "Trader"}</p>
-            {isVerified && <ShieldCheck className="w-3.5 h-3.5 text-primary" />}
+            <p className="font-semibold text-sm truncate">{profile?.full_name || profile?.display_id || "Trader"}</p>
+            {isVerified && <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
           </div>
-          <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</p>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="truncate">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
+            <Globe className="w-3 h-3 shrink-0" />
+          </div>
         </div>
+        {post.is_hidden && (
+          <span className="flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive shrink-0">
+            <EyeOff className="w-3 h-3" /> Hidden
+          </span>
+        )}
+        {canManage && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              {isAdmin && (
+                <DropdownMenuItem onClick={toggleHidden}>
+                  {post.is_hidden ? <><Eye className="w-4 h-4 mr-2" /> Unhide post</> : <><EyeOff className="w-4 h-4 mr-2" /> Hide from users</>}
+                </DropdownMenuItem>
+              )}
+              {isAdmin && <DropdownMenuSeparator />}
+              <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
+                <Trash2 className="w-4 h-4 mr-2" /> Delete post
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
-      <div className="px-4 pb-2">
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{renderContent(post.content)}</p>
+      <div className="px-4 pb-2.5">
+        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium mb-2.5", cat.className)}>
+          <CatIcon className="w-3.5 h-3.5" /> {cat.label}
+        </span>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{renderContent(post.content)}</p>
         {taggedProfiles.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {taggedProfiles.map(tp => (<span key={tp.user_id} className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">@{tp.full_name || tp.display_id}</span>))}
@@ -156,6 +220,7 @@ export const PostCard = ({ post, onRefresh }: Props) => {
         </Button>
         <Button variant="ghost" size="sm" className="flex-1 gap-1.5" onClick={handleShare}>
           <Share2 className="w-4 h-4" />
+          <span className="text-xs">Share</span>
         </Button>
       </div>
 
@@ -167,18 +232,18 @@ export const PostCard = ({ post, onRefresh }: Props) => {
                 <AvatarImage src={c.profile?.avatar_url} />
                 <AvatarFallback className="text-[10px] bg-muted">{(c.profile?.full_name || "U")[0]}</AvatarFallback>
               </Avatar>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                  <p className="text-xs font-medium">{c.profile?.full_name || c.profile?.display_id || "Trader"}</p>
-                  {c.isVerified && <ShieldCheck className="w-3 h-3 text-primary" />}
+                  <p className="text-xs font-medium truncate">{c.profile?.full_name || c.profile?.display_id || "Trader"}</p>
+                  {c.isVerified && <ShieldCheck className="w-3 h-3 text-primary shrink-0" />}
                 </div>
-                <p className="text-xs text-muted-foreground">{c.content}</p>
+                <p className="text-xs text-muted-foreground break-words">{c.content}</p>
               </div>
             </div>
           ))}
           {user && (
             <div className="flex gap-2">
-              <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => e.key === "Enter" && submitComment()} placeholder="Write a comment..." className="flex-1 text-sm bg-muted/50 rounded-full px-3 py-1.5 border border-border focus:outline-none focus:ring-1 focus:ring-primary" />
+              <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => e.key === "Enter" && submitComment()} placeholder="Write a comment..." className="flex-1 min-w-0 text-sm bg-muted/50 rounded-full px-3 py-1.5 border border-border focus:outline-none focus:ring-1 focus:ring-primary" />
               <Button size="sm" onClick={submitComment} disabled={!commentText.trim()}>Post</Button>
             </div>
           )}
