@@ -106,11 +106,23 @@ const Deposit = () => {
     }
 
     setIsSubmitting(true);
-    // Paystack integration coming next — secure checkout will open here.
-    setTimeout(() => {
+    try {
+      const result = await startPaystackPayment({ purpose: "deposit", amount: amountNum });
+      if (result.status === "success") {
+        toast.success("Payment successful — your wallet has been credited!");
+        setAmount("");
+        await refetchWallet();
+        await fetchDeposits();
+      } else if (result.status === "pending") {
+        toast.info("Payment received — your wallet will update shortly.");
+        setAmount("");
+        setTimeout(() => { refetchWallet(); fetchDeposits(); }, 4000);
+      } else if (result.status === "error") {
+        toast.error(result.message);
+      }
+    } finally {
       setIsSubmitting(false);
-      toast.info("Secure card payment is being set up. It will be available shortly.");
-    }, 600);
+    }
   };
 
   const getStatusIcon = (status: string) => {
