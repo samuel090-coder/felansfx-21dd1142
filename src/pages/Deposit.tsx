@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { formatCurrency, formatWithConversion } from "@/lib/currency";
 import { FintechCard } from "@/components/ui/fintech";
 import { cn } from "@/lib/utils";
+import { startPaystackPayment } from "@/lib/paystack";
 
 interface Deposit {
   id: string;
