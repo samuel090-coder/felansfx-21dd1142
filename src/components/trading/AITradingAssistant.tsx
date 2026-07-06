@@ -371,48 +371,21 @@ export const AITradingAssistant = ({
                   <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2">
                     <p className="text-xs font-semibold flex items-center gap-1">
                       <Building2 className="w-3.5 h-3.5 text-primary" />
-                      Bank transfer required ({currentPlan.label})
+                      {currentPlan.label} plan — instant activation
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      Long-term plans cannot be paid with wallet balance. Transfer{" "}
-                      <b>₦{getPrice(currentPlan).toLocaleString()}</b> to any account below, then upload
-                      your payment screenshot. Admin will approve within minutes.
+                      Pay <b>₦{getPrice(currentPlan).toLocaleString()}</b> securely with your card or bank
+                      via Paystack. Your AI Bot activates automatically the moment payment succeeds.
                     </p>
-                    {methods.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">No bank accounts configured. Contact admin.</p>
-                    ) : (
-                      methods.map(m => (
-                        <div key={m.id} className="rounded-lg bg-background p-2 text-xs space-y-1">
-                          <p className="font-semibold">{m.name}</p>
-                          <div className="flex items-start justify-between gap-2">
-                            <pre className="whitespace-pre-wrap font-mono text-[10px] leading-relaxed flex-1">{m.details}</pre>
-                            <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => copy(m.details)}>
-                              <Copy className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold flex items-center gap-1">
-                      <Upload className="w-3 h-3" /> Payment screenshot
-                    </label>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
-                    />
                   </div>
 
                   <Button
                     className="w-full gradient-primary font-bold h-12"
-                    onClick={submitBankTransfer}
-                    disabled={purchaseLoading !== null || !screenshot}
+                    onClick={purchaseWithPaystack}
+                    disabled={purchaseLoading !== null}
                   >
-                    {purchaseLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                    Submit Payment — ₦{getPrice(currentPlan).toLocaleString()}
+                    {purchaseLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                    Pay ₦{getPrice(currentPlan).toLocaleString()} & Activate
                   </Button>
                 </div>
               )}
