@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.generate-access-reason]
 verify_jwt = false
+
+[functions.paystack-initialize]
+verify_jwt = false
+
+[functions.paystack-webhook]
+verify_jwt = false

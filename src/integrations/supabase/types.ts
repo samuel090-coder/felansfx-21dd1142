@@ -1270,6 +1270,45 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_intents: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          metadata: Json
+          plan_key: string | null
+          purpose: string
+          reference: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          metadata?: Json
+          plan_key?: string | null
+          purpose: string
+          reference: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          metadata?: Json
+          plan_key?: string | null
+          purpose?: string
+          reference?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_comments: {
         Row: {
           content: string
@@ -1955,6 +1994,7 @@ export type Database = {
         Args: { p_notes?: string; p_purchase_id: string }
         Returns: Json
       }
+      complete_payment_intent: { Args: { p_reference: string }; Returns: Json }
       credit_user_wallet: {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
