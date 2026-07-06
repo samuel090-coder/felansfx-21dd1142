@@ -188,41 +188,26 @@ export const AITradingAssistant = ({
     setPurchaseLoading(null);
   };
 
-  // 6-month / lifetime — bank transfer + screenshot upload
-  const submitBankTransfer = async () => {
+  // 6-month / lifetime — instant Paystack checkout
+  const purchaseWithPaystack = async () => {
     if (!user) return;
     const plan = PLANS.find(p => p.key === selectedPlan)!;
-    if (!plan.requiresBankTransfer) return;
-    if (!screenshot) {
-      toast.error("Please upload your payment screenshot");
-      return;
-    }
     setPurchaseLoading(plan.key);
     try {
-      const ext = screenshot.name.split(".").pop() || "jpg";
-      const path = `ai-bot-purchases/${user.id}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("uploads").upload(path, screenshot, {
-        cacheControl: "3600", upsert: false,
-      });
-      if (upErr) throw upErr;
-      const { data: urlData } = supabase.storage.from("uploads").getPublicUrl(path);
-
-      const { error: insErr } = await supabase.from("ai_bot_purchases").insert({
-        user_id: user.id,
-        plan_key: plan.key,
-        amount: getPrice(plan),
-        screenshot_url: urlData.publicUrl,
-        status: "pending",
-      });
-      if (insErr) throw insErr;
-
-      toast.success("Payment submitted — awaiting admin approval");
-      setScreenshot(null);
-      await checkPendingPurchase();
-    } catch (e: any) {
-      toast.error(e.message || "Submission failed");
+      const result = await startPaystackPayment({ purpose: "ai_bot", planKey: plan.key });
+      if (result.status === "success") {
+        toast.success("Payment successful — AI Bot activated!");
+        await checkSubscription();
+        if (forceRenew) onOpenChange(false);
+      } else if (result.status === "pending") {
+        toast.info("Payment received — activating your AI Bot...");
+        setTimeout(checkSubscription, 4000);
+      } else if (result.status === "error") {
+        toast.error(result.message);
+      }
+    } finally {
+      setPurchaseLoading(null);
     }
-    setPurchaseLoading(null);
   };
 
   const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("Copied"); };
