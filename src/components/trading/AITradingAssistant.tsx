@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Bot, TrendingUp, TrendingDown, Zap, Lock, Loader2, RefreshCw, Crown, Calendar, Infinity as InfinityIcon, Upload, Copy, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import { startPaystackPayment } from "@/lib/paystack";
 
 interface AISignal {
   symbol: string;
