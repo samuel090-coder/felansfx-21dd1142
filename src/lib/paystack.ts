@@ -99,7 +99,7 @@ export const startPaystackPayment = async (params: StartPaymentParams): Promise<
       const popup = new (window as any).PaystackPop();
       popup.resumeTransaction(access_code, {
         onSuccess: async () => {
-          const ok = await waitForFulfilment(reference);
+          const ok = await confirmFulfilment(reference);
           resolve(ok ? { status: "success", reference } : { status: "pending", reference });
         },
         onCancel: () => resolve({ status: "cancelled" }),
