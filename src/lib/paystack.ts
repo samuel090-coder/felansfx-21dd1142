@@ -36,8 +36,19 @@ export type PaymentResult =
   | { status: "cancelled" }
   | { status: "error"; message: string };
 
-// Polls our payment_intents table until the webhook marks it success.
-const waitForFulfilment = async (reference: string, timeoutMs = 90000): Promise<boolean> => {
+// Confirms a payment is fulfilled: first asks the server to verify with Paystack
+// (instant path), then polls the intent status as a fallback (webhook path).
+const confirmFulfilment = async (reference: string, timeoutMs = 90000): Promise<boolean> => {
+  // Instant verify + fulfil
+  try {
+    const { data } = await supabase.functions.invoke("paystack-verify", {
+      body: { reference },
+    });
+    if ((data as { status?: string } | null)?.status === "success") return true;
+  } catch {
+    /* fall through to polling */
+  }
+
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const { data } = await supabase
@@ -88,7 +99,7 @@ export const startPaystackPayment = async (params: StartPaymentParams): Promise<
       const popup = new (window as any).PaystackPop();
       popup.resumeTransaction(access_code, {
         onSuccess: async () => {
-          const ok = await waitForFulfilment(reference);
+          const ok = await confirmFulfilment(reference);
           resolve(ok ? { status: "success", reference } : { status: "pending", reference });
         },
         onCancel: () => resolve({ status: "cancelled" }),
