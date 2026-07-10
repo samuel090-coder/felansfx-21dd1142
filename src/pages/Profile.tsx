@@ -31,12 +31,20 @@ const Profile = () => {
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [kycData, setKycData] = useState<{ full_name?: string | null; date_of_birth?: string | null; id_number?: string | null } | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(1);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const { checkIsAdmin } = useAuth();
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth", { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+    checkIsAdmin(user.id).then(setIsAdmin);
+  }, [user, checkIsAdmin]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -211,8 +219,27 @@ const Profile = () => {
             </div>
           </FintechCard>
 
+          {isAdmin && (
+            <FintechCard className="mb-5 p-0">
+              <button onClick={() => navigate('/admin')} className="flex w-full items-center gap-3 px-4 py-4 text-left hover:bg-white/[0.03]">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                  <Shield className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-white">Admin Panel</p>
+                    <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-medium text-primary">Admin</span>
+                  </div>
+                  <p className="mt-1 text-sm text-white/52">Manage users, payments, and app settings</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-white/35" />
+              </button>
+            </FintechCard>
+          )}
+
           {sections.map((section) => (
             <section key={section.title} className="mb-5">
+
               <h3 className="mb-3 text-[13px] uppercase tracking-[0.18em] text-white/48">{section.title}</h3>
               {section.grid ? (
                 <div className="grid grid-cols-2 gap-3">
