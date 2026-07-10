@@ -237,8 +237,9 @@ const Profile = () => {
             </FintechCard>
           )}
 
-
+          {sections.map((section) => (
             <section key={section.title} className="mb-5">
+
               <h3 className="mb-3 text-[13px] uppercase tracking-[0.18em] text-white/48">{section.title}</h3>
               {section.grid ? (
                 <div className="grid grid-cols-2 gap-3">
