@@ -31,12 +31,20 @@ const Profile = () => {
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [kycData, setKycData] = useState<{ full_name?: string | null; date_of_birth?: string | null; id_number?: string | null } | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(1);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const { checkIsAdmin } = useAuth();
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth", { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+    checkIsAdmin(user.id).then(setIsAdmin);
+  }, [user, checkIsAdmin]);
 
   useEffect(() => {
     const fetchUserData = async () => {
