@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { formatCurrency, formatWithConversion } from "@/lib/currency";
 import { FintechCard } from "@/components/ui/fintech";
 import { cn } from "@/lib/utils";
-import { startPaystackPayment } from "@/lib/paystack";
+import { VirtualAccountCheckout } from "@/components/payments/VirtualAccountCheckout";
 
 interface Deposit {
   id: string;
@@ -48,6 +48,8 @@ const Deposit = () => {
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [amount, setAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutAmount, setCheckoutAmount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -88,7 +90,7 @@ const Deposit = () => {
     return () => clearInterval(interval);
   }, [user, refetchWallet]);
 
-  const handlePay = async (e: React.FormEvent) => {
+  const handlePay = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !amount) {
       toast.error("Please enter an amount");
@@ -106,24 +108,8 @@ const Deposit = () => {
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const result = await startPaystackPayment({ purpose: "deposit", amount: amountNum });
-      if (result.status === "success") {
-        toast.success("Payment successful — your wallet has been credited!");
-        setAmount("");
-        await refetchWallet();
-        await fetchDeposits();
-      } else if (result.status === "pending") {
-        toast.info("Payment received — your wallet will update shortly.");
-        setAmount("");
-        setTimeout(() => { refetchWallet(); fetchDeposits(); }, 4000);
-      } else if (result.status === "error") {
-        toast.error(result.message);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    setCheckoutAmount(amountNum);
+    setCheckoutOpen(true);
   };
 
   const getStatusIcon = (status: string) => {
@@ -251,8 +237,8 @@ const Deposit = () => {
                     <Zap className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white">Instant Card / Bank Payment</p>
-                    <p className="text-[11px] text-white/55">Your wallet is credited automatically after payment.</p>
+                    <p className="text-sm font-semibold text-white">Bank Transfer — Virtual Account</p>
+                    <p className="text-[11px] text-white/55">We generate a dedicated account for this payment.</p>
                   </div>
                 </div>
               </div>
@@ -260,7 +246,7 @@ const Deposit = () => {
               <Button
                 type="submit"
                 className="h-12 w-full rounded-2xl gradient-primary text-sm font-bold shadow-primary"
-                disabled={isSubmitting || !amount}
+                disabled={!amount}
               >
                 {isSubmitting ? (
                   <LoadingSpinner size="sm" />
@@ -320,6 +306,18 @@ const Deposit = () => {
           </FintechCard>
         </div>
       </div>
+
+      <VirtualAccountCheckout
+        open={checkoutOpen}
+        onOpenChange={setCheckoutOpen}
+        purpose="deposit"
+        amount={checkoutAmount}
+        onSubmitted={() => {
+          setAmount("");
+          fetchDeposits();
+          toast.success("Deposit submitted — awaiting confirmation");
+        }}
+      />
     </AppLayout>
   );
 };
