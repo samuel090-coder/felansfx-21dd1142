@@ -7,7 +7,7 @@ import { Lock, Loader2, Clock, ShieldCheck, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/currency";
-import { startPaystackPayment } from "@/lib/paystack";
+import { VirtualAccountCheckout } from "@/components/payments/VirtualAccountCheckout";
 
 interface PaywallGateProps {
   children: React.ReactNode;
@@ -25,7 +25,7 @@ export const PaywallGate = ({ children }: PaywallGateProps) => {
   const { settings, loading: settingsLoading } = useAppSettings();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [invocation, setInvocation] = useState<Invocation | null>(null);
-  const [paying, setPaying] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   const checkAccess = useCallback(async () => {
     if (!user) return;
@@ -78,24 +78,6 @@ export const PaywallGate = ({ children }: PaywallGateProps) => {
 
   const requiredAmount = invocation?.amount ?? (parseFloat(settings.app_access_price) || 5000);
 
-  const handlePay = async () => {
-    setPaying(true);
-    try {
-      const result = await startPaystackPayment({ purpose: "app_access" });
-      if (result.status === "success") {
-        toast.success("Payment successful — access unlocked!");
-        await checkAccess();
-      } else if (result.status === "pending") {
-        toast.info("Payment received — unlocking your access...");
-        setTimeout(checkAccess, 4000);
-      } else if (result.status === "error") {
-        toast.error(result.message);
-      }
-    } finally {
-      setPaying(false);
-    }
-  };
-
   if (!user) {
     window.location.href = "/auth";
     return null;
@@ -137,19 +119,15 @@ export const PaywallGate = ({ children }: PaywallGateProps) => {
 
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Zap className="w-4 h-4 text-primary" /> Access unlocks automatically after payment
+              <Zap className="w-4 h-4 text-primary" /> Access unlocks as soon as payment is confirmed
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Encrypted checkout powered by Paystack
+              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Secure bank transfer to a dedicated account
             </div>
           </div>
 
-          <Button className="w-full gradient-primary font-semibold h-12" onClick={handlePay} disabled={paying}>
-            {paying ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening secure checkout…</>
-            ) : (
-              <>Pay {formatCurrency(requiredAmount, "NGN", { decimals: 0 })} & Unlock</>
-            )}
+          <Button className="w-full gradient-primary font-semibold h-12" onClick={() => setCheckoutOpen(true)}>
+            Pay {formatCurrency(requiredAmount, "NGN", { decimals: 0 })} & Unlock
           </Button>
 
           <Button variant="outline" className="w-full" onClick={checkAccess}>
@@ -157,6 +135,15 @@ export const PaywallGate = ({ children }: PaywallGateProps) => {
           </Button>
         </CardContent>
       </Card>
+
+      <VirtualAccountCheckout
+        open={checkoutOpen}
+        onOpenChange={setCheckoutOpen}
+        purpose="app_access"
+        amount={requiredAmount}
+        invocationId={invocation?.id ?? null}
+        onSubmitted={() => toast.success("Payment proof submitted — we're confirming it now")}
+      />
     </div>
   );
 };
