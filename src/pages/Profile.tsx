@@ -16,6 +16,8 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FintechCard } from "@/components/ui/fintech";
+import { SecuritySettings } from "@/components/profile/SecuritySettings";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Profile = () => {
   const navigate = useNavigate();
