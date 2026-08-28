@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Bot, TrendingUp, TrendingDown, Zap, Lock, Loader2, RefreshCw, Crown, Calendar, Infinity as InfinityIcon, Upload, Copy, Building2 } from "lucide-react";
 import { toast } from "sonner";
-import { startPaystackPayment } from "@/lib/paystack";
+import { VirtualAccountCheckout } from "@/components/payments/VirtualAccountCheckout";
 
 interface AISignal {
   symbol: string;
@@ -68,6 +68,7 @@ export const AITradingAssistant = ({
   const [loading, setLoading] = useState(false);
   const [methods, setMethods] = useState<BankMethod[]>([]);
   const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [pendingPurchase, setPendingPurchase] = useState<{ plan_key: string; amount: number } | null>(null);
 
   useEffect(() => {
@@ -187,28 +188,6 @@ export const AITradingAssistant = ({
       toast.error(e.message || "Purchase failed");
     }
     setPurchaseLoading(null);
-  };
-
-  // 6-month / lifetime — instant Paystack checkout
-  const purchaseWithPaystack = async () => {
-    if (!user) return;
-    const plan = PLANS.find(p => p.key === selectedPlan)!;
-    setPurchaseLoading(plan.key);
-    try {
-      const result = await startPaystackPayment({ purpose: "ai_bot", planKey: plan.key });
-      if (result.status === "success") {
-        toast.success("Payment successful — AI Bot activated!");
-        await checkSubscription();
-        if (forceRenew) onOpenChange(false);
-      } else if (result.status === "pending") {
-        toast.info("Payment received — activating your AI Bot...");
-        setTimeout(checkSubscription, 4000);
-      } else if (result.status === "error") {
-        toast.error(result.message);
-      }
-    } finally {
-      setPurchaseLoading(null);
-    }
   };
 
   const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("Copied"); };
@@ -375,14 +354,14 @@ export const AITradingAssistant = ({
                       {currentPlan.label} plan — instant activation
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      Pay <b>₦{getPrice(currentPlan).toLocaleString()}</b> securely with your card or bank
-                      via Paystack. Your AI Bot activates automatically the moment payment succeeds.
+                      Transfer <b>₦{getPrice(currentPlan).toLocaleString()}</b> to the virtual account we generate for
+                      you, then upload your payment screenshot. Your AI Bot activates once it is confirmed.
                     </p>
                   </div>
 
                   <Button
                     className="w-full gradient-primary font-bold h-12"
-                    onClick={purchaseWithPaystack}
+                    onClick={() => setCheckoutOpen(true)}
                     disabled={purchaseLoading !== null}
                   >
                     {purchaseLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
@@ -456,6 +435,18 @@ export const AITradingAssistant = ({
           )}
         </div>
       </SheetContent>
+
+      <VirtualAccountCheckout
+        open={checkoutOpen}
+        onOpenChange={setCheckoutOpen}
+        purpose="ai_bot"
+        planKey={selectedPlan}
+        amount={getPrice(currentPlan)}
+        onSubmitted={() => {
+          checkPendingPurchase();
+          toast.success("Payment proof submitted — your AI Bot unlocks after confirmation");
+        }}
+      />
     </Sheet>
   );
 };
