@@ -16,6 +16,8 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FintechCard } from "@/components/ui/fintech";
+import { SecuritySettings } from "@/components/profile/SecuritySettings";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -32,6 +34,7 @@ const Profile = () => {
   const [kycData, setKycData] = useState<{ full_name?: string | null; date_of_birth?: string | null; id_number?: string | null } | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(1);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false);
 
   const { checkIsAdmin } = useAuth();
 
@@ -114,7 +117,7 @@ const Profile = () => {
       title: "Security",
       items: [
         { icon: Lock, title: "Change Password", to: "/auth" },
-        { icon: Smartphone, title: "Change Transaction PIN", to: "/profile" },
+        { icon: Smartphone, title: "Transaction PIN", subtitle: "Set or update your 4-digit PIN", custom: "pin" },
         { icon: ShieldCheck, title: "Two-Factor Authentication", to: "/notification-settings" },
         { icon: Monitor, title: "Trusted Devices", to: "/notifications" },
         { icon: CalendarDays, title: "Login History", to: "/notifications" },
@@ -263,7 +266,7 @@ const Profile = () => {
                 <FintechCard className="overflow-hidden p-0">
                   {section.items.map((item, idx) => (
                     <div key={item.title}>
-                      <button onClick={() => item.to && navigate(item.to)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.03]">
+                      <button onClick={() => { if (item.custom === 'pin') { setPinOpen(true); return; } if (item.to) navigate(item.to); }} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.03]">
                         <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : 'bg-white/5 text-white')}>
                           <item.icon className="h-5 w-5" />
                         </div>
