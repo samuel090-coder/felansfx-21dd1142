@@ -102,6 +102,9 @@ const Admin = () => {
     trading_difficulty: "50",
     app_access_mode: "free",
     app_access_price: "5000",
+    payment_bank_name: "",
+    payment_account_number: "",
+    payment_account_name: "",
   });
   const [rejectReason, setRejectReason] = useState("");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -595,6 +598,52 @@ const Admin = () => {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Bank Transfer Details (shown to users at checkout) */}
+            <Card className="border-0 shadow-md">
+              <CardHeader>
+                <CardTitle className="text-lg">Bank Transfer Details</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  These details are shown to users on the payment (virtual account) checkout page.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Bank Name</Label>
+                  <Input
+                    placeholder="e.g., Opay"
+                    value={settingsForm.payment_bank_name}
+                    onChange={(e) =>
+                      setSettingsForm({ ...settingsForm, payment_bank_name: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Account Number</Label>
+                  <Input
+                    inputMode="numeric"
+                    placeholder="e.g., 9066423764"
+                    value={settingsForm.payment_account_number}
+                    onChange={(e) =>
+                      setSettingsForm({ ...settingsForm, payment_account_number: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Account Name</Label>
+                  <Input
+                    placeholder="e.g., Samuel"
+                    value={settingsForm.payment_account_name}
+                    onChange={(e) =>
+                      setSettingsForm({ ...settingsForm, payment_account_name: e.target.value })
+                    }
+                  />
+                </div>
+                <Button className="w-full gradient-primary" onClick={handleSaveSettings}>
+                  Save Bank Details
+                </Button>
               </CardContent>
             </Card>
 
