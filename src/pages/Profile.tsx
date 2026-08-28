@@ -34,6 +34,7 @@ const Profile = () => {
   const [kycData, setKycData] = useState<{ full_name?: string | null; date_of_birth?: string | null; id_number?: string | null } | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(1);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false);
 
   const { checkIsAdmin } = useAuth();
 
