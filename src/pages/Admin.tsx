@@ -102,6 +102,9 @@ const Admin = () => {
     trading_difficulty: "50",
     app_access_mode: "free",
     app_access_price: "5000",
+    payment_bank_name: "",
+    payment_account_number: "",
+    payment_account_name: "",
   });
   const [rejectReason, setRejectReason] = useState("");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
