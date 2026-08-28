@@ -266,7 +266,7 @@ const Profile = () => {
                 <FintechCard className="overflow-hidden p-0">
                   {section.items.map((item, idx) => (
                     <div key={item.title}>
-                      <button onClick={() => item.to && navigate(item.to)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.03]">
+                      <button onClick={() => { if (item.custom === 'pin') { setPinOpen(true); return; } if (item.to) navigate(item.to); }} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.03]">
                         <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", item.accent === 'primary' ? 'bg-primary/12 text-primary' : 'bg-white/5 text-white')}>
                           <item.icon className="h-5 w-5" />
                         </div>
