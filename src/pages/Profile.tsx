@@ -117,7 +117,7 @@ const Profile = () => {
       title: "Security",
       items: [
         { icon: Lock, title: "Change Password", to: "/auth" },
-        { icon: Smartphone, title: "Change Transaction PIN", to: "/profile" },
+        { icon: Smartphone, title: "Transaction PIN", subtitle: "Set or update your 4-digit PIN", custom: "pin" },
         { icon: ShieldCheck, title: "Two-Factor Authentication", to: "/notification-settings" },
         { icon: Monitor, title: "Trusted Devices", to: "/notifications" },
         { icon: CalendarDays, title: "Login History", to: "/notifications" },
