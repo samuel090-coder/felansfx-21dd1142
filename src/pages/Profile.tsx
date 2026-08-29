@@ -326,6 +326,15 @@ const Profile = () => {
           <p className="pb-6 text-center text-xs text-white/35">Version 3.0.4</p>
         </div>
       </div>
+
+      <Dialog open={pinOpen} onOpenChange={setPinOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Security & Transaction PIN</DialogTitle>
+          </DialogHeader>
+          <SecuritySettings />
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
