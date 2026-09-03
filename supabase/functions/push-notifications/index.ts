@@ -1,132 +1,72 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  ApplicationServer,
-  importVapidKeys,
-} from "jsr:@negrel/webpush";
-import { getVapidKeysAsJwk, base64UrlEncode } from "../_shared/vapid.ts";
+import { isFcmConfigured } from "../_shared/fcm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 interface PushRequest {
-  action: "get-vapid-key" | "send";
+  action: "status" | "send";
   userId?: string;
   title?: string;
   body?: string;
   url?: string;
 }
 
-// Cached application server
-let cachedPublicKey: string | null = null;
-let appServer: ApplicationServer | null = null;
-
-async function getAppServer(): Promise<ApplicationServer | null> {
-  if (appServer) return appServer;
-
-  // Get VAPID keys from env and convert to JWK
-  const jwkKeys = getVapidKeysAsJwk();
-  if (!jwkKeys) {
-    console.error("VAPID keys not configured or invalid");
-    return null;
-  }
-
-  try {
-    // Import keys in JWK format
-    const vapidKeys = await importVapidKeys(jwkKeys);
-    
-    appServer = await ApplicationServer.new({
-      contactInformation: "mailto:admin@felansfx.com",
-      vapidKeys,
-    });
-    
-    // Cache the public key
-    const publicKeyRaw = await appServer.getVapidPublicKeyRaw();
-    cachedPublicKey = base64UrlEncode(new Uint8Array(publicKeyRaw));
-    
-    console.log("VAPID server initialized successfully");
-    return appServer;
-  } catch (error) {
-    console.error("Failed to initialize VAPID:", error);
-    return null;
-  }
-}
-
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const body: PushRequest = await req.json();
+    const body = (await req.json().catch(() => ({}))) as PushRequest;
 
-    // Return VAPID public key for client subscription
-    if (body.action === "get-vapid-key") {
-      const server = await getAppServer();
-      
-      if (!server) {
-        return new Response(
-          JSON.stringify({ error: "Push notifications not configured" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Get the public key in base64url format for the browser
-      if (!cachedPublicKey) {
-        // Get the raw public key and convert to base64url
-        const publicKeyRaw = await server.getVapidPublicKeyRaw();
-        cachedPublicKey = base64UrlEncode(new Uint8Array(publicKeyRaw));
-      }
-
-      return new Response(
-        JSON.stringify({ publicKey: cachedPublicKey }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Report whether FCM is wired up (admin diagnostics)
+    if (body.action === "status") {
+      return json({ provider: "fcm", configured: isFcmConfigured() });
     }
 
-    // For push sending, we'll create an in-app notification instead
-    // Actual push is handled by send-push or deposit-notification functions
+    // Creates an in-app notification for a single user (admin only)
     if (body.action === "send" && body.userId) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) return json({ error: "Unauthorized" }, 401);
 
-      // Create in-app notification which will trigger browser notification
-      // via the realtime subscription
+      const authClient = createClient(supabaseUrl, supabaseServiceKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: authData } = await authClient.auth.getUser();
+      if (!authData?.user) return json({ error: "Unauthorized" }, 401);
+      const { data: isAdmin } = await authClient.rpc("has_role", {
+        _role: "admin",
+        _user_id: authData.user.id,
+      });
+      if (!isAdmin) return json({ error: "Forbidden" }, 403);
+
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
       const { error } = await supabase.from("notifications").insert({
         user_id: body.userId,
-        title: body.title || "Notification",
-        message: body.body || "",
+        title: (body.title || "Notification").slice(0, 120),
+        message: (body.body || "").slice(0, 1000),
         type: "info",
         action_url: body.url || "/",
       });
-
-      if (error) {
-        console.error("Error creating notification:", error);
-        throw error;
-      }
-
-      console.log("Notification created for user:", body.userId);
-
-      return new Response(
-        JSON.stringify({ success: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (error) throw error;
+      return json({ success: true });
     }
 
-    return new Response(
-      JSON.stringify({ error: "Invalid action" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: "Invalid action" }, 400);
   } catch (error: unknown) {
     const err = error as Error;
     console.error("Error in push-notifications function:", err);
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: err.message }, 500);
   }
 });
