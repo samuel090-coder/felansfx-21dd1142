@@ -934,6 +934,36 @@ export type Database = {
         }
         Relationships: []
       }
+      fcm_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          last_seen_at: string
+          platform: string
+          token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          platform?: string
+          token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          platform?: string
+          token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       fund_transfers: {
         Row: {
           amount: number
@@ -1537,60 +1567,6 @@ export type Database = {
           status_code?: number | null
           subscription_id?: string | null
           title?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      push_resubscribe_flags: {
-        Row: {
-          created_at: string
-          last_error: string | null
-          last_status_code: number | null
-          reason: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          last_error?: string | null
-          last_status_code?: number | null
-          reason?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          last_error?: string | null
-          last_status_code?: number | null
-          reason?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      push_subscriptions: {
-        Row: {
-          auth: string
-          created_at: string
-          endpoint: string
-          id: string
-          p256dh: string
-          user_id: string
-        }
-        Insert: {
-          auth: string
-          created_at?: string
-          endpoint: string
-          id?: string
-          p256dh: string
-          user_id: string
-        }
-        Update: {
-          auth?: string
-          created_at?: string
-          endpoint?: string
-          id?: string
-          p256dh?: string
           user_id?: string
         }
         Relationships: []
