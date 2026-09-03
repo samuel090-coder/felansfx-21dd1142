@@ -2,13 +2,27 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import {
+  enablePush,
+  disablePush,
+  isFcmConfigured,
+  onForegroundMessage,
+  FCM_TOKEN_STORAGE_KEY,
+  type PushResult,
+} from "@/lib/firebaseMessaging";
 
-// Helper to safely access pushManager
-const getPushManager = (reg: ServiceWorkerRegistration) =>
-  (reg as any).pushManager as {
-    getSubscription(): Promise<PushSubscription | null>;
-    subscribe(options: any): Promise<PushSubscription>;
-  };
+const explainFailure = (status: Exclude<PushResult, { status: "registered" }>["status"]) => {
+  switch (status) {
+    case "open-in-new-tab":
+      return "Open the app in its own browser tab to enable notifications.";
+    case "denied":
+      return "Notifications are blocked. Allow them in your browser's site settings.";
+    case "not-configured":
+      return "Push notifications are not configured yet.";
+    default:
+      return "Push notifications are not supported on this browser.";
+  }
+};
 
 export const usePushNotifications = () => {
   const { user } = useAuth();
@@ -16,269 +30,114 @@ export const usePushNotifications = () => {
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isLoading, setIsLoading] = useState(false);
-  const autoRefreshAttemptedRef = useRef(false);
+  const silentSyncDone = useRef(false);
 
-  // Check if push notifications are supported
   useEffect(() => {
-    const checkSupport = () => {
-      const supported = 
-        "serviceWorker" in navigator && 
-        "PushManager" in window &&
-        "Notification" in window;
-      
-      setIsSupported(supported);
-      
-      if (supported) {
-        setPermission(Notification.permission);
-      }
-    };
-    
-    checkSupport();
+    const supported =
+      typeof window !== "undefined" &&
+      "serviceWorker" in navigator &&
+      "Notification" in window &&
+      isFcmConfigured();
+    setIsSupported(supported);
+    if ("Notification" in window) setPermission(Notification.permission);
   }, []);
 
-  // Check existing subscription and sync with database
-  useEffect(() => {
-    const checkSubscription = async () => {
-      if (!isSupported || !user) return;
+  const saveToken = useCallback(
+    async (token: string) => {
+      if (!user) return;
+      const { error } = await supabase.from("fcm_tokens").upsert(
+        {
+          user_id: user.id,
+          token,
+          platform: "web",
+          user_agent: navigator.userAgent.slice(0, 255),
+          last_seen_at: new Date().toISOString(),
+        },
+        { onConflict: "token" },
+      );
+      if (error) throw error;
+    },
+    [user],
+  );
 
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        const pm = getPushManager(registration);
-        const subscription = await pm.getSubscription();
-        
-        if (subscription) {
-          // Verify subscription exists in database
-          const { data: dbSub } = await supabase
-            .from("push_subscriptions")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("endpoint", subscription.endpoint)
-            .maybeSingle();
-          
-          if (!dbSub) {
-            // Browser has subscription but DB doesn't - re-sync
-            console.log("Subscription missing from DB, re-syncing...");
-            const subJson = subscription.toJSON();
-            await supabase.from("push_subscriptions").upsert({
-              user_id: user.id,
-              endpoint: subJson.endpoint!,
-              p256dh: subJson.keys!.p256dh,
-              auth: subJson.keys!.auth,
-            }, { onConflict: "user_id,endpoint" });
-          }
-          setIsSubscribed(true);
-        } else {
-          setIsSubscribed(false);
-        }
-      } catch (error) {
-        console.error("Error checking push subscription:", error);
+  /** Registers (or refreshes) this device token. `silent` suppresses toasts. */
+  const subscribe = useCallback(
+    async (silent = false): Promise<boolean> => {
+      if (!isSupported) {
+        if (!silent) toast.error("Push notifications not supported on this device");
+        return false;
       }
-    };
+      if (!user) {
+        if (!silent) toast.error("Please log in to enable notifications");
+        return false;
+      }
 
-    checkSubscription();
-  }, [isSupported, user]);
+      setIsLoading(true);
+      try {
+        const result = await enablePush();
+        if ("Notification" in window) setPermission(Notification.permission);
 
+        if (result.status !== "registered") {
+          if (!silent) toast.error(explainFailure(result.status));
+          return false;
+        }
 
-  // Request notification permission
+        await saveToken(result.token);
+        setIsSubscribed(true);
+        if (!silent) toast.success("Push notifications enabled!");
+        return true;
+      } catch (error: any) {
+        console.error("FCM subscribe error:", error);
+        if (!silent) toast.error(error?.message || "Failed to enable notifications");
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isSupported, user, saveToken],
+  );
+
+  // Ask for permission; if granted, register the token right away.
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    if (!("Notification" in window)) {
-      toast.error("Notifications not supported in this browser");
-      return false;
-    }
-
+    if (!("Notification" in window)) return false;
     try {
       const result = await Notification.requestPermission();
       setPermission(result);
+      if (result === "granted") await subscribe(true);
       return result === "granted";
     } catch (error) {
       console.error("Error requesting permission:", error);
       return false;
     }
-  }, []);
+  }, [subscribe]);
 
-  // Convert VAPID key for use with push subscription
-  const urlBase64ToUint8Array = (base64String: string): ArrayBuffer => {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, "+")
-      .replace(/_/g, "/");
-    
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    
-    return outputArray.buffer as ArrayBuffer;
-  };
-
-  // Subscribe to push notifications
-  const subscribe = useCallback(async (forceRefresh = false): Promise<boolean> => {
-    if (!isSupported) {
-      toast.error("Push notifications not supported");
-      return false;
-    }
-
-    if (!user) {
-      toast.error("Please log in to enable notifications");
-      return false;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Request permission first
-      const granted = await requestPermission();
-      if (!granted) {
-        toast.error("Permission denied. Enable notifications in browser settings.");
-        return false;
-      }
-
-      // Register service worker if not already registered
-      let registration = await navigator.serviceWorker.getRegistration();
-      if (!registration) {
-        registration = await navigator.serviceWorker.register("/sw.js", {
-          scope: "/",
-        });
-        await navigator.serviceWorker.ready;
-      }
-
-      // If force refresh, unsubscribe existing first
-      if (forceRefresh) {
-        const existingSub = await getPushManager(registration).getSubscription();
-        if (existingSub) {
-          await existingSub.unsubscribe();
-          // Also remove from database
-          await supabase
-            .from("push_subscriptions")
-            .delete()
-            .eq("user_id", user.id);
-          console.log("Cleared existing subscription for refresh");
-        }
-      }
-
-      // Get VAPID public key from server
-      console.log("Fetching VAPID key from server...");
-      const { data: vapidData, error: vapidError } = await supabase.functions.invoke(
-        "push-notifications",
-        { body: { action: "get-vapid-key" } }
-      );
-
-      if (vapidError || !vapidData?.publicKey) {
-        console.error("VAPID key error:", vapidError || "No public key returned");
-        throw new Error("Failed to get push configuration");
-      }
-
-      console.log("VAPID key received, creating subscription...");
-
-      // Subscribe to push manager
-      const subscription = await getPushManager(registration).subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey),
-      });
-
-      const subscriptionJson = subscription.toJSON();
-
-      // Delete any existing subscriptions for this user first (prevent duplicates)
-      await supabase
-        .from("push_subscriptions")
-        .delete()
-        .eq("user_id", user.id);
-
-      // Save new subscription to database
-      const { error: dbError } = await supabase.from("push_subscriptions").insert({
-        user_id: user.id,
-        endpoint: subscriptionJson.endpoint!,
-        p256dh: subscriptionJson.keys!.p256dh,
-        auth: subscriptionJson.keys!.auth,
-      });
-
-      if (dbError) {
-        console.error("Database error:", dbError);
-        throw new Error("Failed to save subscription");
-      }
-
-      setIsSubscribed(true);
-      toast.success(forceRefresh ? "Push notifications refreshed!" : "Push notifications enabled!");
-      return true;
-    } catch (error: any) {
-      console.error("Subscribe error:", error);
-      toast.error(error.message || "Failed to enable notifications");
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isSupported, user, requestPermission]);
-
-  // Auto-heal: if backend flags this user for resubscribe (401/403), refresh their subscription.
+  // On load: if permission already granted, silently refresh the token so it
+  // stays valid and is tied to the current user.
   useEffect(() => {
-    const maybeAutoRefresh = async () => {
-      if (!isSupported || !user) return;
-      if (autoRefreshAttemptedRef.current) return;
-
-      const { data, error } = await supabase
-        .from("push_resubscribe_flags")
-        .select("reason, last_status_code")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error || !data) return;
-
-      // Only attempt once per page load (if it fails, user can still hit Refresh manually)
-      autoRefreshAttemptedRef.current = true;
-
-      // Only auto-refresh if permission is already granted
-      if (Notification.permission !== "granted") return;
-
-      console.log("Push resubscribe flag found; refreshing subscription...");
-      const ok = await subscribe(true);
-      if (ok) {
-        await supabase.from("push_resubscribe_flags").delete().eq("user_id", user.id);
-      } else {
-        // Allow a future attempt if subscription failed
-        autoRefreshAttemptedRef.current = false;
-      }
-    };
-
-    maybeAutoRefresh();
+    if (!isSupported || !user || silentSyncDone.current) return;
+    if (Notification.permission !== "granted") {
+      setIsSubscribed(false);
+      return;
+    }
+    silentSyncDone.current = true;
+    subscribe(true);
   }, [isSupported, user, subscribe]);
 
-  // Listen for refresh event from auth (auto-refresh on login)
+  // Auto-refresh on login event
   useEffect(() => {
-    const handleRefresh = async () => {
-      if (isSupported && user && Notification.permission === "granted") {
-        console.log("Auto-refreshing push subscription on login...");
-        await subscribe(true);
-      }
+    const handleRefresh = () => {
+      if (isSupported && user && Notification.permission === "granted") subscribe(true);
     };
-
     window.addEventListener("refresh-push-subscription", handleRefresh);
     return () => window.removeEventListener("refresh-push-subscription", handleRefresh);
   }, [isSupported, user, subscribe]);
 
-  // Unsubscribe from push notifications
   const unsubscribe = useCallback(async (): Promise<boolean> => {
-    if (!isSupported || !user) return false;
-
+    if (!user) return false;
     setIsLoading(true);
-
     try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await getPushManager(registration).getSubscription();
-
-      if (subscription) {
-        // Unsubscribe from browser
-        await subscription.unsubscribe();
-
-        // Remove from database
-        await supabase
-          .from("push_subscriptions")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("endpoint", subscription.endpoint);
-      }
-
+      const token = await disablePush();
+      if (token) await supabase.from("fcm_tokens").delete().eq("token", token);
       setIsSubscribed(false);
       toast.success("Push notifications disabled");
       return true;
@@ -289,7 +148,7 @@ export const usePushNotifications = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isSupported, user]);
+  }, [user]);
 
   return {
     isSupported,
@@ -301,3 +160,25 @@ export const usePushNotifications = () => {
     requestPermission,
   };
 };
+
+/** Mount once (e.g. in AppLayout) to surface foreground pushes as toasts. */
+export const useForegroundPushToasts = () => {
+  useEffect(() => {
+    let off: (() => void) | undefined;
+    onForegroundMessage((payload) => {
+      const d = payload.data || {};
+      const title = d.title || payload.notification?.title;
+      const body = d.body || payload.notification?.body;
+      if (!title && !body) return;
+      toast(title || "FelansFX", {
+        description: body,
+        action: d.url
+          ? { label: "Open", onClick: () => (window.location.href = d.url) }
+          : undefined,
+      });
+    }).then((unsub) => (off = unsub));
+    return () => off?.();
+  }, []);
+};
+
+export const hasLocalFcmToken = () => Boolean(localStorage.getItem(FCM_TOKEN_STORAGE_KEY));
