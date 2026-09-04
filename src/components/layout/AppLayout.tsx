@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { BottomNav } from "./BottomNav";
 import { cn } from "@/lib/utils";
 import { useBackgroundImage } from "@/hooks/useBackgroundImage";
+import { useForegroundPushToasts } from "@/hooks/usePushNotifications";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -11,6 +12,7 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children, hideNav = false, className }: AppLayoutProps) => {
   const { bgUrl } = useBackgroundImage();
+  useForegroundPushToasts();
   const isGradient = bgUrl?.startsWith("linear-gradient");
 
   return (

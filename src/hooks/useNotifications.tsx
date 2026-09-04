@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { hasLocalFcmToken } from "@/hooks/usePushNotifications";
 
 export interface Notification {
   id: string;
