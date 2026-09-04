@@ -1,11 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  ApplicationServer,
-  importVapidKeys,
-  Urgency,
-} from "jsr:@negrel/webpush";
-import { getVapidKeysAsJwk } from "../_shared/vapid.ts";
+import { sendPushNotifications } from "../_shared/push-helper.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,36 +28,6 @@ function formatUSD(amountNGN: number): string {
   return `$${usd.toFixed(2)}`;
 }
 
-// Initialize application server once
-let appServer: ApplicationServer | null = null;
-
-async function getAppServer(): Promise<ApplicationServer | null> {
-  if (appServer) return appServer;
-
-  // Get VAPID keys from env and convert to JWK
-  const jwkKeys = getVapidKeysAsJwk();
-  if (!jwkKeys) {
-    console.log("VAPID keys not configured, push notifications disabled");
-    return null;
-  }
-
-  try {
-    // Import VAPID keys in JWK format
-    const vapidKeys = await importVapidKeys(jwkKeys);
-
-    // Create application server
-    appServer = await ApplicationServer.new({
-      contactInformation: "mailto:admin@felansfx.com",
-      vapidKeys,
-    });
-
-    console.log("VAPID server initialized successfully for deposit notifications");
-    return appServer;
-  } catch (error) {
-    console.error("Failed to initialize VAPID:", error);
-    return null;
-  }
-}
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -230,89 +195,15 @@ serve(async (req) => {
       console.error("Error creating notification:", notifError);
     }
 
-    // ========== SEND PUSH NOTIFICATION ==========
-    let pushResult = { sent: 0, failed: 0, cleaned: 0 };
-
-    const server = await getAppServer();
-    
-    if (server) {
-      // Get user's push subscriptions
-      const { data: subscriptions, error: subError } = await supabase
-        .from("push_subscriptions")
-        .select("id, endpoint, p256dh, auth")
-        .eq("user_id", userId);
-
-      if (subError) {
-        console.error("Error fetching push subscriptions:", subError);
-      } else if (subscriptions && subscriptions.length > 0) {
-        console.log(`Found ${subscriptions.length} push subscription(s) for user ${userId}`);
-
-        const pushPayload = JSON.stringify({
-          title: notificationTitle,
-          body: notificationMessage,
-          icon: "/favicon-512.png",
-          url: "/deposit",
-        });
-
-        // Deduplicate by endpoint
-        const uniqueEndpoints = new Map<string, typeof subscriptions[0]>();
-        for (const sub of subscriptions) {
-          if (!uniqueEndpoints.has(sub.endpoint)) {
-            uniqueEndpoints.set(sub.endpoint, sub);
-          }
-        }
-
-        const expiredIds: string[] = [];
-
-        for (const [endpoint, sub] of uniqueEndpoints) {
-          try {
-            // Create subscriber using the library
-            const subscriber = server.subscribe({
-              endpoint: sub.endpoint,
-              keys: {
-                p256dh: sub.p256dh,
-                auth: sub.auth,
-              },
-            });
-
-            // Send push
-            await subscriber.pushTextMessage(pushPayload, {
-              urgency: Urgency.High,
-              ttl: 86400,
-            });
-
-            pushResult.sent++;
-            console.log(`Push sent to endpoint: ${endpoint.substring(0, 50)}...`);
-          } catch (error: unknown) {
-            pushResult.failed++;
-            const err = error as Error & { isGone?: () => boolean };
-            console.error(`Push failed for endpoint: ${endpoint.substring(0, 50)}... Error: ${err.message}`);
-            
-            // Check if subscription is gone
-            if (typeof err.isGone === "function" && err.isGone()) {
-              expiredIds.push(sub.id);
-            }
-          }
-        }
-
-        // Delete expired subscriptions
-        if (expiredIds.length > 0) {
-          const { error: deleteError } = await supabase
-            .from("push_subscriptions")
-            .delete()
-            .in("id", expiredIds);
-          
-          if (!deleteError) {
-            pushResult.cleaned = expiredIds.length;
-            console.log(`Cleaned up ${expiredIds.length} expired subscription(s)`);
-          }
-        }
-      } else {
-        console.log(`No push subscriptions found for user ${userId}`);
-      }
-    } else {
-      console.log("Push notifications not configured");
-    }
+    // ========== SEND PUSH NOTIFICATION (FCM) ==========
+    // In-app notification already inserted above, so skip creating another.
+    const pushResult = await sendPushNotifications({
+      userIds: [userId],
+      title: notificationTitle,
+      message: notificationMessage,
+      url: "/deposit",
+      createInApp: false,
+    });
 
     // Build mailto: URL for native email app
     const mailtoUrl = `mailto:${encodeURIComponent(userEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
