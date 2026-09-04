@@ -35,9 +35,9 @@ serve(async (req) => {
       .select("user_id, preferred_pairs")
       .eq(prefColumn, true);
 
-    // Get all subscribed users (those without preferences get all notifications by default)
+    // Get all users with a registered device (those without preferences get all notifications by default)
     const { data: allSubs } = await supabase
-      .from("push_subscriptions")
+      .from("fcm_tokens")
       .select("user_id");
 
     const allSubUserIds = [...new Set(allSubs?.map(s => s.user_id) || [])];

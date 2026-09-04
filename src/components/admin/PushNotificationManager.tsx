@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Send, Users, Trash2, RefreshCw, AlertTriangle, CheckCircle } from "lucide-react";
+import { Bell, Send, Users, Trash2, RefreshCw, AlertTriangle, CheckCircle, Smartphone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,16 +9,20 @@ import { supabase } from "@/lib/supabase";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 
-interface Subscriber {
+interface DeviceRow {
   id: string;
   user_id: string;
-  endpoint: string;
+  token: string;
+  platform: string;
   created_at: string;
-  profile?: {
-    full_name: string | null;
-    email: string | null;
-    display_id: string | null;
-  };
+  last_seen_at: string;
+}
+
+interface Subscriber {
+  user_id: string;
+  devices: number;
+  latest: string;
+  profile?: { full_name: string | null; email: string | null; display_id: string | null } | null;
 }
 
 interface DeliveryLog {
@@ -33,75 +37,64 @@ interface DeliveryLog {
 
 export const PushNotificationManager = () => {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [deviceCount, setDeviceCount] = useState(0);
   const [deliveryLogs, setDeliveryLogs] = useState<DeliveryLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [testingVapid, setTestingVapid] = useState(false);
-  const [vapidStatus, setVapidStatus] = useState<"unknown" | "valid" | "invalid">("unknown");
-  const [notificationForm, setNotificationForm] = useState({
-    title: "",
-    message: "",
-  });
+  const [checking, setChecking] = useState(false);
+  const [fcmStatus, setFcmStatus] = useState<"unknown" | "valid" | "invalid">("unknown");
+  const [form, setForm] = useState({ title: "", message: "" });
 
   useEffect(() => {
     fetchSubscribers();
     fetchDeliveryLogs();
-    testVapidConfig();
+    checkFcm();
   }, []);
 
-  const testVapidConfig = async () => {
-    setTestingVapid(true);
+  const checkFcm = async () => {
+    setChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke("push-notifications", {
-        body: { action: "get-vapid-key" },
+        body: { action: "status" },
       });
-      
-      if (error || !data?.publicKey) {
-        setVapidStatus("invalid");
-        console.error("VAPID test failed:", error);
-      } else {
-        setVapidStatus("valid");
-        console.log("VAPID public key:", data.publicKey.substring(0, 20) + "...");
-      }
-    } catch (error) {
-      console.error("VAPID test error:", error);
-      setVapidStatus("invalid");
+      setFcmStatus(!error && data?.configured ? "valid" : "invalid");
+    } catch {
+      setFcmStatus("invalid");
     } finally {
-      setTestingVapid(false);
+      setChecking(false);
     }
   };
 
   const fetchSubscribers = async () => {
     try {
       const { data, error } = await supabase
-        .from("push_subscriptions")
-        .select("*")
-        .order("created_at", { ascending: false });
-
+        .from("fcm_tokens")
+        .select("id, user_id, token, platform, created_at, last_seen_at")
+        .order("last_seen_at", { ascending: false });
       if (error) throw error;
 
-      // Deduplicate by user_id (keep only the most recent subscription per user)
-      const uniqueByUser = new Map<string, typeof data[0]>();
-      for (const sub of data || []) {
-        if (!uniqueByUser.has(sub.user_id)) {
-          uniqueByUser.set(sub.user_id, sub);
+      const rows = (data || []) as DeviceRow[];
+      setDeviceCount(rows.length);
+
+      const byUser = new Map<string, Subscriber>();
+      for (const r of rows) {
+        const existing = byUser.get(r.user_id);
+        if (existing) existing.devices += 1;
+        else byUser.set(r.user_id, { user_id: r.user_id, devices: 1, latest: r.last_seen_at });
+      }
+
+      const userIds = [...byUser.keys()];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, email, display_id")
+          .in("user_id", userIds);
+        for (const p of profiles || []) {
+          const s = byUser.get(p.user_id);
+          if (s) s.profile = p;
         }
       }
-      const uniqueData = [...uniqueByUser.values()];
-
-      // Fetch profiles for each unique subscriber
-      const subscribersWithProfiles = await Promise.all(
-        uniqueData.map(async (sub) => {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name, email, display_id")
-            .eq("user_id", sub.user_id)
-            .maybeSingle();
-          return { ...sub, profile };
-        })
-      );
-
-      setSubscribers(subscribersWithProfiles);
+      setSubscribers([...byUser.values()]);
     } catch (error) {
       console.error("Error fetching subscribers:", error);
     } finally {
@@ -110,146 +103,40 @@ export const PushNotificationManager = () => {
   };
 
   const fetchDeliveryLogs = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("push_delivery_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      setDeliveryLogs(data || []);
-    } catch (error) {
-      console.error("Error fetching delivery logs:", error);
-    }
+    const { data } = await supabase
+      .from("push_delivery_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setDeliveryLogs((data || []) as DeliveryLog[]);
   };
 
-  const handleRemoveSubscriber = async (id: string, userId: string) => {
-    try {
-      // Remove ALL subscriptions for this user (clean up duplicates)
-      const { error } = await supabase
-        .from("push_subscriptions")
-        .delete()
-        .eq("user_id", userId);
-
-      if (error) throw error;
-
-      toast.success("All subscriptions for this user removed");
-      fetchSubscribers();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to remove subscriber");
-    }
+  const handleRemoveSubscriber = async (userId: string) => {
+    const { error } = await supabase.from("fcm_tokens").delete().eq("user_id", userId);
+    if (error) return toast.error(error.message);
+    toast.success("Devices removed for this user");
+    fetchSubscribers();
   };
 
-  const handleCleanupDuplicates = async () => {
-    try {
-      // Get all subscriptions grouped by user
-      const { data, error } = await supabase
-        .from("push_subscriptions")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Find duplicates (keep only the most recent per user)
-      const userLatest = new Map<string, string>();
-      const toDelete: string[] = [];
-
-      for (const sub of data || []) {
-        if (!userLatest.has(sub.user_id)) {
-          userLatest.set(sub.user_id, sub.id);
-        } else {
-          // This is a duplicate, mark for deletion
-          toDelete.push(sub.id);
-        }
-      }
-
-      if (toDelete.length > 0) {
-        const { error: delError } = await supabase
-          .from("push_subscriptions")
-          .delete()
-          .in("id", toDelete);
-
-        if (delError) throw delError;
-
-        toast.success(`Removed ${toDelete.length} duplicate subscription(s)`);
-        fetchSubscribers();
-      } else {
-        toast.info("No duplicates found");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Cleanup failed");
-    }
-  };
-
-  const handleRefreshAllSubscriptions = async () => {
-    try {
-      // Flag all users to re-subscribe
-      const { error } = await supabase
-        .from("push_resubscribe_flags")
-        .upsert(
-          subscribers.map((s) => ({
-            user_id: s.user_id,
-            reason: "admin_requested_refresh",
-          })),
-          { onConflict: "user_id" }
-        );
-
-      if (error) throw error;
-
-      toast.success(
-        "Refresh flags set! Users will be prompted to re-subscribe when they visit the app."
-      );
-    } catch (error: any) {
-      toast.error(error.message || "Failed to set refresh flags");
-    }
-  };
-
-  const handleSendNotification = async () => {
-    if (!notificationForm.title || !notificationForm.message) {
-      toast.error("Please fill in both title and message");
-      return;
-    }
-
-    if (subscribers.length === 0) {
-      toast.error("No subscribers to send notifications to");
-      return;
-    }
-
+  const handleSend = async () => {
+    if (!form.title || !form.message) return toast.error("Please fill in both title and message");
+    if (deviceCount === 0) return toast.error("No devices to send to");
     setSending(true);
-
     try {
-      // Call the send-push edge function to send real push notifications
       const { data, error } = await supabase.functions.invoke("send-push", {
-        body: {
-          title: notificationForm.title,
-          message: notificationForm.message,
-          url: "/notifications",
-        },
+        body: { title: form.title, message: form.message, url: "/notifications" },
       });
-
       if (error) throw error;
-
-      const result = data as { sent: number; total: number; failed: number; expired?: number };
-      
-      // Refresh logs after sending
-      setTimeout(fetchDeliveryLogs, 2000);
-      
-      if (result.failed > 0 && result.sent === 0) {
-        toast.warning(
-          `Push failed to ${result.failed} subscriber(s). They may need to refresh their subscription in Profile settings.`,
-          { duration: 6000 }
-        );
-      } else if (result.expired && result.expired > 0) {
-        toast.info(`Cleaned up ${result.expired} expired subscription(s)`);
+      const r = data as { sent: number; total: number; failed: number; expired?: number };
+      setTimeout(fetchDeliveryLogs, 1500);
+      if (r.expired) {
+        toast.info(`Removed ${r.expired} stale device(s)`);
         fetchSubscribers();
       }
-      
-      toast.success(`Push notification sent to ${result.sent} of ${result.total} subscribers`);
-      setNotificationForm({ title: "", message: "" });
+      toast.success(`Sent to ${r.sent} of ${r.total} device(s)`);
+      setForm({ title: "", message: "" });
     } catch (error: any) {
-      console.error("Push notification error:", error);
-      toast.error(error.message || "Failed to send notifications");
+      toast.error(error.message || "Failed to send");
     } finally {
       setSending(false);
     }
@@ -265,35 +152,35 @@ export const PushNotificationManager = () => {
 
   return (
     <div className="space-y-4">
-      {/* VAPID Status */}
       <Card className="border-0 shadow-md">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            {testingVapid ? (
+          <CardTitle className="text-sm flex items-center gap-2 flex-wrap">
+            {checking ? (
               <LoadingSpinner size="sm" />
-            ) : vapidStatus === "valid" ? (
-              <CheckCircle className="w-4 h-4 text-green-500" />
+            ) : fcmStatus === "valid" ? (
+              <CheckCircle className="w-4 h-4 text-primary" />
             ) : (
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              <AlertTriangle className="w-4 h-4 text-destructive" />
             )}
-            VAPID Configuration: {vapidStatus === "valid" ? "Valid ✓" : vapidStatus === "invalid" ? "Invalid ✗" : "Checking..."}
+            Firebase Cloud Messaging: {fcmStatus === "valid" ? "Connected" : fcmStatus === "invalid" ? "Not configured" : "Checking..."}
+            <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={checkFcm}>
+              <RefreshCw className="w-3 h-3" />
+            </Button>
           </CardTitle>
         </CardHeader>
-        {vapidStatus === "invalid" && (
+        {fcmStatus === "invalid" && (
           <CardContent className="pt-0">
             <p className="text-xs text-destructive">
-              VAPID keys may be misconfigured. Push notifications will not work. Check Supabase secrets.
+              The Firebase connection is missing. Reconnect it from the project's connectors.
             </p>
           </CardContent>
         )}
       </Card>
 
-      {/* Send Notification Card */}
       <Card className="border-0 shadow-md">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Send className="w-5 h-5" />
-            Send Push Notification
+            <Send className="w-5 h-5" /> Send Push Notification
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -301,47 +188,43 @@ export const PushNotificationManager = () => {
             <Label>Title</Label>
             <Input
               placeholder="Notification title"
-              value={notificationForm.title}
-              onChange={(e) =>
-                setNotificationForm({ ...notificationForm, title: e.target.value })
-              }
+              maxLength={120}
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
           </div>
           <div className="space-y-2">
             <Label>Message</Label>
             <Textarea
               placeholder="Notification message"
-              value={notificationForm.message}
-              onChange={(e) =>
-                setNotificationForm({ ...notificationForm, message: e.target.value })
-              }
+              maxLength={1000}
+              value={form.message}
+              onChange={(e) => setForm({ ...form, message: e.target.value })}
               rows={3}
             />
           </div>
           <Button
             className="w-full gradient-primary"
-            onClick={handleSendNotification}
-            disabled={sending || subscribers.length === 0 || vapidStatus !== "valid"}
+            onClick={handleSend}
+            disabled={sending || deviceCount === 0 || fcmStatus !== "valid"}
           >
             {sending ? (
               <LoadingSpinner size="sm" />
             ) : (
               <>
                 <Bell className="w-4 h-4 mr-2" />
-                Send to {subscribers.length} Subscriber{subscribers.length !== 1 ? "s" : ""}
+                Send to {subscribers.length} user{subscribers.length !== 1 ? "s" : ""} ({deviceCount} device{deviceCount !== 1 ? "s" : ""})
               </>
             )}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Recent Delivery Logs */}
       {deliveryLogs.length > 0 && (
         <Card className="border-0 shadow-md">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
-              Recent Delivery Logs
+              <AlertTriangle className="w-5 h-5" /> Recent Delivery Logs
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -350,18 +233,18 @@ export const PushNotificationManager = () => {
                 <div
                   key={log.id}
                   className={`text-xs p-2 rounded ${
-                    log.status_code === 201
-                      ? "bg-green-500/10 text-green-700"
+                    log.status_code === 200 || log.status_code === 201
+                      ? "bg-primary/10 text-primary"
                       : log.is_gone
-                      ? "bg-amber-500/10 text-amber-700"
-                      : "bg-red-500/10 text-red-700"
+                      ? "bg-accent/40 text-accent-foreground"
+                      : "bg-destructive/10 text-destructive"
                   }`}
                 >
-                  <div className="flex justify-between">
-                    <span>{log.title || "Notification"}</span>
-                    <span>Status: {log.status_code || "N/A"}</span>
+                  <div className="flex justify-between gap-2">
+                    <span className="truncate">{log.title || "Notification"}</span>
+                    <span className="shrink-0">Status: {log.status_code ?? "N/A"}</span>
                   </div>
-                  {log.error && <p className="mt-1 opacity-80">{log.error}</p>}
+                  {log.error && <p className="mt-1 opacity-80 break-words">{log.error}</p>}
                   <p className="opacity-60">{new Date(log.created_at).toLocaleString()}</p>
                 </div>
               ))}
@@ -370,65 +253,37 @@ export const PushNotificationManager = () => {
         </Card>
       )}
 
-      {/* Subscribers List */}
       <Card className="border-0 shadow-md">
         <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Push Subscribers ({subscribers.length})
+            <Users className="w-5 h-5" /> Subscribed Users ({subscribers.length})
           </CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefreshAllSubscriptions}
-            >
-              <RefreshCw className="w-4 h-4 mr-1" />
-              Flag Refresh
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCleanupDuplicates}
-            >
-              Cleanup
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={fetchSubscribers}>
+            <RefreshCw className="w-4 h-4 mr-1" /> Refresh
+          </Button>
         </CardHeader>
         <CardContent>
           {subscribers.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No subscribers yet. Users can enable push notifications from their profile.
+            <p className="text-center text-muted-foreground py-8 text-sm">
+              No devices registered yet. Users can enable push notifications from their profile.
             </p>
           ) : (
             <div className="space-y-3">
-              {subscribers.map((subscriber) => (
-                <div
-                  key={subscriber.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {subscriber.profile?.full_name || "Unknown User"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {subscriber.profile?.email || "No email"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      ID: {subscriber.profile?.display_id || "N/A"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Subscribed: {new Date(subscriber.created_at).toLocaleDateString()}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground/70 truncate max-w-[200px]">
-                      {subscriber.endpoint.replace("https://", "").split("/")[0]}
+              {subscribers.map((s) => (
+                <div key={s.user_id} className="flex items-center justify-between gap-2 p-3 rounded-lg bg-muted/50">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{s.profile?.full_name || "Unknown User"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{s.profile?.email || "No email"}</p>
+                    <p className="text-xs text-muted-foreground">ID: {s.profile?.display_id || "N/A"}</p>
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                      <Smartphone className="w-3 h-3" /> {s.devices} device{s.devices !== 1 ? "s" : ""} · seen {new Date(s.latest).toLocaleDateString()}
                     </p>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => handleRemoveSubscriber(subscriber.id, subscriber.user_id)}
+                    className="text-destructive hover:text-destructive shrink-0"
+                    onClick={() => handleRemoveSubscriber(s.user_id)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
