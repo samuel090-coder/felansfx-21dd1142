@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import {
+import { requestNavigation } from "@/hooks/useDeepLinks";
   enablePush,
   disablePush,
   isFcmConfigured,
@@ -173,7 +174,7 @@ export const useForegroundPushToasts = () => {
       toast(title || "FelansFX", {
         description: body,
         action: d.url
-          ? { label: "Open", onClick: () => (window.location.href = d.url) }
+          ? { label: "Open", onClick: () => requestNavigation(d.url) }
           : undefined,
       });
     }).then((unsub) => (off = unsub));

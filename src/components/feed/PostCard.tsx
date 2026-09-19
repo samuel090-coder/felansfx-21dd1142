@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { sendEmail } from "@/lib/sendEmail";
 import { cn } from "@/lib/utils";
+import { shareLink } from "@/lib/platform";
+import { buildLink } from "@/config/app";
 
 async function notifyPostAuthor(type: "post_liked" | "post_commented", postUserId: string, fromUserId: string, postId: string, extra: Record<string, any> = {}) {
   if (postUserId === fromUserId) return;
@@ -102,10 +104,10 @@ export const PostCard = ({ post, onRefresh, isAdmin = false }: Props) => {
     setCommentText(""); loadComments();
   };
 
-  const handleShare = () => {
-    const url = `${window.location.origin}/feed`;
-    if (navigator.share) navigator.share({ title: "Check this trade post!", url });
-    else { navigator.clipboard.writeText(url); toast.success("Link copied!"); }
+  const handleShare = async () => {
+    const result = await shareLink({ title: "Check this trade post!", url: buildLink("/feed") });
+    if (result === "copied") toast.success("Link copied!");
+    else if (result === "failed") toast.error("Couldn't share this post");
   };
 
   const toggleHidden = async () => {

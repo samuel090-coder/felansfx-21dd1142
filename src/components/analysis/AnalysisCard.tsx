@@ -1,6 +1,7 @@
 import { Copy, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { copyText } from "@/lib/platform";
 
 interface AnalysisCardProps {
   label: string;
@@ -31,7 +32,7 @@ export const AnalysisCard = ({
   className,
 }: AnalysisCardProps) => {
   const handleCopy = () => {
-    navigator.clipboard.writeText(value);
+    copyText(value);
     toast.success("Copied to clipboard");
   };
 

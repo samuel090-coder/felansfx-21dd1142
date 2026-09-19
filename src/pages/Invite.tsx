@@ -6,17 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { shareLink, copyText } from "@/lib/platform";
+import { buildLink } from "@/config/app";
 
 const Invite = () => {
   const { user } = useAuth();
   const [copied, setCopied] = useState(false);
   
   const referralCode = user?.id?.slice(0, 8).toUpperCase() || "SHARE123";
-  const referralLink = `https://felansfx.lovable.app?ref=${referralCode}`;
+  const referralLink = buildLink("/", { ref: referralCode });
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(referralLink);
+      if (!(await copyText(referralLink))) throw new Error("copy failed");
       setCopied(true);
       toast.success("Link copied to clipboard!");
       setTimeout(() => setCopied(false), 2000);
@@ -26,19 +28,13 @@ const Invite = () => {
   };
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Join FelansFX Trading",
-          text: "Start trading smarter with AI-powered chart analysis. Join me on FelansFX!",
-          url: referralLink,
-        });
-      } catch (err) {
-        // User cancelled share
-      }
-    } else {
-      handleCopy();
-    }
+    const result = await shareLink({
+      title: "Join FelansFX Trading",
+      text: "Start trading smarter with AI-powered chart analysis. Join me on FelansFX!",
+      url: referralLink,
+    });
+    if (result === "copied") toast.success("Link copied to clipboard!");
+    else if (result === "failed") toast.error("Failed to share link");
   };
 
   return (

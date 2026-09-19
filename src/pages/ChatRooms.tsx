@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Plus, Users, Share2, Lock, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { shareLink } from "@/lib/platform";
+import { buildLink } from "@/config/app";
 
 const ChatRooms = () => {
   const { user } = useAuth();
@@ -127,14 +129,10 @@ const ChatRooms = () => {
     setJoiningRoom(null);
   };
 
-  const shareRoom = (room: any) => {
-    const url = `${window.location.origin}/chat/${room.id}`;
-    if (navigator.share) {
-      navigator.share({ title: `Join ${room.name} on FelansFX`, url });
-    } else {
-      navigator.clipboard.writeText(url);
-      toast.success("Room link copied!");
-    }
+  const shareRoom = async (room: any) => {
+    const result = await shareLink({ title: `Join ${room.name} on FelansFX`, url: buildLink(`/chat/${room.id}`) });
+    if (result === "copied") toast.success("Room link copied!");
+    else if (result === "failed") toast.error("Couldn't share this room");
   };
 
   const getJoinLabel = (room: any) => {
