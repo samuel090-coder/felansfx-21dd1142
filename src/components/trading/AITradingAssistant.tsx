@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Bot, TrendingUp, TrendingDown, Zap, Lock, Loader2, RefreshCw, Crown, Calendar, Infinity as InfinityIcon, Upload, Copy, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { VirtualAccountCheckout } from "@/components/payments/VirtualAccountCheckout";
+import { copyText } from "@/lib/platform";
 
 interface AISignal {
   symbol: string;
@@ -190,7 +191,7 @@ export const AITradingAssistant = ({
     setPurchaseLoading(null);
   };
 
-  const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("Copied"); };
+  const copy = async (t: string) => { await copyText(t); toast.success("Copied"); };
 
   const loadSignals = async () => {
     if (!user) return;

@@ -16,6 +16,8 @@ import { formatDistanceToNow } from "date-fns";
 import { usePriceSimulation } from "@/hooks/usePriceSimulation";
 import { useWallet } from "@/hooks/useWallet";
 import JackpotWheel from "@/components/chat/JackpotWheel";
+import { shareLink, copyText, openExternal } from "@/lib/platform";
+import { buildLink } from "@/config/app";
 
 const SYMBOLS = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "NAS100", "BTCUSD", "ETHUSD", "XAGUSD"];
 
@@ -265,10 +267,10 @@ const ChatRoom = () => {
     loadMembers();
   };
 
-  const shareRoom = () => {
-    const url = `${window.location.origin}/chat/${roomId}`;
-    if (navigator.share) navigator.share({ title: `Join ${room?.name} on FelansFX`, url });
-    else { navigator.clipboard.writeText(url); toast.success("Room link copied!"); }
+  const shareRoom = async () => {
+    const result = await shareLink({ title: `Join ${room?.name} on FelansFX`, url: buildLink(`/chat/${roomId}`) });
+    if (result === "copied") toast.success("Room link copied!");
+    else if (result === "failed") toast.error("Couldn't share this room");
   };
 
   // Signal generation
@@ -474,7 +476,7 @@ const ChatRoom = () => {
                   alt="Shared image"
                   className="w-full max-w-[260px] rounded-t-2xl object-cover cursor-pointer"
                   style={{ maxHeight: 300 }}
-                  onClick={() => window.open(msg.media_url, "_blank")}
+                  onClick={() => openExternal(msg.media_url)}
                 />
                 {msg.content && <p className="px-3 py-1.5 text-xs">{msg.content}</p>}
               </div>
@@ -511,7 +513,7 @@ const ChatRoom = () => {
                     <Zap className="w-3 h-3 text-primary" />
                     <span className="text-[10px] font-bold text-primary">LIVE SIGNAL</span>
                     {msg.signal_data?.code && (
-                      <button onClick={() => { navigator.clipboard.writeText(msg.signal_data.code); toast.success("Code copied!"); }} className="ml-auto flex items-center gap-0.5 text-[10px] text-primary">
+                      <button onClick={async () => { await copyText(msg.signal_data.code); toast.success("Code copied!"); }} className="ml-auto flex items-center gap-0.5 text-[10px] text-primary">
                         <Copy className="w-3 h-3" /> {msg.signal_data.code}
                       </button>
                     )}

@@ -57,6 +57,7 @@ import { KYCManager } from "@/components/admin/KYCManager";
 import { ReportsManager } from "@/components/admin/ReportsManager";
 import { AccessPayments } from "@/components/admin/AccessPayments";
 import { AIBotPurchases } from "@/components/admin/AIBotPurchases";
+import { openExternal } from "@/lib/platform";
 
 
 interface PendingDeposit {
@@ -261,7 +262,7 @@ const Admin = () => {
 
       // Open native email app with mailto: link (works on mobile!)
       if (notifResult?.mailtoUrl) {
-        window.location.href = notifResult.mailtoUrl;
+        openExternal(notifResult.mailtoUrl);
       }
 
       fetchDeposits();

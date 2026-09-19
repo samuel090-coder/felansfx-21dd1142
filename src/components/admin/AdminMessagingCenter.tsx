@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { openExternal } from "@/lib/platform";
 
 interface UserProfile {
   id: string;
@@ -317,7 +318,7 @@ export const AdminMessagingCenter = () => {
           messageForm.subject
         )}&body=${encodeURIComponent(processTemplate(messageForm.body, "Valued Trader"))}`;
         
-        window.open(mailtoUrl, "_blank");
+        openExternal(mailtoUrl);
         toast.success(`Opening email for ${usersWithEmail.length} recipients`);
       } else {
         // Send to single user
@@ -333,7 +334,7 @@ export const AdminMessagingCenter = () => {
           messageForm.subject
         )}&body=${encodeURIComponent(processTemplate(messageForm.body, userName))}`;
         
-        window.open(mailtoUrl, "_blank");
+        openExternal(mailtoUrl);
         toast.success(`Opening email for ${user.full_name || user.email}`);
       }
 

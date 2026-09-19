@@ -29,6 +29,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
 import { sendEmail } from "@/lib/sendEmail";
 import { AccessInvocations } from "./AccessInvocations";
+import { openExternal } from "@/lib/platform";
 
 interface UserProfile {
   id: string;
@@ -214,7 +215,7 @@ export const UserManagement = () => {
       toast.error("User has no email");
       return;
     }
-    window.open(`mailto:${email}`, "_blank");
+    openExternal(`mailto:${email}`);
   };
 
   const handleOpenWelcomeMessage = (user: UserProfile) => {
@@ -232,7 +233,7 @@ export const UserManagement = () => {
     const { subject, body } = generateWelcomeMessage(userName);
     
     const mailtoUrl = `mailto:${welcomeTarget.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoUrl, "_blank");
+    openExternal(mailtoUrl);
     
     setWelcomeDialogOpen(false);
     setWelcomeTarget(null);

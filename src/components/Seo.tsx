@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { APP_URL } from "@/config/app";
 
 interface SeoProps {
   title: string;
@@ -8,7 +9,7 @@ interface SeoProps {
   jsonLd?: Record<string, any> | Record<string, any>[];
 }
 
-const SITE = "https://felansfx.lovable.app";
+const SITE = APP_URL;
 
 export const Seo = ({ title, description, path, type = "website", jsonLd }: SeoProps) => {
   const url = `${SITE}${path}`;

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import {
+import { copyText } from "@/lib/platform";
   Building2,
   Check,
   CheckCircle2,
@@ -136,7 +137,7 @@ export const VirtualAccountCheckout = ({
 
   const copy = useCallback(async (label: string, value: string) => {
     try {
-      await navigator.clipboard.writeText(value);
+      if (!(await copyText(value))) throw new Error("copy failed");
     } catch {
       /* clipboard blocked — still treat as acknowledged */
     }

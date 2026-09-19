@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { shareLink, copyText } from "@/lib/platform";
+import { buildLink } from "@/config/app";
 
 interface TradeRecord {
   id: string;
@@ -57,15 +59,12 @@ const TradeDetail = () => {
   }, [id]);
 
   const isWin = trade && trade.pnl > 0;
-  const shareLink = `${window.location.origin}/trade/${id}`;
+  const tradeUrl = buildLink(`/trade/${id}`);
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({ title: `Trade on ${trade?.symbol}`, url: shareLink });
-    } else {
-      navigator.clipboard.writeText(shareLink);
-      toast.success("Link copied!");
-    }
+  const handleShare = async () => {
+    const result = await shareLink({ title: `Trade on ${trade?.symbol}`, url: tradeUrl });
+    if (result === "copied") toast.success("Link copied!");
+    else if (result === "failed") toast.error("Couldn't share this trade");
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" /></div>;
@@ -132,7 +131,7 @@ const TradeDetail = () => {
           <Button className="flex-1" onClick={handleShare}>
             <Share2 className="w-4 h-4 mr-2" /> Share Trade
           </Button>
-          <Button variant="outline" className="flex-1" onClick={() => { navigator.clipboard.writeText(shareLink); toast.success("Copied!"); }}>
+          <Button variant="outline" className="flex-1" onClick={async () => { (await copyText(tradeUrl)) ? toast.success("Copied!") : toast.error("Copy failed"); }}>
             <Copy className="w-4 h-4 mr-2" /> Copy Link
           </Button>
         </div>
